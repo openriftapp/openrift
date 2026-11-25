@@ -33,7 +33,7 @@ function DraftImageThumb({ image }: { image: DraftImage }) {
   );
 }
 
-export function draftImageLabel(image: DraftImage): string {
+function draftImageLabel(image: DraftImage): string {
   if (image.kind === "file") {
     return image.file.name;
   }

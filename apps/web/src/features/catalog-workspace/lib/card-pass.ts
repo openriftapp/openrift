@@ -35,7 +35,7 @@ import {
   submissionChangeCount,
 } from "@/features/catalog-workspace/lib/suggestion-rows";
 
-export interface PassFace {
+interface PassFace {
   face: AdminPrintingResponse;
   model: FaceSuggestionModel;
   uploads: AdminPrintingImageResponse[];
@@ -43,7 +43,7 @@ export interface PassFace {
   pending: boolean;
 }
 
-export interface PassPrinting {
+interface PassPrinting {
   printing: AdminPrintingResponse;
   model: PrintingSuggestionModel;
   pending: boolean;
@@ -70,7 +70,7 @@ export interface CardPassModel {
   dismiss: PassDismiss;
 }
 
-export function faceImageWork(model: FaceSuggestionModel): {
+function faceImageWork(model: FaceSuggestionModel): {
   uploads: AdminPrintingImageResponse[];
   failedRehosts: AdminPrintingImageResponse[];
   pending: boolean;
@@ -340,7 +340,7 @@ export function imageOrigin(
   return `From ${URL.canParse(url) ? new URL(url).hostname : url}`;
 }
 
-export function isWebUrl(url: string): boolean {
+function isWebUrl(url: string): boolean {
   return url.startsWith("http://") || url.startsWith("https://");
 }
 

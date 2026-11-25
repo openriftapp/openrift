@@ -100,7 +100,7 @@ describe.skipIf(!ctx)("cardBansRepo.listForCards (integration)", () => {
       .where("cardId", "=", cardId)
       .execute();
 
-    expect(await cardBansRepo(db).unban(cardId, CONSTRUCTED, null)).toBe(true);
+    expect(await cardBansRepo(db).unban(cardId, CONSTRUCTED, null)).toBe("deleted");
     const rows = await db
       .selectFrom("cardBans")
       .select("id")

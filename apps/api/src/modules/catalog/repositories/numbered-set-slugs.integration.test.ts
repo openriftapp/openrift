@@ -56,7 +56,6 @@ describe.skipIf(!ctx)("set legality ignores overnumbered faces (integration)", (
   afterAll(async () => {
     if (cardId) {
       await deletePrintingsByFace(db, "cardId", "=", cardId);
-      await db.deleteFrom("cardCardTypes").where("cardId", "=", cardId).execute();
       await db.deleteFrom("cards").where("id", "=", cardId).execute();
     }
     if (setIds.length > 0) {

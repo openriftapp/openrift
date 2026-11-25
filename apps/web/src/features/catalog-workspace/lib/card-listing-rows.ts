@@ -13,9 +13,9 @@ import { collectEntries } from "@/features/admin/lib/marketplace-product-entries
 import type { PrintingAssignment } from "@/features/admin/lib/printing-assignment";
 import { emptyAssignmentsByMarketplace } from "@/features/admin/lib/printing-assignment";
 
-export type ListingStrength = "strong" | "weak" | "possible";
+type ListingStrength = "strong" | "weak" | "possible";
 
-export type RowSuggestion = ProductSuggestion & { printing: UnifiedMappingPrintingResponse };
+type RowSuggestion = ProductSuggestion & { printing: UnifiedMappingPrintingResponse };
 
 interface ListingSuggestion {
   printing: UnifiedMappingPrintingResponse;
