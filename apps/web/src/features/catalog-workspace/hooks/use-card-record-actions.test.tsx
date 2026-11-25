@@ -11,7 +11,7 @@ import type {
 } from "@/features/catalog-workspace/lib/suggestion-rows";
 import { buildCardSuggestions } from "@/features/catalog-workspace/lib/suggestion-rows";
 import { resetWorkspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
-import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
+import { useWorkspaceUndoStore } from "@/features/catalog-workspace/stores/workspace-undo-store";
 import {
   makeAdminCard,
   makeAdminCardDetail,
@@ -55,7 +55,7 @@ let resetStore: () => void;
 
 beforeEach(() => {
   resetIdCounter();
-  resetStore = createStoreResetter(useWorkspaceSelectionStore);
+  resetStore = createStoreResetter(useWorkspaceUndoStore);
   mutations.acceptCardField = fakeMutation();
   mutations.acceptCardField.mutateAsync.mockResolvedValue({ written: true });
   mutations.acceptSubmission = fakeMutation();
@@ -86,7 +86,7 @@ function source(overrides: Parameters<typeof makeCandidateCard>[0] = {}) {
 function setup(sources: ReturnType<typeof makeCandidateCard>[]) {
   const detail = makeAdminCardDetail({ card, sources });
   const submissions = buildAttentionSubmissions(detail, []);
-  const model = buildCardSuggestions(detail, [], submissions);
+  const model = buildCardSuggestions(detail, submissions);
   const hook = renderHook(() => useCardRecordActions({ cardSlug: "jinx", detail, submissions }), {
     wrapper,
   });
@@ -94,7 +94,9 @@ function setup(sources: ReturnType<typeof makeCandidateCard>[]) {
 }
 
 function mightSuggestion(model: CardSuggestions): FieldSuggestion {
-  const suggestion = model.suggestions.find((entry) => entry.field === "might");
+  const suggestion = model.rows
+    .flatMap((row) => row.suggestions)
+    .find((entry) => entry.field === "might");
   if (suggestion === undefined) {
     throw new Error("expected a Might suggestion");
   }
@@ -106,7 +108,7 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 function latest() {
-  return useWorkspaceSelectionStore.getState().undoStack.at(-1);
+  return useWorkspaceUndoStore.getState().undoStack.at(-1);
 }
 
 const { signal } = new AbortController();
@@ -116,7 +118,7 @@ describe("useCardRecordActions", () => {
     const { result, model } = setup([source({ might: 3 })]);
 
     act(() => {
-      void result.current.applySuggestion(mightSuggestion(model));
+      void result.current.apply(mightSuggestion(model));
     });
 
     await vi.waitFor(() =>
@@ -143,7 +145,7 @@ describe("useCardRecordActions", () => {
   it("toast Undo removes its own entry, not the newest, and runs once", async () => {
     const { result, model } = setup([source({ might: 3 })]);
     act(() => {
-      void result.current.applySuggestion(mightSuggestion(model));
+      void result.current.apply(mightSuggestion(model));
     });
     await vi.waitFor(() => expect(toast.success).toHaveBeenCalled());
     const [[, options]] = vi.mocked(toast.success).mock.calls.slice(-1) as unknown as [
@@ -155,14 +157,12 @@ describe("useCardRecordActions", () => {
       invalidates: [],
       undo: vi.fn(() => Promise.resolve()),
     };
-    useWorkspaceSelectionStore.getState().pushUndo(later);
+    useWorkspaceUndoStore.getState().pushUndo(later);
 
     options.action.onClick();
     options.action.onClick();
 
-    await vi.waitFor(() =>
-      expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([later]),
-    );
+    await vi.waitFor(() => expect(useWorkspaceUndoStore.getState().undoStack).toEqual([later]));
     expect(serverFns.acceptCardField).toHaveBeenCalledOnce();
     expect(later.undo).not.toHaveBeenCalled();
   });
@@ -177,7 +177,7 @@ describe("useCardRecordActions", () => {
     });
     const { result, model } = setup([submission]);
 
-    await act(() => result.current.applySuggestion(mightSuggestion(model)));
+    await act(() => result.current.apply(mightSuggestion(model)));
 
     expect(mutations.acceptSubmission.mutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -186,6 +186,6 @@ describe("useCardRecordActions", () => {
       }),
       { signal: expect.any(AbortSignal) },
     );
-    expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]);
+    expect(useWorkspaceUndoStore.getState().undoStack).toEqual([]);
   });
 });

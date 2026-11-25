@@ -65,7 +65,7 @@ vi.mock("@/features/admin/hooks/use-admin", () => ({
 vi.mock("@/features/admin/hooks/use-printing-desk", () => ({
   useDeskPrinting: () => ({ data: { printing: row(), images: state.images } }),
   useSetDeskImageFace: () => ({ mutate: vi.fn() }),
-  useUpdateDeskImage: () => ({ mutate: updateImage }),
+  useUpdateDeskImage: () => ({ mutateAsync: updateImage }),
   useSetDeskSecondSide: () => ({ mutate: vi.fn(), isPending: false, error: null }),
   useRemoveDeskSecondSide: () => ({ mutate: removeFace, isPending: false, error: null }),
 }));
@@ -75,6 +75,7 @@ vi.mock("@/features/admin/hooks/use-admin-image-mutations", () => ({
   useDeletePrintingImage: () => ({ mutate: vi.fn() }),
   useImageEditPending: (imageId: string) => state.editingImageIds.includes(imageId),
   useRotatePrintingImage: () => ({ mutate: vi.fn() }),
+  useAddImageFromUrl: () => ({ mutateAsync: vi.fn() }),
   useUploadPrintingImage: () => ({ mutateAsync: vi.fn() }),
 }));
 
@@ -217,10 +218,10 @@ describe("PrintingPage image credit", () => {
     await user.type(screen.getByLabelText("Image credit"), "Riot Games{Enter}");
     await user.tab();
 
-    expect(updateImage).toHaveBeenCalledExactlyOnceWith({
-      imageFileId: "if-1",
-      credit: "Riot Games",
-    });
+    expect(updateImage).toHaveBeenCalledExactlyOnceWith(
+      { imageFileId: "if-1", credit: "Riot Games" },
+      { signal: undefined },
+    );
   });
 });
 

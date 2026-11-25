@@ -8,9 +8,9 @@ import {
 } from "@/features/catalog-workspace/components/pass/pass-parts";
 import type { SubmissionDecisions } from "@/features/catalog-workspace/components/pass/submission-decisions";
 import { passContributor } from "@/features/catalog-workspace/lib/card-pass";
-import type { PrintingFieldSuggestion } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import type { FieldSuggestion } from "@/features/catalog-workspace/lib/suggestion-rows";
 
-export function FieldSuggestions({
+export function FieldSuggestions<S extends FieldSuggestion>({
   suggestions,
   detail,
   submissions,
@@ -20,18 +20,18 @@ export function FieldSuggestions({
   onUse,
   onDismiss,
 }: {
-  suggestions: readonly PrintingFieldSuggestion[];
+  suggestions: readonly S[];
   detail: AdminCardDetailResponse;
   submissions: readonly AttentionSubmission[];
   decisions: SubmissionDecisions;
   pending: boolean;
-  format: (suggestion: PrintingFieldSuggestion) => {
+  format: (suggestion: S) => {
     value: string;
     preview: ReactNode;
     current?: string;
   };
-  onUse: (suggestion: PrintingFieldSuggestion) => void;
-  onDismiss?: (suggestion: PrintingFieldSuggestion) => void;
+  onUse: (suggestion: S) => void;
+  onDismiss?: (group: readonly S[]) => void;
 }) {
   const fromSources = Map.groupBy(
     suggestions.filter((suggestion) => !suggestion.isContributor),
@@ -49,17 +49,9 @@ export function FieldSuggestions({
         value={value}
         current={current}
         preview={preview ?? undefined}
-        source={group.map((suggestion) => suggestion.provider).join(", ")}
-        pending={pending}
+        source={group.map((suggestion) => suggestion.sourceLabel).join(", ")}
         onUse={() => onUse(first)}
-        onDismiss={
-          onDismiss &&
-          (() => {
-            for (const suggestion of group) {
-              onDismiss(suggestion);
-            }
-          })
-        }
+        onDismiss={onDismiss && (() => onDismiss(group))}
       />
     );
   });
@@ -67,7 +59,7 @@ export function FieldSuggestions({
     .filter((suggestion) => suggestion.isContributor)
     .map((suggestion) => {
       const { value, preview } = format(suggestion);
-      const candidateCardId = suggestion.candidate.candidateCardId;
+      const { candidateCardId } = suggestion;
       const { onMove } = decisions;
       return (
         <ContributionBlock

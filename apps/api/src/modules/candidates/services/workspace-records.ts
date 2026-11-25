@@ -10,11 +10,15 @@ import type { AdminAccess } from "../../../middleware/require-admin.js";
 import type { DeskRecordScope } from "../lib/workspace-presenters.js";
 import { toWorkspaceFaceRow, toWorkspacePrintingRow } from "../lib/workspace-presenters.js";
 import type { WorkspaceRecordsPage } from "../repositories/workspace-records.js";
-import { offsetCursor } from "../repositories/workspace-records.js";
 import type { WorkspaceRepos } from "./workspace-queue.js";
-import { deskPrintingScope, isDeskOnly } from "./workspace-queue.js";
+import { deskScopeFor } from "./workspace-queue.js";
 
 const DEFAULT_LIMIT = 100;
+
+/** The cursor is the number of rows already sent; the contract allows digits only. */
+export function offsetCursor(cursor: string | undefined): number {
+  return cursor === undefined ? 0 : Number(cursor);
+}
 
 function narrowFilter<K extends keyof typeof WORKSPACE_RECORD_FILTERS>(
   kind: K,
@@ -62,34 +66,31 @@ export function faceWorkCounts(items: readonly WorkspaceQueueItem[]): Map<string
 }
 
 export async function listWorkspaceRecords(
-  repos: Pick<WorkspaceRepos, "workspaceRecords" | "printingDesk" | "adminEvents">,
+  repos: Pick<WorkspaceRepos, "workspaceRecords" | "adminEvents">,
   options: {
     access: AdminAccess | null;
     userId: string;
     input: WorkspaceRecordsInput;
-    loadFaceItems?: () => Promise<readonly WorkspaceQueueItem[]>;
+    loadFaceItems?: (desk: DeskRecordScope | undefined) => Promise<readonly WorkspaceQueueItem[]>;
   },
 ): Promise<WorkspaceRecordsResponse> {
   const { input } = options;
   const limit = input.limit ?? DEFAULT_LIMIT;
-  let desk: DeskRecordScope | undefined;
-  if (isDeskOnly(options.access)) {
-    desk = await deskPrintingScope(repos, options.userId);
-  }
+  const desk = await deskScopeFor(repos, options.access, options.userId);
   const sort =
     input.sort === undefined ? undefined : { key: input.sort, direction: input.direction ?? "asc" };
   const offset = offsetCursor(input.cursor);
   const query = {
     q: input.q,
     limit,
-    cursor: input.cursor,
+    offset,
     setSlug: input.set,
     sort,
     printingIds:
       desk === undefined ? undefined : [...new Set([...desk.promoIds, ...desk.createdIds])],
   };
   if (input.kind === "face") {
-    const work = faceWorkCounts((await options.loadFaceItems?.()) ?? []);
+    const work = faceWorkCounts((await options.loadFaceItems?.(desk)) ?? []);
     const filter = narrowFilter("face", input.filter);
     const result = await repos.workspaceRecords.listFaceRecords({
       ...query,

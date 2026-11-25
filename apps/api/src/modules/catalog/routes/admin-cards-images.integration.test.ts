@@ -248,7 +248,7 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
       const res = await app.fetch(
         adminReq("POST", `/cards/candidate-printings/${psId}/set-image`, { mode: "main" }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
 
       const images = await db
         .selectFrom("faceImages")
@@ -318,7 +318,7 @@ describe.skipIf(!ctx)("Card-sources images routes (integration)", () => {
           mode: "additional",
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
 
       const images = await db
         .selectFrom("faceImages")

@@ -1,5 +1,5 @@
 import { enumLabel } from "@openrift/shared/enum-label";
-import { formatReleasePeriod, normalizeToPeriodStart } from "@openrift/shared/set-release";
+import { formatReleasePeriod } from "@openrift/shared/set-release";
 import { Link } from "@tanstack/react-router";
 import { TriangleAlertIcon } from "lucide-react";
 import type { ReactNode } from "react";
@@ -20,7 +20,7 @@ import { PrintingDeskChannelPicker } from "@/features/admin/components/printing-
 import { PrintingDeskMarkerPicker } from "@/features/admin/components/printing-desk-marker-picker";
 import { DeskSegmented } from "@/features/admin/components/printing-desk-shared";
 import { SetPicker } from "@/features/admin/components/set-picker";
-import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
+import { normalizedRelease } from "@/features/admin/lib/desk-printing-fields";
 import { useDistinctArtists } from "@/features/cards/hooks/use-distinct-artists";
 import { useSets } from "@/features/cards/hooks/use-sets";
 import {
@@ -30,6 +30,7 @@ import {
 import { FacePicker } from "@/features/catalog-workspace/components/creation/face-picker";
 import { RecordFieldRow } from "@/features/catalog-workspace/components/record/field-row";
 import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
+import { useValueLabels } from "@/features/catalog-workspace/hooks/use-value-labels";
 import type {
   CreationDraft,
   DraftFace,
@@ -222,12 +223,7 @@ function PrintingEditor({
   onChange: (printing: DraftPrintingFields) => void;
 }) {
   const { orders, labels } = useEnumOrders();
-  const release = printing.releasedAt
-    ? normalizeToPeriodStart({
-        releasedAt: printing.releasedAt,
-        precision: printing.releasePrecision,
-      })
-    : null;
+  const release = normalizedRelease(printing.releasedAt, printing.releasePrecision);
 
   return (
     <fieldset disabled={disabled} className="@container/printing-form min-w-0">
@@ -285,7 +281,7 @@ function PrintingEditor({
               onChange={(releasePrecision) => onChange({ ...printing, releasePrecision })}
             />
           </div>
-          {release !== null && release.precision !== "day" && (
+          {release.releasedAt !== null && release.precision !== "day" && (
             <FieldDescription>{formatReleasePeriod(release)}</FieldDescription>
           )}
         </Field>
@@ -306,22 +302,16 @@ function PrintingEditor({
 
 function usePrintingSummary() {
   const { labels } = useEnumOrders();
-  const { data } = useDistributionChannels();
-  const channelLabels = new Map(
-    data.distributionChannels.map((channel) => [channel.slug, channel.label]),
-  );
+  const { channels } = useValueLabels();
   return (printing: DraftPrintingFields) => {
     const parts = [
       printing.size.length > 0 ? enumLabel(labels.cardSizes, printing.size) : "",
-      printing.distributionChannelSlugs.map((slug) => channelLabels.get(slug) ?? slug).join(", "),
+      printing.distributionChannelSlugs.map((slug) => enumLabel(channels, slug)).join(", "),
       printing.announcedAt === null ? "" : `announced ${printing.announcedAt}`,
       printing.releasedAt === null
         ? ""
         : `available ${formatReleasePeriod(
-            normalizeToPeriodStart({
-              releasedAt: printing.releasedAt,
-              precision: printing.releasePrecision,
-            }),
+            normalizedRelease(printing.releasedAt, printing.releasePrecision),
           )}`,
     ].filter((part) => part.length > 0);
     return parts.length > 0 ? parts.join(" · ") : "No details yet";

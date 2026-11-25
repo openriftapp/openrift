@@ -1,6 +1,4 @@
-import { marketplaceSkuKey, skuKey } from "@openrift/shared/marketplace-sku-key";
-import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions";
-import { suggestionStrength } from "@openrift/shared/marketplace-suggestions";
+import { skuKey } from "@openrift/shared/marketplace-sku-key";
 import { formatPrintingLabel } from "@openrift/shared/printing-label";
 import type {
   AdminMarketplaceName,
@@ -11,7 +9,6 @@ import type {
 import { ALL_MARKETPLACES } from "@openrift/shared/types/pricing";
 
 import type { PrintingAssignment } from "@/features/admin/lib/printing-assignment";
-import { emptyAssignmentsByMarketplace } from "@/features/admin/lib/printing-assignment";
 
 export interface MarketplaceHandlers {
   onIgnoreVariant: (externalId: number, finish: string, language: string | null) => void;
@@ -43,20 +40,11 @@ export interface MarketplaceHandlers {
   isUnmappingPrinting: boolean;
 }
 
-interface AssignedPrinting {
-  printingId: string;
-  shortCode: string;
-  markerSlugs: string[];
-  finish: string;
-  size: string;
-  language: string;
-}
-
 export interface TableEntry {
   marketplace: AdminMarketplaceName;
   product: StagedProductResponse;
   isAssigned: boolean;
-  assignedPrintings: AssignedPrinting[];
+  assignedPrintings: UnifiedMappingPrintingResponse[];
   assignedPrintingIds: Set<string>;
   otherAssignedPrintingIds: Set<string>;
 }
@@ -78,29 +66,6 @@ export function displayedProductLanguage(
     return null;
   }
   return language || null;
-}
-
-export interface MarketplaceTableRow {
-  key: string;
-  entry: TableEntry;
-  showProduct: boolean;
-}
-
-export function buildMarketplaceRows(
-  entries: readonly TableEntry[],
-  marketplace: AdminMarketplaceName,
-): MarketplaceTableRow[] {
-  const byProduct = Map.groupBy(
-    entries.filter((entry) => entry.marketplace === marketplace),
-    (entry) => entry.product.externalId,
-  );
-  return [...byProduct.values()].flatMap((variants) =>
-    variants.map((entry, index) => ({
-      key: `${entry.marketplace}:${entry.product.externalId}:${entry.product.finish}:${entry.product.language ?? ""}`,
-      entry,
-      showProduct: index === 0,
-    })),
-  );
 }
 
 export function collectEntries(group: UnifiedMappingGroupResponse): TableEntry[] {
@@ -134,26 +99,11 @@ export function collectEntries(group: UnifiedMappingGroupResponse): TableEntry[]
         .filter((id, index, ids) => ids.indexOf(id) === index)
         .map((id) => printingById.get(id))
         .filter((p): p is UnifiedMappingPrintingResponse => p !== undefined);
-      const assignedPrintings: AssignedPrinting[] = matchingPrintings
-        .map((p) => ({
-          printingId: p.printingId,
-          shortCode: p.shortCode,
-          markerSlugs: p.markerSlugs,
-          finish: p.finish,
-          size: p.size,
-          language: p.language,
-        }))
-        .toSorted((a, b) =>
-          formatPrintingLabel(
-            a.shortCode,
-            a.markerSlugs,
-            a.finish,
-            a.language,
-            a.size,
-          ).localeCompare(
-            formatPrintingLabel(b.shortCode, b.markerSlugs, b.finish, b.language, b.size),
-          ),
-        );
+      const assignedPrintings = matchingPrintings.toSorted((a, b) =>
+        formatPrintingLabel(a.shortCode, a.markerSlugs, a.finish, a.language, a.size).localeCompare(
+          formatPrintingLabel(b.shortCode, b.markerSlugs, b.finish, b.language, b.size),
+        ),
+      );
       const assignedPrintingIds = new Set(matchingPrintings.map((p) => p.printingId));
       const otherAssignedPrintingIds = new Set(
         assignments.filter((a) => a.externalId !== product.externalId).map((a) => a.printingId),
@@ -180,43 +130,4 @@ export function collectEntries(group: UnifiedMappingGroupResponse): TableEntry[]
     );
   });
   return entries;
-}
-
-interface SuggestedMappings {
-  strong: Record<AdminMarketplaceName, PrintingAssignment[]>;
-  weak: Record<AdminMarketplaceName, PrintingAssignment[]>;
-}
-
-export function collectSuggestedMappings(
-  group: UnifiedMappingGroupResponse,
-  suggestions: Map<string, ProductSuggestion[]> | undefined,
-): SuggestedMappings {
-  const out: SuggestedMappings = {
-    strong: emptyAssignmentsByMarketplace(),
-    weak: emptyAssignmentsByMarketplace(),
-  };
-  for (const entry of collectEntries(group)) {
-    if (entry.isAssigned) {
-      continue;
-    }
-    const key = marketplaceSkuKey(
-      entry.marketplace,
-      entry.product.externalId,
-      entry.product.finish,
-      entry.product.language,
-    );
-    for (const s of suggestions?.get(key) ?? []) {
-      const strength = suggestionStrength(s);
-      if (strength === "possible") {
-        continue;
-      }
-      out[strength][entry.marketplace].push({
-        externalId: entry.product.externalId,
-        finish: entry.product.finish,
-        language: entry.product.language,
-        printingId: s.printingId,
-      });
-    }
-  }
-  return out;
 }

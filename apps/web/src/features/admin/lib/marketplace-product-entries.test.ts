@@ -1,5 +1,3 @@
-import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
-import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions";
 import type {
   MarketplaceAssignmentResponse,
   StagedProductResponse,
@@ -8,12 +6,7 @@ import type {
 } from "@openrift/shared/types/api/admin";
 import { describe, expect, it } from "vitest";
 
-import {
-  buildMarketplaceRows,
-  collectEntries,
-  collectSuggestedMappings,
-  displayedProductLanguage,
-} from "./marketplace-product-entries";
+import { collectEntries, displayedProductLanguage } from "./marketplace-product-entries";
 
 function printing(
   overrides: Partial<UnifiedMappingPrintingResponse> = {},
@@ -114,42 +107,6 @@ function group(
     cardnexus: { stagedProducts: [], assignedProducts: [], assignments: [] },
   };
 }
-
-describe("buildMarketplaceRows", () => {
-  it("keeps a product's variants together and heads them with one row", () => {
-    const rows = buildMarketplaceRows(
-      collectEntries(
-        group([printing({ printingId: "p-1" })], {
-          cardtrader: {
-            staged: [
-              staged({ externalId: 1, finish: "normal", language: "EN" }),
-              staged({ externalId: 2, finish: "normal", language: "EN" }),
-            ],
-            assigned: [staged({ externalId: 1, finish: "foil", language: "EN" })],
-            assignments: [{ externalId: 1, printingId: "p-1", finish: "foil", language: "EN" }],
-          },
-        }),
-      ),
-      "cardtrader",
-    );
-
-    expect(rows.map((row) => row.entry.product.externalId)).toEqual([1, 1, 2]);
-    expect(rows.map((row) => row.showProduct)).toEqual([true, false, true]);
-  });
-
-  it("drops the other marketplaces' rows", () => {
-    const entries = collectEntries(
-      group([printing()], {
-        cardtrader: { staged: [staged({ externalId: 1 })], assigned: [], assignments: [] },
-        tcgplayer: { staged: [staged({ externalId: 9 })], assigned: [], assignments: [] },
-      }),
-    );
-
-    expect(buildMarketplaceRows(entries, "tcgplayer").map((row) => row.entry.marketplace)).toEqual([
-      "tcgplayer",
-    ]);
-  });
-});
 
 describe("collectEntries", () => {
   it("returns no entries when all marketplace buckets are empty", () => {
@@ -358,122 +315,5 @@ describe("collectEntries", () => {
     );
     expect(entries).toHaveLength(1);
     expect(entries[0]!.assignedPrintings).toEqual([]);
-  });
-});
-
-describe("collectSuggestedMappings strong", () => {
-  it("returns empty arrays for every marketplace when no suggestions are provided", () => {
-    const result = collectSuggestedMappings(group([printing()]), undefined).strong;
-    expect(result).toEqual({ tcgplayer: [], cardmarket: [], cardtrader: [], cardnexus: [] });
-  });
-
-  it("filters out suggestions whose score is below the strong-match threshold", () => {
-    const g = group([printing({ printingId: "p-1" })], {
-      tcgplayer: { staged: [staged({ externalId: 1 })], assigned: [], assignments: [] },
-    });
-    const suggestions = new Map<string, ProductSuggestion[]>([
-      [marketplaceSkuKey("tcgplayer", 1, "normal", "EN"), [{ printingId: "p-1", score: 100 }]],
-    ]);
-    expect(collectSuggestedMappings(g, suggestions).strong.tcgplayer).toEqual([]);
-  });
-
-  it("includes strong suggestions for unassigned products", () => {
-    const g = group([printing({ printingId: "p-1" })], {
-      tcgplayer: { staged: [staged({ externalId: 1 })], assigned: [], assignments: [] },
-    });
-    const suggestions = new Map<string, ProductSuggestion[]>([
-      [marketplaceSkuKey("tcgplayer", 1, "normal", "EN"), [{ printingId: "p-1", score: 200 }]],
-    ]);
-    expect(collectSuggestedMappings(g, suggestions).strong.tcgplayer).toEqual([
-      { externalId: 1, finish: "normal", language: "EN", printingId: "p-1" },
-    ]);
-  });
-
-  it("skips products that are already assigned", () => {
-    const product = staged({ externalId: 1 });
-    const g = group([printing({ printingId: "p-1" })], {
-      cardtrader: {
-        staged: [],
-        assigned: [product],
-        assignments: [{ externalId: 1, printingId: "p-1", finish: "normal", language: "EN" }],
-      },
-    });
-    const suggestions = new Map<string, ProductSuggestion[]>([
-      [marketplaceSkuKey("cardtrader", 1, "normal", "EN"), [{ printingId: "p-1", score: 200 }]],
-    ]);
-    expect(collectSuggestedMappings(g, suggestions).strong.cardtrader).toEqual([]);
-  });
-
-  it("emits every sibling printing for one language-aggregate product", () => {
-    const en = printing({ printingId: "p-en", language: "EN" });
-    const sc = printing({ printingId: "p-sc", language: "SC" });
-    const g = group([en, sc], {
-      cardmarket: {
-        staged: [staged({ externalId: 99, language: null })],
-        assigned: [],
-        assignments: [],
-      },
-    });
-    const suggestions = new Map<string, ProductSuggestion[]>([
-      [
-        marketplaceSkuKey("cardmarket", 99, "normal", null),
-        [
-          { printingId: "p-en", score: 150 },
-          { printingId: "p-sc", score: 150 },
-        ],
-      ],
-    ]);
-    const result = collectSuggestedMappings(g, suggestions).strong;
-    expect(result.cardmarket).toHaveLength(2);
-    expect(result.cardmarket.map((m) => m.printingId).toSorted()).toEqual(["p-en", "p-sc"]);
-    expect(result.cardmarket.every((m) => m.language === null)).toBe(true);
-  });
-
-  it("segregates mappings by marketplace so one bucket can't leak into another", () => {
-    const g = group([printing({ printingId: "p-1" })], {
-      tcgplayer: { staged: [staged({ externalId: 1 })], assigned: [], assignments: [] },
-      cardmarket: {
-        staged: [staged({ externalId: 2, language: null })],
-        assigned: [],
-        assignments: [],
-      },
-    });
-    const suggestions = new Map<string, ProductSuggestion[]>([
-      [marketplaceSkuKey("tcgplayer", 1, "normal", "EN"), [{ printingId: "p-1", score: 200 }]],
-      [marketplaceSkuKey("cardmarket", 2, "normal", null), [{ printingId: "p-1", score: 200 }]],
-    ]);
-    const result = collectSuggestedMappings(g, suggestions).strong;
-    expect(result.tcgplayer).toHaveLength(1);
-    expect(result.cardmarket).toHaveLength(1);
-    expect(result.cardtrader).toEqual([]);
-  });
-});
-
-describe("collectSuggestedMappings weak", () => {
-  it("returns empty arrays for every marketplace when no suggestions are provided", () => {
-    const result = collectSuggestedMappings(group([printing()]), undefined).weak;
-    expect(result).toEqual({ tcgplayer: [], cardmarket: [], cardtrader: [], cardnexus: [] });
-  });
-
-  it("includes weak suggestions for unassigned products and ignores non-weak ones", () => {
-    const g = group([printing({ printingId: "p-foil", finish: "foil" })], {
-      cardmarket: {
-        staged: [staged({ externalId: 1, finish: "normal", language: null })],
-        assigned: [],
-        assignments: [],
-      },
-    });
-    const suggestions = new Map<string, ProductSuggestion[]>([
-      [
-        marketplaceSkuKey("cardmarket", 1, "normal", null),
-        [{ printingId: "p-foil", score: 50, isWeak: true }],
-      ],
-      [marketplaceSkuKey("tcgplayer", 2, "normal", "EN"), [{ printingId: "p-foil", score: 200 }]],
-    ]);
-    const result = collectSuggestedMappings(g, suggestions).weak;
-    expect(result.cardmarket).toEqual([
-      { externalId: 1, finish: "normal", language: null, printingId: "p-foil" },
-    ]);
-    expect(result.tcgplayer).toEqual([]);
   });
 });

@@ -9,8 +9,8 @@ import { adminIgnoredCandidatesRouter } from "./admin-ignored-candidates";
 const mockRepo = {
   listIgnoredCards: vi.fn(),
   listIgnoredPrintings: vi.fn(),
-  ignoreCard: vi.fn(),
-  unignoreCard: vi.fn(),
+  ignoreCards: vi.fn(),
+  unignoreCards: vi.fn(),
   ignorePrinting: vi.fn(),
   unignorePrinting: vi.fn(),
 };
@@ -20,7 +20,7 @@ const mockCandidateCards = {
   deletePrintingLinkOverride: vi.fn(),
 };
 
-const mockAdminEvents = { insert: vi.fn() };
+const mockAdminEvents = { insert: vi.fn(), insertMany: vi.fn() };
 
 // Returning null is the scraped-provider case: no ledger row, so the
 // outcome service no-ops.
@@ -182,26 +182,27 @@ describe("POST /api/admin/v1/ignored-candidates/cards", () => {
   });
 
   it("returns 204 when card is ignored", async () => {
-    mockRepo.ignoreCard.mockResolvedValue(undefined);
+    mockRepo.ignoreCards.mockResolvedValue(undefined);
     const res = await app.request("/api/admin/v1/ignored-candidates/cards", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "tcgplayer", externalId: "12345" }),
+      body: JSON.stringify({ sources: [{ provider: "tcgplayer", externalId: "12345" }] }),
     });
     expect(res.status).toBe(204);
-    expect(mockRepo.ignoreCard).toHaveBeenCalledWith({
-      provider: "tcgplayer",
-      externalId: "12345",
-    });
+    expect(mockRepo.ignoreCards).toHaveBeenCalledWith([
+      { provider: "tcgplayer", externalId: "12345" },
+    ]);
   });
 
   it("rejects the user submission behind an ignored candidate", async () => {
-    mockRepo.ignoreCard.mockResolvedValue(undefined);
+    mockRepo.ignoreCards.mockResolvedValue(undefined);
     mockCardSubmissions.getByExternalId.mockResolvedValue({ id: "sub-1", status: "pending" });
     const res = await app.request("/api/admin/v1/ignored-candidates/cards", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "usersubmission", externalId: "jinx--20260813-1200--u1" }),
+      body: JSON.stringify({
+        sources: [{ provider: "usersubmission", externalId: "jinx--20260813-1200--u1" }],
+      }),
     });
     expect(res.status).toBe(204);
     expect(mockCardSubmissions.resolve).toHaveBeenCalledWith(
@@ -210,13 +211,43 @@ describe("POST /api/admin/v1/ignored-candidates/cards", () => {
     );
   });
 
+  it("ignores a list of sources in one write and drops repeats", async () => {
+    const res = await app.request("/api/admin/v1/ignored-candidates/cards", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sources: [
+          { provider: "tcgplayer", externalId: "1" },
+          { provider: "cardmarket", externalId: "2" },
+          { provider: "tcgplayer", externalId: "1" },
+        ],
+      }),
+    });
+    expect(res.status).toBe(204);
+    expect(mockRepo.ignoreCards).toHaveBeenCalledOnce();
+    expect(mockRepo.ignoreCards).toHaveBeenCalledWith([
+      { provider: "tcgplayer", externalId: "1" },
+      { provider: "cardmarket", externalId: "2" },
+    ]);
+  });
+
+  it("rejects an empty source list", async () => {
+    const res = await app.request("/api/admin/v1/ignored-candidates/cards", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sources: [] }),
+    });
+    expect(res.status).toBe(400);
+    expect(mockRepo.ignoreCards).not.toHaveBeenCalled();
+  });
+
   it("leaves a scraped provider's candidate alone", async () => {
-    mockRepo.ignoreCard.mockResolvedValue(undefined);
+    mockRepo.ignoreCards.mockResolvedValue(undefined);
     mockCardSubmissions.getByExternalId.mockResolvedValue(null);
     const res = await app.request("/api/admin/v1/ignored-candidates/cards", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "tcgplayer", externalId: "12345" }),
+      body: JSON.stringify({ sources: [{ provider: "tcgplayer", externalId: "12345" }] }),
     });
     expect(res.status).toBe(204);
     expect(mockCardSubmissions.resolve).not.toHaveBeenCalled();
@@ -229,23 +260,27 @@ describe("DELETE /api/admin/v1/ignored-candidates/cards", () => {
   });
 
   it("returns 204 when card is unignored", async () => {
-    mockRepo.unignoreCard.mockResolvedValue(undefined);
+    mockRepo.unignoreCards.mockResolvedValue(undefined);
     const res = await app.request("/api/admin/v1/ignored-candidates/cards", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "tcgplayer", externalId: "12345" }),
+      body: JSON.stringify({ sources: [{ provider: "tcgplayer", externalId: "12345" }] }),
     });
     expect(res.status).toBe(204);
-    expect(mockRepo.unignoreCard).toHaveBeenCalledWith("tcgplayer", "12345");
+    expect(mockRepo.unignoreCards).toHaveBeenCalledWith([
+      { provider: "tcgplayer", externalId: "12345" },
+    ]);
   });
 
   it("returns a rejected submission to the queue when unignored", async () => {
-    mockRepo.unignoreCard.mockResolvedValue(undefined);
+    mockRepo.unignoreCards.mockResolvedValue(undefined);
     mockCardSubmissions.getByExternalId.mockResolvedValue({ id: "sub-1", status: "rejected" });
     const res = await app.request("/api/admin/v1/ignored-candidates/cards", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "usersubmission", externalId: "jinx--20260813-1200--u1" }),
+      body: JSON.stringify({
+        sources: [{ provider: "usersubmission", externalId: "jinx--20260813-1200--u1" }],
+      }),
     });
     expect(res.status).toBe(204);
     expect(mockCardSubmissions.reopen).toHaveBeenCalledWith("sub-1");
@@ -302,22 +337,29 @@ describe("audit events", () => {
     vi.resetAllMocks();
   });
 
-  it("ignoring a card records a composite-id event", async () => {
-    mockRepo.ignoreCard.mockResolvedValue(undefined);
+  it("ignoring cards records one composite-id event per source in one write", async () => {
+    mockRepo.ignoreCards.mockResolvedValue(undefined);
 
     const res = await app.request("/api/admin/v1/ignored-candidates/cards", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "gallery", externalId: "ext-1" }),
+      body: JSON.stringify({
+        sources: [
+          { provider: "gallery", externalId: "ext-1" },
+          { provider: "gallery", externalId: "ext-2" },
+        ],
+      }),
     });
     expect(res.status).toBe(204);
-    expect(mockAdminEvents.insert).toHaveBeenCalledWith(
+    expect(mockAdminEvents.insertMany).toHaveBeenCalledOnce();
+    expect(mockAdminEvents.insertMany).toHaveBeenCalledWith([
       expect.objectContaining({
         action: "candidate-card.ignore",
         entityType: "candidate-card",
         entityId: "gallery:ext-1",
         newValues: { provider: "gallery", externalId: "ext-1" },
       }),
-    );
+      expect.objectContaining({ entityId: "gallery:ext-2" }),
+    ]);
   });
 });

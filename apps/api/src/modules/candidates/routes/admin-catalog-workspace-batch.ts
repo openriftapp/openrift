@@ -54,6 +54,8 @@ export const adminCatalogWorkspaceBatchRouter = {
       assignSuggestedListings(
         {
           access: context.adminAccess,
+          userId: context.userId,
+          repos: context.repos,
           transact: context.transact,
           configs: createMarketplaceConfigs(context.repos),
           input,

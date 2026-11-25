@@ -3,11 +3,11 @@ import { Undo2Icon } from "lucide-react";
 import { PageTopBarButton } from "@/components/layout/page-top-bar";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
-import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
+import { useWorkspaceUndoStore } from "@/features/catalog-workspace/stores/workspace-undo-store";
 
 export function WorkspaceUndoButton() {
-  const latest = useWorkspaceSelectionStore((state) => state.undoStack.at(-1));
-  const undoing = useWorkspaceSelectionStore((state) => state.undoing);
+  const latest = useWorkspaceUndoStore((state) => state.undoStack.at(-1));
+  const undoing = useWorkspaceUndoStore((state) => state.undoing);
   const { undoLatest } = useWorkspaceUndo();
 
   if (latest === undefined) {

@@ -5,17 +5,7 @@ import { formatDay } from "@openrift/shared/format-date";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import {
-  CropIcon,
-  ExternalLinkIcon,
-  PencilIcon,
-  RotateCcwIcon,
-  RotateCwIcon,
-  Share2Icon,
-  Trash2Icon,
-  UploadIcon,
-  XIcon,
-} from "lucide-react";
+import { ExternalLinkIcon, PencilIcon, Share2Icon, UploadIcon, XIcon } from "lucide-react";
 import { Suspense, useRef, useState } from "react";
 
 import { PageTopBarBack, PageTopBarButton } from "@/components/layout/page-top-bar";
@@ -32,7 +22,6 @@ import {
 } from "@/components/ui/card";
 import { DefinitionDetail, DefinitionList, DefinitionTerm } from "@/components/ui/definition-list";
 import { Dropzone } from "@/components/ui/dropzone";
-import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
@@ -46,24 +35,14 @@ import {
 import { PrintingCitationsEditor } from "@/features/admin/components/printing-citations-editor";
 import { PrintingDeskEditFields } from "@/features/admin/components/printing-desk-form-page";
 import { DeskSegmented, DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
-import { SideSearch } from "@/features/admin/components/side-search";
-import { StraightenImageDialog } from "@/features/admin/components/straighten-image-dialog";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
-import {
-  useActivatePrintingImage,
-  useDeletePrintingImage,
-  useImageEditPending,
-  useRotatePrintingImage,
-  useUploadPrintingImage,
-} from "@/features/admin/hooks/use-admin-image-mutations";
+import { useActivatePrintingImage } from "@/features/admin/hooks/use-admin-image-mutations";
 import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
 import {
   useDeskPrinting,
   useRemoveDeskSecondSide,
   useSetDeskImageFace,
-  useSetDeskSecondSide,
-  useUpdateDeskImage,
 } from "@/features/admin/hooks/use-printing-desk";
 import { adminKeys, IMAGE_FILE_SCOPE } from "@/features/admin/lib/admin-query-keys";
 import { hasAdminSection } from "@/features/admin/lib/admin-sections";
@@ -75,20 +54,20 @@ import { deskPrintingPeriod } from "@/features/admin/lib/printing-desk-status";
 import type { PrintingFace } from "@/features/admin/lib/printing-faces";
 import { printingFaces } from "@/features/admin/lib/printing-faces";
 import { encodePostSlides } from "@/features/admin/lib/printing-post-slides";
+import { runWriteDirectly } from "@/features/admin/lib/run-write";
 import { CardArtThumb } from "@/features/cards/components/card-art-thumb";
 import { CardDetail } from "@/features/cards/components/card-detail/card-detail";
 import { ImageHoverPreview } from "@/features/cards/components/printing-hover-preview";
 import { freshCardDetailQueryOptions } from "@/features/cards/lib/card-detail-queries";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
 import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
+import { AddFacePicker } from "@/features/catalog-workspace/components/add-face-picker";
+import { DeskImageControls } from "@/features/catalog-workspace/components/desk-image-controls";
+import { usePrintingImageUpload } from "@/features/catalog-workspace/hooks/use-printing-creation";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
 import { useMouseHover } from "@/hooks/use-mouse-hover";
-import { useSession } from "@/hooks/use-session";
 import { errorText } from "@/lib/error-text";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
-import { cn } from "@/lib/utils";
-
-type Rotation = 0 | 90 | 180 | 270;
 
 const PRINTING_PAGE_DELETE_SCOPE = [
   adminKeys.cards.all,
@@ -325,8 +304,6 @@ function FaceCard({
 }
 
 function AddFaceCard({ printing }: { printing: DeskPrintingRow }) {
-  const setSecondFace = useSetDeskSecondSide();
-
   return (
     <Card>
       <CardHeader>
@@ -335,19 +312,8 @@ function AddFaceCard({ printing }: { printing: DeskPrintingRow }) {
           For a double-faced token, pick the printing&apos;s other face.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-2">
-        <SideSearch
-          excludeFaceIds={[printing.faceId]}
-          disabled={setSecondFace.isPending}
-          onPick={(side) =>
-            setSecondFace.mutate({ printingId: printing.printingId, faceId: side.faceId })
-          }
-        />
-        {setSecondFace.error && (
-          <p className="text-destructive text-sm">
-            {errorText(setSecondFace.error, "Could not add the face.")}
-          </p>
-        )}
+      <CardContent>
+        <AddFacePicker printing={printing} />
       </CardContent>
     </Card>
   );
@@ -362,8 +328,7 @@ function FaceImages({
   face: PrintingFace;
   images: DeskImage[];
 }) {
-  const { data: session } = useSession();
-  const uploadImage = useUploadPrintingImage(IMAGE_FILE_SCOPE, { inlineError: true });
+  const imageUpload = usePrintingImageUpload();
   const activateImage = useActivatePrintingImage(IMAGE_FILE_SCOPE);
   const [uploading, setUploading] = useState<string[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -372,21 +337,18 @@ function FaceImages({
   const faceImages = images.filter((image) => image.face === face.imageFace);
   const activeId = faceImages.find((image) => image.isActive)?.printingImageId ?? "";
   const sideOptions = deskFaceOptions(printing);
-  const uploaderName = session?.user.name ?? "";
 
   async function handleFiles(files: File[]) {
     setUploadError(null);
-    const credit = uploaderName.length > 0 ? uploaderName : undefined;
     for (const file of files) {
       setUploading((current) => [...current, file.name]);
       await runReportedMutation(
         () =>
-          uploadImage.mutateAsync({
+          imageUpload.upload(undefined, {
             printingId,
-            file,
+            image: { kind: "file", file },
             mode: "additional",
             face: face.imageFace,
-            credit,
           }),
         (error) => setUploadError(errorText(error, `Could not upload ${file.name}.`)),
       );
@@ -565,41 +527,11 @@ function DeskImageRow({
   sideOptions: DeskFaceOption[];
   landscape: boolean;
 }) {
-  const rotateImage = useRotatePrintingImage();
-  const deleteImage = useDeletePrintingImage(IMAGE_FILE_SCOPE);
-  const editing = useImageEditPending(image.printingImageId);
-  const updateImage = useUpdateDeskImage();
   const setFace = useSetDeskImageFace();
   const rowRef = useRef<HTMLDivElement>(null);
   const { hovering, hoverProps } = useMouseHover();
   const [straightening, setStraightening] = useState(false);
-
-  const storedCredit = image.credit ?? "";
-  // The row keeps rendering while a save is in flight, so the stored value is
-  // copied in when it changes, not only seeded at mount.
-  const [credit, setCredit] = useState(storedCredit);
-  const [lastCredit, setLastCredit] = useState(storedCredit);
-  if (storedCredit !== lastCredit) {
-    setLastCredit(storedCredit);
-    setCredit(storedCredit);
-  }
-
   const fullUrl = deskImageSrc(image.url, "full");
-
-  function rotate(by: 90 | 270) {
-    const next = ((image.rotation + by) % 360) as Rotation;
-    rotateImage.mutate({ imageId: image.printingImageId, rotation: next });
-  }
-
-  function saveCredit() {
-    const next = credit.trim();
-    if (next !== storedCredit) {
-      updateImage.mutate({
-        imageFileId: image.imageFileId,
-        credit: next.length > 0 ? next : null,
-      });
-    }
-  }
 
   return (
     <div ref={rowRef} {...hoverProps} className="rounded-lg border p-2">
@@ -620,62 +552,25 @@ function DeskImageRow({
           />
         )}
 
-        <div className="space-y-1 text-sm">
-          {sideOptions.length > 1 && (
-            <DeskSegmented
-              ariaLabel="Face"
-              value={image.face}
-              onChange={(next) =>
-                setFace.mutate({ printingImageId: image.printingImageId, printingId, face: next })
-              }
-              options={sideOptions}
-            />
-          )}
-          <p className="text-muted-foreground text-xs">Turned {image.rotation}°</p>
-        </div>
-
-        <Input
-          aria-label="Image credit"
-          className="order-last w-full lg:order-none lg:w-auto lg:min-w-40 lg:flex-1"
-          value={credit}
-          placeholder="Who made this image"
-          onChange={(event) => setCredit(event.target.value)}
-          onBlur={saveCredit}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.currentTarget.blur();
+        {sideOptions.length > 1 && (
+          <DeskSegmented
+            ariaLabel="Face"
+            value={image.face}
+            onChange={(next) =>
+              setFace.mutate({ printingImageId: image.printingImageId, printingId, face: next })
             }
-          }}
-        />
+            options={sideOptions}
+          />
+        )}
 
-        <span className="ml-auto flex items-center gap-0.5 lg:ml-0">
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label="Turn left"
-            onClick={() => rotate(270)}
-            disabled={editing}
-          >
-            <RotateCcwIcon />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label="Turn right"
-            onClick={() => rotate(90)}
-            disabled={editing}
-          >
-            <RotateCwIcon />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label={image.quad === null ? "Straighten" : "Straighten (corners set)"}
-            onClick={() => setStraightening(true)}
-            disabled={editing}
-          >
-            <CropIcon className={cn(image.quad !== null && "text-success")} />
-          </Button>
+        <DeskImageControls
+          printingId={printingId}
+          image={image}
+          canMoveFace={false}
+          runWrite={runWriteDirectly}
+          onStraighteningChange={setStraightening}
+          creditClassName="order-last w-full lg:order-none lg:w-auto lg:min-w-40 lg:flex-1"
+        >
           {fullUrl !== null && (
             <a
               href={fullUrl}
@@ -687,7 +582,6 @@ function DeskImageRow({
               <ExternalLinkIcon />
             </a>
           )}
-
           <label
             htmlFor={`active-${image.printingImageId}`}
             className="flex shrink-0 items-center gap-1.5 text-sm"
@@ -695,27 +589,8 @@ function DeskImageRow({
             <RadioGroupItem id={`active-${image.printingImageId}`} value={image.printingImageId} />
             Active
           </label>
-
-          {image.canDelete && (
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              aria-label="Delete image"
-              onClick={() => deleteImage.mutate(image.printingImageId)}
-              pending={deleteImage.isPending}
-            >
-              <Trash2Icon />
-            </Button>
-          )}
-        </span>
+        </DeskImageControls>
       </div>
-
-      <StraightenImageDialog
-        imageId={image.printingImageId}
-        quad={image.quad}
-        open={straightening}
-        onOpenChange={setStraightening}
-      />
     </div>
   );
 }

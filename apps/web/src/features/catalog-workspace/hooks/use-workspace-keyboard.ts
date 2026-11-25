@@ -17,7 +17,6 @@ import { isTypingTarget } from "@/lib/keyboard-target";
 import { openOverlayPresent } from "@/lib/open-overlay";
 
 const RECORD_WRITES: ReadonlySet<WorkspaceKeyAction> = new Set([
-  "settle-and-next",
   "accept-new",
   "ignore",
   "dismiss-all",
@@ -30,7 +29,7 @@ const RECORD_KEYS: ReadonlySet<WorkspaceKeyAction> = new Set([
   "undo",
 ]);
 
-const CONTROL_SELECTOR = 'button, [role="button"], [role="menuitem"], [role="option"]';
+const CONTROL_SELECTOR = 'a[href], button, [role="button"], [role="menuitem"], [role="option"]';
 
 export const STILL_SAVING_NOTICE =
   "This record is still saving. Press the key again once the save lands.";
@@ -45,12 +44,8 @@ interface WorkspaceNavigation {
 
 export interface WorkspaceKeyDeps extends WorkspaceNavigation {
   actions: WorkspaceRecordActions | null;
-  /** The registration that owns `actions`. */
   record: symbol | null;
-  /** True while `actions` belong to a record being left or loading, or none has registered. */
   stale: boolean;
-  currentRecord: () => symbol | null;
-  /** Undoes the newest step, waiting for a queued write; false when there is nothing to undo. */
   undo: () => boolean;
   overlayOpen: () => boolean;
   queue: WorkspaceWriteQueue;
@@ -75,7 +70,7 @@ export function workspaceKeyAction(event: KeyEventLike): { action: WorkspaceKeyA
     return null;
   }
   if (
-    binding.action === "settle-and-next" &&
+    binding.action === "advance" &&
     event.target instanceof Element &&
     event.target.closest(CONTROL_SELECTOR) !== null
   ) {
@@ -94,45 +89,23 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
   if (event.repeat && !repeatable) {
     return true;
   }
-  if (RECORD_WRITES.has(resolved.action)) {
-    if (deps.stale) {
-      toast(RECORD_LOADING_NOTICE);
-      return true;
-    }
-    const nothingToSettle = resolved.action === "settle-and-next" && actions?.primary === undefined;
-    if (!nothingToSettle && deps.queue.holds(deps.record)) {
-      toast(STILL_SAVING_NOTICE);
-      return true;
-    }
+  const guarded = resolved.action === "advance" || RECORD_WRITES.has(resolved.action);
+  if (guarded && deps.stale) {
+    toast(RECORD_LOADING_NOTICE);
+    return true;
+  }
+  if (RECORD_WRITES.has(resolved.action) && deps.queue.holds(deps.record)) {
+    toast(STILL_SAVING_NOTICE);
+    return true;
   }
   switch (resolved.action) {
-    case "next": {
+    case "next":
+    case "advance": {
       deps.goNext();
       return true;
     }
     case "previous": {
       deps.goPrev();
-      return true;
-    }
-    case "settle-and-next": {
-      const primary = actions?.primary;
-      if (primary === undefined) {
-        deps.goNext();
-        return true;
-      }
-      if (primary.disabled === true) {
-        return true;
-      }
-      void deps.queue.enqueue(
-        deps.record,
-        async (signal) => {
-          await primary.run(signal);
-          if (deps.currentRecord() === deps.record) {
-            deps.goNext();
-          }
-        },
-        { queryClient: deps.queryClient },
-      );
       return true;
     }
     case "accept-new": {
@@ -184,7 +157,6 @@ export function useWorkspaceKeyboard(navigation?: WorkspaceNavigation): void {
       actions: registration.actions,
       record: registration.owner,
       stale: registrationIsStale(registration),
-      currentRecord: () => useWorkspaceActionsStore.getState().owner,
       undo: undoLatest,
       overlayOpen: openOverlayPresent,
       queue: workspaceWriteQueue(),

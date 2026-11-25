@@ -237,7 +237,7 @@ export function ExistingCardDetailPage({
     ? buildAttentionSubmissions(existingData, costKeywords)
     : [];
   const attentionSources = existingData
-    ? buildAttentionSources(existingData, providerSettings, costKeywords)
+    ? buildAttentionSources(existingData, providerSettings, costKeywords, isAdmin)
     : [];
   const attentionTotal = attentionCount(attentionSubmissions, attentionSources);
   const mappingGroup = mappingsData?.group ?? null;
@@ -407,6 +407,7 @@ export function ExistingCardDetailPage({
                   onOpenPrinting={revealPrinting}
                   printingFields={printingSourceFields}
                   providerLabels={sourceLabels}
+                  isAdmin={isAdmin}
                 />
               )}
             </section>

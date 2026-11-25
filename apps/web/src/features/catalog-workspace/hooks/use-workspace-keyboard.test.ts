@@ -12,7 +12,7 @@ import {
   WRITE_TIMEOUT_MS,
 } from "@/features/catalog-workspace/lib/workspace-write-queue";
 import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
-import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
+import { useWorkspaceUndoStore } from "@/features/catalog-workspace/stores/workspace-undo-store";
 import { createStoreResetter } from "@/test/store-helpers";
 
 const navigation = {
@@ -56,7 +56,6 @@ function deps(overrides: Partial<Parameters<typeof handleWorkspaceKey>[1]> = {})
     actions: null,
     record: null,
     stale: false,
-    currentRecord: () => null,
     undo: vi.fn(() => false),
     overlayOpen: () => false,
     queue: createWorkspaceWriteQueue(),
@@ -70,7 +69,7 @@ let resetSelection: () => void;
 
 beforeEach(() => {
   resetActions = createStoreResetter(useWorkspaceActionsStore);
-  resetSelection = createStoreResetter(useWorkspaceSelectionStore);
+  resetSelection = createStoreResetter(useWorkspaceUndoStore);
   vi.clearAllMocks();
 });
 
@@ -85,7 +84,7 @@ describe("workspaceKeyAction", () => {
   it("maps the bound keys, upper or lower case", () => {
     expect(workspaceKeyAction(keyEvent("j"))).toEqual({ action: "next" });
     expect(workspaceKeyAction(keyEvent("K"))).toEqual({ action: "previous" });
-    expect(workspaceKeyAction(keyEvent("Enter"))).toEqual({ action: "settle-and-next" });
+    expect(workspaceKeyAction(keyEvent("Enter"))).toEqual({ action: "advance" });
   });
 
   it("ignores modified keys and unbound keys", () => {
@@ -112,6 +111,15 @@ describe("workspaceKeyAction", () => {
     expect(workspaceKeyAction(keyEvent("Enter", { target: button }))).toBeNull();
     expect(workspaceKeyAction(keyEvent("j", { target: button }))).toEqual({ action: "next" });
   });
+
+  it("leaves Enter on a focused link to the link", () => {
+    const link = document.createElement("a");
+    link.href = "/admin/workspace/faces/vi/face-1";
+    expect(workspaceKeyAction(keyEvent("Enter", { target: link }))).toBeNull();
+    expect(workspaceKeyAction(keyEvent("Enter", { target: document.createElement("a") }))).toEqual({
+      action: "advance",
+    });
+  });
 });
 
 describe("handleWorkspaceKey", () => {
@@ -129,52 +137,13 @@ describe("handleWorkspaceKey", () => {
     expect(d.goNext).not.toHaveBeenCalled();
   });
 
-  it("runs the primary action, then opens the next item", async () => {
-    const order: string[] = [];
-    const goNext = vi.fn(() => order.push("next"));
-    const run = vi.fn(async () => {
-      order.push("run");
-    });
-    handleWorkspaceKey(
-      keyEvent("Enter"),
-      deps({ goNext, actions: { primary: { label: "Discard", run } } }),
-    );
-    await vi.waitFor(() => expect(goNext).toHaveBeenCalledOnce());
-    expect(order).toEqual(["run", "next"]);
-  });
-
-  it("stays on the item when the primary action fails", async () => {
-    const goNext = vi.fn();
-    const run = vi.fn(() => Promise.reject(new Error("nope")));
-    handleWorkspaceKey(
-      keyEvent("Enter"),
-      deps({ goNext, actions: { primary: { label: "Discard", run } } }),
-    );
-    await vi.waitFor(() => expect(run).toHaveBeenCalledOnce());
-    await Promise.resolve();
-    expect(goNext).not.toHaveBeenCalled();
-  });
-
-  it("does not run a disabled primary action", () => {
-    const run = vi.fn();
-    const d = deps({ actions: { primary: { label: "Discard", disabled: true, run } } });
-    expect(handleWorkspaceKey(keyEvent("Enter"), d)).toBe(true);
-    expect(run).not.toHaveBeenCalled();
-    expect(d.goNext).not.toHaveBeenCalled();
-  });
-
-  it("treats Enter as Next when the record registered no primary action", () => {
-    const d = deps();
-    handleWorkspaceKey(keyEvent("Enter"), d);
-    expect(d.goNext).toHaveBeenCalledOnce();
-  });
-
-  it("ignores auto-repeat for actions but keeps it for moving", () => {
-    const run = vi.fn();
-    const d = deps({ actions: { primary: { label: "Discard", run } } });
+  it("ignores auto-repeat for Enter and actions but keeps it for moving", () => {
+    const ignore = vi.fn();
+    const d = deps({ actions: { ignore } });
     handleWorkspaceKey(keyEvent("Enter", { repeat: true }), d);
+    handleWorkspaceKey(keyEvent("x", { repeat: true }), d);
     handleWorkspaceKey(keyEvent("j", { repeat: true }), d);
-    expect(run).not.toHaveBeenCalled();
+    expect(ignore).not.toHaveBeenCalled();
     expect(d.goNext).toHaveBeenCalledOnce();
   });
 
@@ -222,20 +191,22 @@ describe("handleWorkspaceKey", () => {
           finish = resolve;
         }),
     );
-    const accept = vi.fn();
-    const d = deps({ actions: { primary: { label: "Discard", run }, accept } });
+    const ignore = vi.fn();
+    const d = deps({ actions: { accept: run, ignore } });
 
-    expect(handleWorkspaceKey(keyEvent("Enter"), d)).toBe(true);
-    expect(handleWorkspaceKey(keyEvent("Enter"), d)).toBe(true);
     expect(handleWorkspaceKey(keyEvent("a"), d)).toBe(true);
+    expect(handleWorkspaceKey(keyEvent("a"), d)).toBe(true);
+    expect(handleWorkspaceKey(keyEvent("x"), d)).toBe(true);
     await vi.waitFor(() => expect(run).toHaveBeenCalledOnce());
-    expect(accept).not.toHaveBeenCalled();
+    expect(ignore).not.toHaveBeenCalled();
     expect(notice).toHaveBeenCalledTimes(2);
     expect(notice).toHaveBeenCalledWith(STILL_SAVING_NOTICE);
+    expect(handleWorkspaceKey(keyEvent("Enter"), d)).toBe(true);
+    expect(d.goNext).toHaveBeenCalledOnce();
 
     finish();
     await vi.waitFor(() => expect(d.queue.idle()).toBe(true));
-    handleWorkspaceKey(keyEvent("Enter"), d);
+    handleWorkspaceKey(keyEvent("a"), d);
     await vi.waitFor(() => expect(run).toHaveBeenCalledTimes(2));
     finish();
   });
@@ -278,29 +249,6 @@ describe("handleWorkspaceKey", () => {
     expect(notice).not.toHaveBeenCalled();
   });
 
-  it("does not open the next item when the record changed while the primary action waited", async () => {
-    const record = Symbol("A");
-    let current: symbol | null = record;
-    let finish = () => {};
-    const run = vi.fn(
-      () =>
-        new Promise<void>((resolve) => {
-          finish = resolve;
-        }),
-    );
-    const d = deps({
-      record,
-      currentRecord: () => current,
-      actions: { primary: { label: "Discard", run } },
-    });
-    handleWorkspaceKey(keyEvent("Enter"), d);
-    await vi.waitFor(() => expect(run).toHaveBeenCalledOnce());
-    current = Symbol("B");
-    finish();
-    await vi.waitFor(() => expect(d.queue.idle()).toBe(true));
-    expect(d.goNext).not.toHaveBeenCalled();
-  });
-
   it("frees the keys again after an action fails", async () => {
     const ignore = vi.fn(() => Promise.reject(new Error("nope")));
     const d = deps({ actions: { ignore } });
@@ -333,20 +281,19 @@ describe("handleWorkspaceKey", () => {
   it("runs no record action while the registration is stale, and says so", () => {
     const ignore = vi.fn();
     const accept = vi.fn();
-    const run = vi.fn();
     const goNext = vi.fn();
     const d = deps({
       stale: true,
       goNext,
       record: Symbol("previous"),
-      actions: { ignore, accept, primary: { label: "Discard", run } },
+      actions: { ignore, accept },
     });
 
     for (const key of ["x", "a", "Enter"]) {
       expect(handleWorkspaceKey(keyEvent(key), d)).toBe(true);
     }
 
-    for (const fn of [ignore, accept, run, goNext]) {
+    for (const fn of [ignore, accept, goNext]) {
       expect(fn).not.toHaveBeenCalled();
     }
     expect(notice).toHaveBeenCalledTimes(3);
@@ -360,7 +307,7 @@ describe("handleWorkspaceKey", () => {
     expect(notice).not.toHaveBeenCalled();
   });
 
-  it("treats Enter as Next on a ready record without a primary action", () => {
+  it("treats Enter as Next on a ready record", () => {
     const d = deps({ actions: {}, record: Symbol("ready") });
     expect(handleWorkspaceKey(keyEvent("Enter"), d)).toBe(true);
     expect(d.goNext).toHaveBeenCalledOnce();
@@ -410,7 +357,7 @@ describe("useWorkspaceKeyboard", () => {
       () =>
         new Promise<void>((resolve) => {
           land = () => {
-            useWorkspaceSelectionStore.getState().pushUndo({
+            useWorkspaceUndoStore.getState().pushUndo({
               label: "Used Rarity from Provider A on Vi",
               undoneLabel: "Undone: Rarity restored on Vi",
               invalidates: [],
@@ -429,7 +376,7 @@ describe("useWorkspaceKeyboard", () => {
     expect(pressZ.defaultPrevented).toBe(true);
     land();
     await vi.waitFor(() => expect(undo).toHaveBeenCalledOnce());
-    await vi.waitFor(() => expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]));
+    await vi.waitFor(() => expect(useWorkspaceUndoStore.getState().undoStack).toEqual([]));
     expect(notice).not.toHaveBeenCalled();
   });
 
@@ -444,13 +391,13 @@ describe("useWorkspaceKeyboard", () => {
       invalidates: [],
       undo: vi.fn(() => Promise.resolve()),
     };
-    useWorkspaceSelectionStore.getState().pushUndo(older);
+    useWorkspaceUndoStore.getState().pushUndo(older);
     void queueWorkspaceWrite(
       new QueryClient(),
       () =>
         new Promise<void>((resolve) => {
           land = () => {
-            useWorkspaceSelectionStore.getState().pushUndo({
+            useWorkspaceUndoStore.getState().pushUndo({
               label: "Used Rarity from Provider A on Vi",
               undoneLabel: "Undone: Rarity restored on Vi",
               invalidates: [],
@@ -473,7 +420,7 @@ describe("useWorkspaceKeyboard", () => {
   it("starts a key action pressed after Z only once the undo finished", async () => {
     let finishUndo = () => {};
     const order: string[] = [];
-    useWorkspaceSelectionStore.getState().pushUndo({
+    useWorkspaceUndoStore.getState().pushUndo({
       label: "Ignored Ekko",
       undoneLabel: "Undone: Ekko is back in the queue",
       invalidates: [],
@@ -528,10 +475,7 @@ describe("useWorkspaceKeyboard", () => {
 
   it("says the record is still loading for X, A and Enter while it registers as loading", () => {
     renderHook(() => useWorkspaceKeyboard(navigation), { wrapper });
-    const run = vi.fn();
-    useWorkspaceActionsStore
-      .getState()
-      .register({ loading: true, primary: { label: "Next", run } }, Symbol("loading"));
+    useWorkspaceActionsStore.getState().register({ loading: true }, Symbol("loading"));
 
     for (const key of ["x", "a", "Enter"]) {
       const event = new KeyboardEvent("keydown", { key, cancelable: true });
@@ -541,7 +485,6 @@ describe("useWorkspaceKeyboard", () => {
 
     expect(notice).toHaveBeenCalledTimes(3);
     expect(notice).toHaveBeenCalledWith(RECORD_LOADING_NOTICE);
-    expect(run).not.toHaveBeenCalled();
     expect(navigation.goNext).not.toHaveBeenCalled();
   });
 

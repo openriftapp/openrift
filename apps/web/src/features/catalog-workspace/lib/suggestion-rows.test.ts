@@ -5,7 +5,6 @@ import {
   makeAdminCard,
   makeAdminCardDetail,
   makeCandidateCard,
-  makeProviderSetting,
   resetIdCounter,
 } from "@/test/factories";
 
@@ -33,25 +32,20 @@ function sameAsCard(overrides: Parameters<typeof makeCandidateCard>[0] = {}) {
   });
 }
 
-function build(sources: ReturnType<typeof makeCandidateCard>[], favorites: string[] = []) {
+function build(sources: ReturnType<typeof makeCandidateCard>[]) {
   const detail = makeAdminCardDetail({ card, sources });
-  return buildCardSuggestions(
-    detail,
-    favorites.map((provider) => makeProviderSetting({ provider, isFavorite: true })),
-    buildAttentionSubmissions(detail, []),
-  );
+  const result = buildCardSuggestions(detail, buildAttentionSubmissions(detail, []));
+  return { ...result, suggestions: result.rows.flatMap((row) => row.suggestions) };
 }
 
 describe("buildCardSuggestions", () => {
   it("lists a suggestion only where the source value differs from the card", () => {
     const result = build([sameAsCard({ name: "Jinx - Demolitionist" })]);
 
-    expect(result.suggestions.map((s) => [s.field, s.value])).toEqual([
+    expect(result.suggestions.map((s) => [s.field, s.proposed])).toEqual([
       ["name", "Jinx - Demolitionist"],
     ]);
     expect(result.rows.find((row) => row.field === "might")?.suggestions).toEqual([]);
-    expect(result.agreedLabels).not.toContain("Name");
-    expect(result.agreedLabels).toContain("Might");
   });
 
   it("skips checked source rows", () => {
@@ -61,7 +55,6 @@ describe("buildCardSuggestions", () => {
 
     expect(result.suggestions).toEqual([]);
     expect(result.enterTargets).toEqual([]);
-    expect(result.sources).toEqual([]);
   });
 
   it("skips empty source values", () => {
@@ -82,37 +75,22 @@ describe("buildCardSuggestions", () => {
       }),
     ]);
 
-    expect(result.suggestions.map((s) => [s.field, s.tone, s.sourceLabel])).toEqual([
-      ["name", "source", "gallery"],
-      ["might", "source", "gallery"],
-      ["might", "contributor", "Renata"],
+    expect(result.suggestions.map((s) => [s.field, s.isContributor, s.sourceLabel])).toEqual([
+      ["name", false, "gallery"],
+      ["might", false, "gallery"],
+      ["might", true, "Renata"],
     ]);
   });
 
-  it("counts differences per provider and marks trusted ones", () => {
-    const result = build(
-      [
-        sameAsCard({ provider: "gallery" }),
-        sameAsCard({ provider: "scans", name: "Jinx - Demolitionist", might: 3 }),
-      ],
-      ["gallery"],
-    );
-
-    expect(result.sources).toEqual([
-      { key: "gallery", label: "gallery", tone: "source", differences: 0, trusted: true },
-      { key: "scans", label: "scans", tone: "source", differences: 2, trusted: false },
-    ]);
-  });
-
-  it("sums several rows of one provider into one strip entry", () => {
+  it("skips a value dismissed on the source row", () => {
     const result = build([
-      sameAsCard({ provider: "scans", name: "Jinx A" }),
-      sameAsCard({ provider: "scans", might: 1 }),
+      sameAsCard({
+        name: "Jinx - Demolitionist",
+        dismissedValues: { name: "Jinx - Demolitionist" },
+      }),
     ]);
 
-    expect(result.sources).toEqual([
-      { key: "scans", label: "scans", tone: "source", differences: 2, trusted: false },
-    ]);
+    expect(result.suggestions).toEqual([]);
   });
 
   it("keeps contributor rows out of the Enter targets", () => {
@@ -129,7 +107,7 @@ describe("buildCardSuggestions", () => {
     expect(result.enterTargets.map((target) => target.differences)).toEqual([1, 0]);
   });
 
-  it("carries the submission's change key and its other open changes", () => {
+  it("carries the submission's change key", () => {
     const submission = makeCandidateCard({
       ...sameAsCard(),
       id: "sub-1",
@@ -141,15 +119,6 @@ describe("buildCardSuggestions", () => {
     const might = result.suggestions.find((s) => s.field === "might");
 
     expect(might?.changeKey).toBe("card:sub-1:might");
-    expect(might?.otherChanges).toBe(1);
-    expect(result.sources).toEqual([
-      {
-        key: "contributor:sub-1",
-        label: "Renata",
-        tone: "contributor",
-        differences: 2,
-        trusted: false,
-      },
-    ]);
+    expect(might?.candidateCardId).toBe("sub-1");
   });
 });

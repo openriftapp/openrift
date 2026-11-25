@@ -2,18 +2,12 @@ import { cardFieldsSchema } from "@openrift/shared/contracts/admin/card-mutation
 import type { AcceptNewCardBody } from "@openrift/shared/contracts/admin/card-mutations";
 import type { z } from "zod";
 
+import { CARD_FIELD_LABELS, CARD_ID_LABEL } from "@/features/admin/lib/catalog-field-labels";
+
 /** Keyed exhaustively off the schema, so a new field there is a compile error here. */
 const FIELD_LABELS: Record<keyof AcceptNewCardBody["cardFields"], string> = {
-  id: "Card ID",
-  name: "Name",
-  types: "Types",
-  superTypes: "Supertypes",
-  domains: "Domains",
-  might: "Might",
-  energy: "Energy",
-  power: "Power",
-  mightBonus: "Might Bonus",
-  tags: "Tags",
+  ...CARD_FIELD_LABELS,
+  id: CARD_ID_LABEL,
 };
 
 /** Keys match the spreadsheet field keys — `types` is plural, matching `candidateCardFieldDefs`. */

@@ -1,3 +1,4 @@
+import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import type { Marketplace } from "@openrift/shared/types/pricing";
 import {
@@ -17,7 +18,12 @@ export interface MarketplaceCoverage {
 }
 
 export function mappingKey(mapping: Mapping): string {
-  return `${mapping.marketplace}:${mapping.externalId}:${mapping.finish}:${mapping.variantLanguage ?? ""}`;
+  return marketplaceSkuKey(
+    mapping.marketplace,
+    mapping.externalId,
+    mapping.finish,
+    mapping.variantLanguage,
+  );
 }
 
 export function marketplaceCoverage(

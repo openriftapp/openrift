@@ -11,6 +11,7 @@ import { sql } from "kysely";
 
 import { cardTypes, primaryCardTypeSql } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
+import { printingIsPromo } from "../../../repositories/printing-promo-sql.js";
 import { imageUrlWithOriginal, joinAdminFaceImage } from "../../../repositories/query-helpers.js";
 import type { FullPrintingRow, PrintingUpdate } from "./catalog-mutations.js";
 import { selectFullPrintings, updatePrintingAndFace } from "./catalog-mutations.js";
@@ -104,15 +105,7 @@ export function printingDeskRepo(db: Kysely<Database>) {
     SELECT count(*)::int FROM face_images pi2 WHERE pi2.face_id IN (p.face1_id, p.face2_id)
   )`.as("imageCount");
 
-  const isPromo = sql<boolean>`(
-    EXISTS (
-      SELECT 1 FROM faces mf
-      WHERE mf.id IN (p.face1_id, p.face2_id) AND cardinality(mf.marker_slugs) > 0
-    )
-    OR EXISTS (SELECT 1 FROM printing_distribution_channels pdc2 WHERE pdc2.printing_id = p.id)
-  )`;
-
-  const notPromo = sql<boolean>`NOT ${isPromo}`;
+  const notPromo = sql<boolean>`NOT ${printingIsPromo}`;
 
   const sharedWith = (faceColumn: "face1_id" | "face2_id") => sql<DeskSharedPrinting[]>`(
     SELECT coalesce(json_agg(json_build_object(
@@ -190,7 +183,7 @@ export function printingDeskRepo(db: Kysely<Database>) {
         sql<1 | 2>`${sql.lit(side)}::int`.as("side"),
         secondSide(otherColumn),
         sharedWith(ownColumn).as("sharedWith"),
-        isPromo.as("isPromo"),
+        printingIsPromo.as("isPromo"),
       ])
       .orderBy("p.updatedAt", "desc");
   }
@@ -244,7 +237,7 @@ export function printingDeskRepo(db: Kysely<Database>) {
         }
         return rowQuery().where("p.id", "in", filter.printingIds).execute();
       }
-      return rowQuery().where(isPromo).execute();
+      return rowQuery().where(printingIsPromo).execute();
     },
 
     async listDeskPrintingsForCard(cardId: string): Promise<DeskPrintingDbRow[]> {
@@ -386,7 +379,7 @@ export function printingDeskRepo(db: Kysely<Database>) {
         .selectFrom("printings as p")
         .select("p.id")
         .where("p.id", "=", printingId)
-        .where(isPromo)
+        .where(printingIsPromo)
         .executeTakeFirst();
       return row !== undefined;
     },

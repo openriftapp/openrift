@@ -4,7 +4,7 @@ import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/worksp
 
 const UNDO_LIMIT = 20;
 
-interface WorkspaceSelectionState {
+interface WorkspaceUndoState {
   undoStack: WorkspaceUndoEntry[];
   undoing: boolean;
   undoQueue: WorkspaceUndoEntry[];
@@ -15,7 +15,7 @@ interface WorkspaceSelectionState {
   clearUndo: () => void;
 }
 
-export const useWorkspaceSelectionStore = create<WorkspaceSelectionState>()((set, get) => ({
+export const useWorkspaceUndoStore = create<WorkspaceUndoState>()((set, get) => ({
   undoStack: [],
   undoing: false,
   undoQueue: [],

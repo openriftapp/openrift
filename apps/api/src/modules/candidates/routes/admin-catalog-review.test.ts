@@ -53,7 +53,7 @@ const repos = {
     acceptNewCardFromSources: vi.fn(),
   },
   catalog: { refreshCatalogViews: vi.fn() },
-  ignoredCandidates: { ignoreCard: vi.fn() },
+  ignoredCandidates: { ignoreCards: vi.fn() },
   printingImages: { originalUrlsInUse: vi.fn() },
   ingest: {
     allUnlinkedCandidatePrintings: vi.fn(),
@@ -317,10 +317,9 @@ describe(`POST ${BASE}/submissions/{id}/reject`, () => {
       note: null,
       resolvedByUserId: USER_ID,
     });
-    expect(repos.ignoredCandidates.ignoreCard).toHaveBeenCalledWith({
-      provider: "usersubmission",
-      externalId: "jinx--20260901--u1",
-    });
+    expect(repos.ignoredCandidates.ignoreCards).toHaveBeenCalledWith([
+      { provider: "usersubmission", externalId: "jinx--20260901--u1" },
+    ]);
   });
 
   it("returns 400 and changes nothing without a reason", async () => {
@@ -329,7 +328,7 @@ describe(`POST ${BASE}/submissions/{id}/reject`, () => {
     });
 
     expect(res.status).toBe(400);
-    expect(repos.ignoredCandidates.ignoreCard).not.toHaveBeenCalled();
+    expect(repos.ignoredCandidates.ignoreCards).not.toHaveBeenCalled();
     expect(repos.cardSubmissions.resolve).not.toHaveBeenCalled();
   });
 

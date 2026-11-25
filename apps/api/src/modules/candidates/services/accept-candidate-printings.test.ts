@@ -102,6 +102,13 @@ describe("acceptCandidateGroups", () => {
     expect(vi.mocked(createNewPrinting).mock.calls[0]?.[3]).toEqual(["a", "b"]);
     expect(result).toEqual({
       created: [{ printingId: "p-1", imageIds: ["img-1"] }],
+      accepted: [
+        {
+          printing: { printingId: "p-1", imageIds: ["img-1"] },
+          fields: expect.objectContaining({ shortCode: "OGN-027" }),
+          candidatePrintingIds: ["a", "b"],
+        },
+      ],
       skipped: [{ shortCode: "OGN-028", reason: "missing: artist" }],
     });
   });

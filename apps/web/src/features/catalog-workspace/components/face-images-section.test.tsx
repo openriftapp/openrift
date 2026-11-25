@@ -13,6 +13,7 @@ import {
   resetWorkspaceWriteQueue,
   workspaceWriteQueue,
 } from "@/features/catalog-workspace/lib/workspace-write-queue";
+import { createStoreResetter } from "@/test/store-helpers";
 
 const state = vi.hoisted(() => ({
   editingImageIds: [] as string[],
@@ -22,6 +23,10 @@ const state = vi.hoisted(() => ({
     isPending: false,
   },
   straightenRunWrite: [] as unknown[],
+  activate: { mutateAsync: vi.fn(async (..._args: unknown[]) => {}), isPending: false },
+  keep: { mutateAsync: vi.fn(async (..._args: unknown[]) => {}), isPending: false },
+  activateFn: vi.fn(async (..._args: unknown[]) => {}),
+  unkeepFn: vi.fn(async (..._args: unknown[]) => {}),
 }));
 
 vi.mock("@/components/ui/dropdown-menu", () => ({
@@ -73,7 +78,7 @@ vi.mock("@/features/catalog-workspace/components/pass/submission-decisions", () 
   useSubmissionDecisions: () => ({ onReject: vi.fn(), onMarkApplied: vi.fn(), dialogs: null }),
 }));
 vi.mock("@/features/catalog-workspace/hooks/use-face-record-actions", () => ({
-  useFaceSuggestionWrites: () => ({ applyChip: vi.fn(), pending: false }),
+  useFaceSuggestionWrites: () => ({ apply: vi.fn(), pending: false }),
 }));
 
 vi.mock("@/features/admin/hooks/use-admin", () => ({
@@ -83,11 +88,13 @@ vi.mock("@/features/admin/hooks/use-admin", () => ({
 vi.mock("@/features/admin/hooks/use-admin-image-mutations", () => {
   const idle = () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false });
   return {
-    useActivatePrintingImage: idle,
+    activatePrintingImageFn: state.activateFn,
+    unkeepPrintingImageFn: state.unkeepFn,
+    useActivatePrintingImage: () => state.activate,
     useAddImageFromUrl: idle,
     useDeletePrintingImage: idle,
     useImageEditPending: (imageId: string) => state.editingImageIds.includes(imageId),
-    useKeepPrintingImage: idle,
+    useKeepPrintingImage: () => state.keep,
     useRehostPrintingImage: idle,
     useRotatePrintingImage: () => state.rotate,
     useSetPrintingImageNeedsLevels: idle,
@@ -97,6 +104,9 @@ vi.mock("@/features/admin/hooks/use-admin-image-mutations", () => {
 });
 
 const { FaceImagesSection } = await import("./face-images-section");
+const { useWorkspaceUndoStore } =
+  await import("@/features/catalog-workspace/stores/workspace-undo-store");
+const resetUndoStore = createStoreResetter(useWorkspaceUndoStore);
 
 const face = {
   id: "p-1",
@@ -163,6 +173,15 @@ const EDITS = [
 ];
 
 beforeEach(() => {
+  resetUndoStore();
+  for (const fn of [
+    state.activate.mutateAsync,
+    state.keep.mutateAsync,
+    state.activateFn,
+    state.unkeepFn,
+  ]) {
+    fn.mockClear();
+  }
   state.editingImageIds = [];
   state.rotate.mutateAsync.mockClear();
   state.straightenRunWrite = [];
@@ -246,5 +265,80 @@ describe("FaceImagesSection inactive image edits", () => {
     for (const name of EDITS) {
       expect(screen.getByRole("button", { name })).toBeEnabled();
     }
+  });
+});
+
+describe("FaceImagesSection review undo", () => {
+  async function undoLatest() {
+    const entry = useWorkspaceUndoStore.getState().undoStack.at(-1);
+    expect(entry).toBeDefined();
+    await entry?.undo(new AbortController().signal);
+    return entry;
+  }
+
+  it("puts a kept image back up for review on undo", async () => {
+    renderSection();
+
+    fireEvent.click(screen.getByRole("button", { name: "Keep as extra" }));
+    await vi.waitFor(() => expect(state.keep.mutateAsync).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(useWorkspaceUndoStore.getState().undoStack).toHaveLength(1));
+
+    const entry = await undoLatest();
+    expect(entry?.label).toBe("Kept an image as an extra on OGN-001");
+    expect(state.unkeepFn).toHaveBeenCalledWith({
+      data: { imageId: "img-2" },
+      signal: expect.any(AbortSignal),
+    });
+  });
+
+  it("undoes Make main by taking the image down and reopening its review", async () => {
+    renderSection();
+
+    fireEvent.click(screen.getByRole("button", { name: "Make main" }));
+    await vi.waitFor(() => expect(useWorkspaceUndoStore.getState().undoStack).toHaveLength(1));
+
+    await undoLatest();
+    expect(state.activateFn).toHaveBeenCalledWith({
+      data: { imageId: "img-2", active: false },
+      signal: expect.any(AbortSignal),
+    });
+    expect(state.unkeepFn).toHaveBeenCalledWith({
+      data: { imageId: "img-2" },
+      signal: expect.any(AbortSignal),
+    });
+    expect(state.activateFn.mock.invocationCallOrder[0]).toBeLessThan(
+      state.unkeepFn.mock.invocationCallOrder[0] ?? 0,
+    );
+  });
+
+  it("offers no undo for Make main on an image that still has to be rehosted", async () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <FaceImagesSection
+          cardSlug="jinx-loose-cannon"
+          face={face}
+          detail={
+            {
+              printings: [face],
+              printingImages: [{ ...inactive, rehostedUrl: null }],
+              candidatePrintings: [],
+              sources: [],
+            } as unknown as AdminCardDetailResponse
+          }
+          sourceImages={[]}
+          images={[{ ...inactive, rehostedUrl: null }]}
+          printings={[face]}
+          providerSettings={[]}
+          isAdmin={false}
+          landscape={false}
+        />
+      </QueryClientProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Added /u }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Make main" }));
+    await vi.waitFor(() => expect(state.activate.mutateAsync).toHaveBeenCalledOnce());
+    await Promise.resolve();
+    expect(useWorkspaceUndoStore.getState().undoStack).toEqual([]);
   });
 });

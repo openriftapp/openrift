@@ -3,12 +3,7 @@ import { describe, expect, it } from "vitest";
 import { makeCandidatePrinting } from "@/test/factories";
 
 import type { DraftCard } from "./creation-draft";
-import {
-  checkedGroupKeys,
-  isDraftComplete,
-  runInSequence,
-  seedNewCardGroups,
-} from "./new-card-groups";
+import { checkedGroupKeys, isDraftComplete, seedNewCardGroups } from "./new-card-groups";
 
 const card: DraftCard = { mode: "new", slug: "viktor-herald", name: "Viktor, Herald", summary: "" };
 
@@ -118,30 +113,5 @@ describe("checkedGroupKeys", () => {
 
   it("drops a group the admin unticked", () => {
     expect(checkedGroupKeys(groups, new Map([["ok", false]]))).toEqual([]);
-  });
-});
-
-describe("runInSequence", () => {
-  it("runs every item in order and reports each failure", async () => {
-    const seen: number[] = [];
-    const failures = await runInSequence([1, 2, 3], async (item) => {
-      seen.push(item);
-      if (item === 2) {
-        throw new Error("conflict");
-      }
-    });
-    expect(seen).toEqual([1, 2, 3]);
-    expect(failures.map((failure) => failure.item)).toEqual([2]);
-    expect(failures[0]?.error).toEqual(new Error("conflict"));
-  });
-
-  it("waits for each item before starting the next", async () => {
-    const log: string[] = [];
-    await runInSequence(["a", "b"], async (item) => {
-      log.push(`start ${item}`);
-      await Promise.resolve();
-      log.push(`end ${item}`);
-    });
-    expect(log).toEqual(["start a", "end a", "start b", "end b"]);
   });
 });

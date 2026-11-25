@@ -127,6 +127,32 @@ describe("PrintingDeskEditFields release precision", () => {
   });
 });
 
+describe("PrintingDeskEditFields write runner", () => {
+  it("saves through the caller's write runner and its signal", async () => {
+    const user = userEvent.setup();
+    const { signal } = new AbortController();
+    const runWrite = vi.fn((write: (signal?: AbortSignal) => Promise<unknown>) =>
+      write(signal).then(() => true),
+    );
+    render(
+      <PrintingDeskEditFields
+        printingId="p-1"
+        scope="face"
+        runWrite={runWrite}
+        onSaved={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(runWrite).toHaveBeenCalledOnce();
+    expect(updateMutateAsync).toHaveBeenCalledWith(expect.objectContaining({ printingId: "p-1" }), {
+      signal,
+    });
+  });
+});
+
 describe("PrintingDeskEditFields flavor text", () => {
   it("saves the flavor text a face edit typed", async () => {
     const user = userEvent.setup();
@@ -140,6 +166,7 @@ describe("PrintingDeskEditFields flavor text", () => {
 
     expect(updateMutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({ printingId: "p-1", flavorText: "The fire starts small." }),
+      { signal: undefined },
     );
     expect(updateMutateAsync.mock.calls[0]?.[0]).not.toHaveProperty("comment");
     expect(onSaved).toHaveBeenCalled();
@@ -157,7 +184,9 @@ describe("PrintingDeskEditFields flavor text", () => {
     await user.clear(field);
     await user.click(screen.getByRole("button", { name: "Save changes" }));
 
-    expect(updateMutateAsync).toHaveBeenCalledWith(expect.objectContaining({ flavorText: null }));
+    expect(updateMutateAsync).toHaveBeenCalledWith(expect.objectContaining({ flavorText: null }), {
+      signal: undefined,
+    });
   });
 
   it("leaves flavor text out of a printing-only edit", async () => {

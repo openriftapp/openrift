@@ -1,7 +1,7 @@
 import { useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 
-import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
+import { useWorkspaceUndoStore } from "@/features/catalog-workspace/stores/workspace-undo-store";
 
 const WORKSPACE_PATH = /(?:^|\/)admin\/workspace(?:\/|$)/u;
 
@@ -14,7 +14,7 @@ export function useClearUndoOnLeave(): void {
   useEffect(
     () => () => {
       if (!isWorkspacePath(router.latestLocation.pathname)) {
-        useWorkspaceSelectionStore.getState().clearUndo();
+        useWorkspaceUndoStore.getState().clearUndo();
       }
     },
     [router],

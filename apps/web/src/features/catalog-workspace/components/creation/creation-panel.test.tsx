@@ -1,3 +1,4 @@
+import { labelMapOf } from "@openrift/shared/enum-label";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -13,6 +14,9 @@ vi.mock("@/hooks/use-enums", () => ({
 vi.mock("@/features/cards/hooks/use-sets", () => ({ useSets: () => ({ data: { sets: [] } }) }));
 vi.mock("@/features/cards/hooks/use-distinct-artists", () => ({
   useDistinctArtists: () => ({ data: [] }),
+}));
+vi.mock("@/features/catalog-workspace/hooks/use-value-labels", () => ({
+  useValueLabels: () => ({ channels: labelMapOf({}) }),
 }));
 vi.mock("@/features/admin/hooks/use-distribution-channels", () => ({
   useDistributionChannels: () => ({ data: { distributionChannels: [] } }),

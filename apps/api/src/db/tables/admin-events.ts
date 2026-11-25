@@ -26,10 +26,18 @@ export type AdminEventAction =
   | "candidate-printing.ignore"
   | "candidate-printing.unignore"
   | "candidate-printing.unpin"
+  | "candidate-printing.check"
+  | "candidate-printing.uncheck"
+  | "candidate-printing.dismiss-value"
+  | "candidate-printing.restore-value"
   | "candidate-card.check-matching"
   | "candidate-card.discard-same-difference"
   | "candidate-card.ignore"
   | "candidate-card.unignore"
+  | "candidate-card.check"
+  | "candidate-card.uncheck"
+  | "candidate-card.dismiss-value"
+  | "candidate-card.restore-value"
   | "card-submission.resolution"
   | "card-submission.accept"
   | "card-submission.reject"
@@ -38,6 +46,7 @@ export type AdminEventAction =
   | "image.set-from-candidate"
   | "image.activate"
   | "image.keep"
+  | "image.unkeep"
   | "image.rotate"
   | "image.rehost"
   | "image.unrehost"
@@ -115,10 +124,7 @@ export type AdminEventEntityType =
   | "product"
   | "provider-setting";
 
-/**
- * actorUserId has no FK, so rows survive user deletion. Check/uncheck
- * bookkeeping is deliberately not logged.
- */
+/** actorUserId has no FK, so rows survive user deletion. */
 export interface AdminEventsTable {
   id: Generated<string>;
   actorUserId: string;

@@ -55,20 +55,21 @@ describe("candidateCardsRepo", () => {
     expect(result).toEqual({ updated: 1, candidateCardIds: ["cc-1", "cc-2"] });
   });
 
-  it("checkCandidateCards touches nothing for an empty id list", async () => {
-    const db = createMockDb([{ id: "cc-1" }]);
-    expect(await candidateCardsRepo(db).checkCandidateCards([])).toEqual({
+  it("checkAllCandidateCards touches nothing for an empty id list", async () => {
+    const { db, queries } = createRecordingDb([[{ id: "cc-1" }]]);
+    expect(await candidateCardsRepo(db).checkAllCandidateCards(["annie"], "c-1", [])).toEqual({
       updated: 0,
       candidateCardIds: [],
     });
+    expect(queries).toHaveLength(0);
   });
 
-  it("checkCandidateCards counts the rows it flipped and returns every given row that exists", async () => {
-    const { db } = createRecordingDb([[{ id: "cc-1" }], [{ id: "cc-1" }, { id: "cc-2" }]]);
-    expect(await candidateCardsRepo(db).checkCandidateCards(["cc-1", "cc-2", "cc-9"])).toEqual({
-      updated: 1,
-      candidateCardIds: ["cc-1", "cc-2"],
-    });
+  it("checkCandidatePrintingsOfCard touches nothing for an empty id list", async () => {
+    const { db, queries } = createRecordingDb([[{ id: "cp-1" }]]);
+    expect(
+      await candidateCardsRepo(db).checkCandidatePrintingsOfCard(["annie"], "c-1", []),
+    ).toEqual({ updated: 0, matchedIds: [], candidateCardIds: [] });
+    expect(queries).toHaveLength(0);
   });
 
   it("uncheckCandidateCards counts the rows it cleared", async () => {
@@ -85,6 +86,7 @@ describe("candidateCardsRepo", () => {
     const db = createMockDb([{ candidateCardId: "cc-1" }]);
     expect(await candidateCardsRepo(db).checkAllCandidatePrintings()).toEqual({
       updated: 0,
+      ids: [],
       candidateCardIds: [],
     });
   });
@@ -94,15 +96,18 @@ describe("candidateCardsRepo", () => {
       name: "printingId",
       printingId: "p-1",
       extraIds: undefined,
-      rows: [{ candidateCardId: "cc-1" }, { candidateCardId: "cc-2" }],
-      expected: { updated: 2, candidateCardIds: ["cc-1", "cc-2"] },
+      rows: [
+        { id: "cp-1", candidateCardId: "cc-1" },
+        { id: "cp-2", candidateCardId: "cc-2" },
+      ],
+      expected: { updated: 2, ids: ["cp-1", "cp-2"], candidateCardIds: ["cc-1", "cc-2"] },
     },
     {
       name: "extraIds",
       printingId: undefined,
       extraIds: ["cp-1"],
-      rows: [{ candidateCardId: "cc-1" }],
-      expected: { updated: 1, candidateCardIds: ["cc-1"] },
+      rows: [{ id: "cp-1", candidateCardId: "cc-1" }],
+      expected: { updated: 1, ids: ["cp-1"], candidateCardIds: ["cc-1"] },
     },
   ])("checkAllCandidatePrintings with $name", async ({ printingId, extraIds, rows, expected }) => {
     const db = createMockDb(rows);
@@ -113,13 +118,13 @@ describe("candidateCardsRepo", () => {
 
   it("checkAllCandidatePrintings dedupes parents from the same candidate card", async () => {
     const db = createMockDb([
-      { candidateCardId: "cc-1" },
-      { candidateCardId: "cc-1" },
-      { candidateCardId: "cc-2" },
+      { id: "cp-1", candidateCardId: "cc-1" },
+      { id: "cp-2", candidateCardId: "cc-1" },
+      { id: "cp-3", candidateCardId: "cc-2" },
     ]);
     expect(
       await candidateCardsRepo(db).checkAllCandidatePrintings("p-1", ["cp-1", "cp-2"]),
-    ).toEqual({ updated: 3, candidateCardIds: ["cc-1", "cc-2"] });
+    ).toEqual({ updated: 3, ids: ["cp-1", "cp-2", "cp-3"], candidateCardIds: ["cc-1", "cc-2"] });
   });
 
   it("deleteCandidatePrinting deletes a printing", async () => {

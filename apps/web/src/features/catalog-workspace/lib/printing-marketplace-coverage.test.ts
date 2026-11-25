@@ -78,6 +78,10 @@ describe("pickableListings", () => {
       product: { externalId: 1, language: null } as CardListingRow["product"],
       isAssigned: false,
       assignedPrintings: [],
+      assignedPrintingIds: new Set(),
+      otherAssignedPrintingIds: new Set(),
+      showProduct: true,
+      suggestions: [],
       suggestion: null,
       assignablePrintings: [
         { printingId: "p1", language: "FR" },

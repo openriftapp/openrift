@@ -89,7 +89,7 @@ const fetchSuggestedListingsPreview = createServerFn({ method: "GET" })
   );
 
 const assignSuggestedListingsFn = createServerFn({ method: "POST" })
-  .validator((input: { listingKeys?: string[] }) => input)
+  .validator((input: { listingKeys: string[] }) => input)
   .middleware([withCookies])
   .handler(({ context, data }): Promise<WorkspaceAssignSuggestedListingsResponse> =>
     apiOrpcClient(
@@ -143,7 +143,7 @@ export function toBatchOutcome(response: RunResponse): BatchOutcome {
 }
 
 export function listingsBatchLabel(count: number): string {
-  return `Assign ${count} ${pluralize(count, "listing")} by suggestion`;
+  return `Map ${count} ${pluralize(count, "listing")} by suggestion`;
 }
 
 const OUTCOME_NOUNS: Record<BatchKind, string> = {

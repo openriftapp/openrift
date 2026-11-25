@@ -5,13 +5,14 @@ import type { ReactNode } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
+import { ListState } from "@/features/catalog-workspace/components/list-state";
 import { ListingsQueueTable } from "@/features/catalog-workspace/components/listings-queue-table";
 import {
   ReadyTable,
   ReviewQueueTable,
 } from "@/features/catalog-workspace/components/review-tables";
 import { readyPreviewQueryOptions } from "@/features/catalog-workspace/hooks/use-workspace-batch";
-import { useCardView } from "@/features/catalog-workspace/hooks/use-workspace-queue";
+import { useCardView } from "@/features/catalog-workspace/hooks/use-workspace-records";
 import { listingsQueryOptions } from "@/features/catalog-workspace/lib/listings-queries";
 import {
   reviewCardsQueryOptions,
@@ -42,7 +43,8 @@ export function CardsBody({
   const view = useCardView();
   const { data: access } = useAdminAccess();
   const isAdmin = access?.isAdmin === true;
-  const { data } = useQuery(reviewCardsQueryOptions());
+  const reviewQuery = useQuery(reviewCardsQueryOptions());
+  const { data } = reviewQuery;
   const { data: preview } = useQuery({ ...readyPreviewQueryOptions(), enabled: isAdmin });
   const cards = data?.cards ?? [];
   const review = selectReviewQueue(cards, "review");
@@ -56,7 +58,7 @@ export function CardsBody({
     { value: "images", label: `New images ${images.length}` },
     ...(isAdmin
       ? [
-          { value: "ready" as const, label: `Ready to accept ${readyCount}` },
+          { value: "ready" as const, label: `Ready to create ${readyCount}` },
           {
             value: "listings" as const,
             label: `Listings to map ${listings?.cards.length ?? 0}`,
@@ -106,7 +108,11 @@ export function CardsBody({
   );
 
   if (active === "ready") {
-    return <ReadyTable reviewCards={cards} query={query} toolbarStart={controls} />;
+    return (
+      <ListState isPending={reviewQuery.isPending} error={reviewQuery.error} toolbar={controls}>
+        <ReadyTable reviewCards={cards} query={query} toolbarStart={controls} />
+      </ListState>
+    );
   }
   if (active === "listings") {
     return <ListingsQueueTable query={query} controls={controls} />;
@@ -124,18 +130,20 @@ export function CardsBody({
   }
   const queue = active === "images" ? images : review;
   return (
-    <ReviewQueueTable
-      cards={queue}
-      query={query}
-      emptyText={
-        active === "images" ? "No new image is waiting." : "Nothing is waiting for review."
-      }
-      toolbar={
-        <div className="flex flex-wrap items-center gap-2">
-          {controls}
-          <span className="text-muted-foreground text-sm">{countNoun(queue.length, "card")}</span>
-        </div>
-      }
-    />
+    <ListState isPending={reviewQuery.isPending} error={reviewQuery.error} toolbar={controls}>
+      <ReviewQueueTable
+        cards={queue}
+        query={query}
+        emptyText={
+          active === "images" ? "No new image is waiting." : "Nothing is waiting for review."
+        }
+        toolbar={
+          <div className="flex flex-wrap items-center gap-2">
+            {controls}
+            <span className="text-muted-foreground text-sm">{countNoun(queue.length, "card")}</span>
+          </div>
+        }
+      />
+    </ListState>
   );
 }

@@ -16,11 +16,6 @@ export interface NewCardGroup {
   draft: CreationDraft;
 }
 
-export interface GroupFailure<T> {
-  item: T;
-  error: unknown;
-}
-
 export function isDraftComplete(draft: CreationDraft): boolean {
   return (
     draft.faces.length > 0 &&
@@ -94,19 +89,4 @@ export function checkedGroupKeys(
   return groups
     .filter((group) => isDraftComplete(group.draft) && (picks.get(group.key) ?? true))
     .map((group) => group.key);
-}
-
-export async function runInSequence<T>(
-  items: readonly T[],
-  run: (item: T) => Promise<unknown>,
-): Promise<GroupFailure<T>[]> {
-  const failures: GroupFailure<T>[] = [];
-  for (const item of items) {
-    try {
-      await run(item);
-    } catch (error) {
-      failures.push({ item, error });
-    }
-  }
-  return failures;
 }

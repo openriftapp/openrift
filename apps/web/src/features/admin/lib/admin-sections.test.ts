@@ -66,10 +66,8 @@ describe("adminSectionsForPathname", () => {
   });
 
   describe("catalog workspace", () => {
-    it("keeps the listings page to admins", () => {
-      expect(adminSectionsForPathname("/admin/workspace/listings")).toEqual([]);
-      expect(adminSectionsForPathname("/admin/workspace/listings/")).toEqual([]);
-      expect(adminSectionsForPathname("/admin/workspace/listingsX")).toEqual(["card-review"]);
+    it("lets card-review holders reach the listings bookmark redirect", () => {
+      expect(adminSectionsForPathname("/admin/workspace/listings")).toEqual(["card-review"]);
     });
 
     it("opens the workspace root to card-review and the printing desk", () => {

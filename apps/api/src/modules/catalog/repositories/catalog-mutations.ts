@@ -269,6 +269,49 @@ export function catalogMutationsRepo(db: Kysely<Database>) {
       return db.selectFrom("faces").select("id").where("id", "=", id).executeTakeFirst();
     },
 
+    async facePrintedFieldsByIdentities(
+      identities: readonly Omit<PrintingIdentityKey, "size">[],
+    ): Promise<(FacePrintedFields & Omit<PrintingIdentityKey, "size">)[]> {
+      if (identities.length === 0) {
+        return [];
+      }
+      return db
+        .selectFrom("faces")
+        .select([
+          "cardId",
+          "shortCode",
+          "finish",
+          "markerSlugs",
+          "language",
+          "setId",
+          "rarity",
+          "artVariant",
+          "isSigned",
+          "isOvernumbered",
+          "artist",
+          "publicCode",
+          "printedRulesText",
+          "printedEffectText",
+          "flavorText",
+          "printedName",
+          "printedYear",
+        ])
+        .where((eb) =>
+          eb.or(
+            identities.map((identity) =>
+              eb.and([
+                eb("cardId", "=", identity.cardId),
+                eb("shortCode", "=", identity.shortCode),
+                eb("finish", "=", identity.finish),
+                eb("markerSlugs", "=", sql<string[]>`${[...identity.markerSlugs].sort()}::text[]`),
+                eb("language", "=", identity.language),
+              ]),
+            ),
+          ),
+        )
+        .execute();
+    },
+
     getFacePrintedFields(id: string): Promise<FacePrintedFields | undefined> {
       return db
         .selectFrom("faces")

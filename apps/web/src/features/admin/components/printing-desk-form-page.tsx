@@ -4,7 +4,7 @@ import type {
 } from "@openrift/shared/contracts/admin/printing-desk";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatPrintingCode, isTbaCode } from "@openrift/shared/printing-code";
-import { formatReleasePeriod, normalizeToPeriodStart } from "@openrift/shared/set-release";
+import { formatReleasePeriod } from "@openrift/shared/set-release";
 import type { Printing } from "@openrift/shared/types/catalog";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -38,11 +38,14 @@ import {
 } from "@/features/admin/hooks/use-printing-desk";
 import type { DeskFieldScope } from "@/features/admin/lib/desk-field-scope";
 import { fieldsInScope } from "@/features/admin/lib/desk-field-scope";
+import { deskCreateFields, normalizedRelease } from "@/features/admin/lib/desk-printing-fields";
 import {
   basePrintingForLanguage,
   reseedFromBase,
   defaultCardLanguage,
 } from "@/features/admin/lib/printing-desk-base";
+import type { RunWrite } from "@/features/admin/lib/run-write";
+import { runWriteDirectly } from "@/features/admin/lib/run-write";
 import { useDistinctArtists } from "@/features/cards/hooks/use-distinct-artists";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
@@ -116,12 +119,14 @@ export function PrintingDeskEditFields({
   printingId,
   side = 1,
   scope = "all",
+  runWrite,
   onSaved,
   onCancel,
 }: {
   printingId: string;
   side?: 1 | 2;
   scope?: DeskFieldScope;
+  runWrite?: RunWrite;
   onSaved: () => void;
   onCancel: () => void;
 }) {
@@ -134,6 +139,7 @@ export function PrintingDeskEditFields({
     seedLanguage: data.printing.language,
     existing: data.printing,
     scope,
+    runWrite,
     onSaved,
   });
 
@@ -146,6 +152,7 @@ function usePrintingDeskFormState({
   seedLanguage,
   existing,
   scope = "all",
+  runWrite = runWriteDirectly,
   onSaved,
 }: {
   cardId: string;
@@ -153,6 +160,7 @@ function usePrintingDeskFormState({
   seedLanguage: string;
   existing: DeskPrintingRow | null;
   scope?: DeskFieldScope;
+  runWrite?: RunWrite;
   onSaved: (printingId: string) => void;
 }) {
   const createPrinting = useCreateDeskPrinting({ inlineError: true });
@@ -213,9 +221,7 @@ function usePrintingDeskFormState({
     (codeTba || shortCode.trim().length > 0) &&
     !isPending;
 
-  const release = releasedAt
-    ? normalizeToPeriodStart({ releasedAt, precision })
-    : { releasedAt: null, precision: null };
+  const release = normalizedRelease(releasedAt, precision);
 
   async function submit() {
     if (!canSubmit) {
@@ -223,49 +229,50 @@ function usePrintingDeskFormState({
     }
     setFormError(null);
     const fields = {
-      setId,
-      distributionChannelSlugs: channelSlugs,
-      markerSlugs,
-      codeTba,
-      shortCode: codeTba ? undefined : shortCode.trim(),
-      finish,
-      language,
-      size,
-      artist: artist.length > 0 ? artist : undefined,
-      announcedAt,
-      releasedAt: release.releasedAt,
-      releasePrecision: release.precision,
-      comment: comment.trim().length > 0 ? comment.trim() : null,
+      ...deskCreateFields({
+        setId,
+        distributionChannelSlugs: channelSlugs,
+        markerSlugs,
+        codeTba,
+        shortCode,
+        finish,
+        language,
+        size,
+        artist,
+        announcedAt,
+        releasedAt,
+        precision,
+        comment,
+      }),
       flavorText: existing ? (flavorText.trim().length > 0 ? flavorText.trim() : null) : undefined,
     };
 
     const basePrintingId = base?.printingId;
     const secondSideFaceId = secondSide?.faceId;
-    const save = async (): Promise<string> => {
+    const save = async (signal?: AbortSignal): Promise<string> => {
       if (existing) {
-        await updatePrinting.mutateAsync({
-          printingId: existing.printingId,
-          side: existing.side,
-          ...fieldsInScope(fields, scope),
-        });
+        await updatePrinting.mutateAsync(
+          { printingId: existing.printingId, side: existing.side, ...fieldsInScope(fields, scope) },
+          { signal },
+        );
         return existing.printingId;
       }
-      const created = await createPrinting.mutateAsync({
-        ...fields,
-        cardId,
-        basePrintingId,
-        secondSideFaceId,
-      });
+      const created = await createPrinting.mutateAsync(
+        { ...fields, cardId, basePrintingId, secondSideFaceId },
+        { signal },
+      );
       return created.printingId;
     };
     let savedId: string | undefined;
-    const ok = await runReportedMutation(
-      async () => {
-        savedId = await save();
-      },
-      (error) => setFormError(errorText(error, "Could not save the printing.")),
+    await runWrite((signal) =>
+      runReportedMutation(
+        async () => {
+          savedId = await save(signal);
+        },
+        (error) => setFormError(errorText(error, "Could not save the printing.")),
+      ),
     );
-    if (ok && savedId !== undefined) {
+    if (savedId !== undefined) {
       onSaved(savedId);
     }
   }

@@ -1,5 +1,5 @@
 import {
-  unignoreCandidateCardFn,
+  unignoreCandidateCardsFn,
   unignoreCandidatePrintingFn,
 } from "@/features/admin/hooks/use-ignored-candidates";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
@@ -22,10 +22,11 @@ export function ignoredCardsUndo(
     ...ignoredUndoText({ what: record, record, plural }),
     invalidates: IGNORE_SCOPE,
     undo: async (signal) => {
-      await Promise.all(
-        sources.map((source) =>
-          withWriteSignal(signal, () => unignoreCandidateCardFn({ data: source, signal })),
-        ),
+      if (sources.length === 0) {
+        return;
+      }
+      await withWriteSignal(signal, () =>
+        unignoreCandidateCardsFn({ data: { sources: [...sources] }, signal }),
       );
     },
   };

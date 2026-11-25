@@ -43,14 +43,20 @@ export const adminCardImagesContract = {
       method: "POST",
       path: "/api/admin/v1/cards/candidate-printings/{id}/set-image",
       tags: [TAG],
-      successStatus: 204,
     })
     .meta({ adminSections: ["card-review"] })
     .errors({
       NOT_FOUND: { message: "Candidate printing not found" },
       BAD_REQUEST: { message: "Candidate printing is not ready for image assignment" },
     })
-    .input(idParam.extend({ mode: modeSchema })),
+    .input(idParam.extend({ mode: modeSchema }))
+    .output(
+      z.object({
+        imageId: z.string().nullable(),
+        replacedImageId: z.string().nullable(),
+        restorable: z.boolean(),
+      }),
+    ),
   deleteImage: authedRoute
     .route({
       method: "DELETE",
@@ -78,6 +84,16 @@ export const adminCardImagesContract = {
     .route({
       method: "POST",
       path: "/api/admin/v1/cards/printing-images/{imageId}/keep",
+      tags: [TAG],
+      successStatus: 204,
+    })
+    .meta({ adminSections: ["card-review"] })
+    .errors({ NOT_FOUND: { message: "Printing image not found" } })
+    .input(imageIdParam),
+  unkeepImage: authedRoute
+    .route({
+      method: "POST",
+      path: "/api/admin/v1/cards/printing-images/{imageId}/unkeep",
       tags: [TAG],
       successStatus: 204,
     })

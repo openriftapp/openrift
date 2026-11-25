@@ -18,6 +18,10 @@ export function loadRecordReferenceData(queryClient: QueryClient): Promise<unkno
   void Promise.allSettled([
     queryClient.query({ ...providerSettingsQueryOptions, staleTime: "static" }),
   ]);
+  return loadDeskRecordReferenceData(queryClient);
+}
+
+export function loadDeskRecordReferenceData(queryClient: QueryClient): Promise<unknown[]> {
   return Promise.all([
     queryClient.query({ ...initQueryOptions, staleTime: "static" }),
     queryClient.query({ ...adminMarkersQueryOptions, staleTime: "static" }),

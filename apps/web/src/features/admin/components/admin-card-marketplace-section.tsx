@@ -19,12 +19,12 @@ import {
   useUnassignFromCardByMarketplace,
 } from "@/features/admin/hooks/use-unified-mappings";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+import type { MarketplaceHandlers } from "@/features/admin/lib/marketplace-product-entries";
 import type { PrintingAssignment } from "@/features/admin/lib/printing-assignment";
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
+import { buildCardListings } from "@/features/catalog-workspace/lib/card-listing-rows";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 
-import type { MarketplaceHandlers } from "./marketplace-product-entries";
-import { collectSuggestedMappings } from "./marketplace-product-entries";
 import { MarketplaceProductsTable } from "./marketplace-products-table";
 import { PrintingPairNamesContext } from "./printing-pair-names";
 
@@ -39,6 +39,9 @@ export function AdminCardMarketplaceSection({
 }) {
   const queryClient = useQueryClient();
   const { data, isLoading } = useQuery(unifiedMappingsForCardQueryOptions(cardSlug));
+  const group = data?.group ?? null;
+  const listings =
+    group === null ? null : buildCardListings(group, computeProductSuggestions(group));
 
   /** Also invalidates the corpus-wide mapping cache behind the /admin/cards coverage badges. */
   const refreshAfter = async (run: () => Promise<unknown>) => {
@@ -76,15 +79,12 @@ export function AdminCardMarketplaceSection({
 
   const isSaving = ALL_MARKETPLACES.some((marketplace) => saveMappings[marketplace].isPending);
   const acceptAll = () => {
-    const group = data?.group;
-    if (!group) {
+    if (listings === null) {
       return;
     }
-    const { strong, weak } = collectSuggestedMappings(group, computeProductSuggestions(group));
     // Strong wins when both are present, so Ctrl+Enter never accepts a
     // low-confidence match while a strong one is still on the page.
-    const totalStrong = ALL_MARKETPLACES.reduce((sum, mp) => sum + strong[mp].length, 0);
-    const target = totalStrong > 0 ? strong : weak;
+    const target = listings.strongCount > 0 ? listings.strong : listings.weak;
     for (const mp of ALL_MARKETPLACES) {
       void applyAssignments(mp)(target[mp]);
     }
@@ -95,8 +95,7 @@ export function AdminCardMarketplaceSection({
     return <Skeleton className="h-40 w-full" />;
   }
 
-  const group = data.group;
-  if (!group) {
+  if (group === null || listings === null) {
     return (
       <div className="space-y-3">
         <p className="text-muted-foreground text-sm">
@@ -163,18 +162,15 @@ export function AdminCardMarketplaceSection({
     ]),
   ) as Record<AdminMarketplaceName, MarketplaceHandlers>;
 
-  const suggestions = computeProductSuggestions(group);
-  const { strong, weak } = collectSuggestedMappings(group, suggestions);
-  const strongCount = ALL_MARKETPLACES.reduce((sum, mp) => sum + strong[mp].length, 0);
-  const weakCount = ALL_MARKETPLACES.reduce((sum, mp) => sum + weak[mp].length, 0);
-  const offered = strongCount > 0 ? strongCount : weakCount;
+  const { strongCount } = listings;
+  const offered = strongCount > 0 ? strongCount : listings.weakCount;
 
   return (
     <PrintingPairNamesContext value={pairNames ?? NO_PAIR_NAMES}>
       <div className="space-y-3">
         {offered > 0 && (
           <div className="flex justify-end">
-            <Button disabled={isSaving} onClick={acceptAll}>
+            <Button disabled={isSaving} pending={isSaving} onClick={acceptAll}>
               <WandSparklesIcon />
               Accept {offered} {strongCount > 0 ? "strong" : "weak"}{" "}
               {pluralize(offered, "suggestion")}
@@ -185,10 +181,10 @@ export function AdminCardMarketplaceSection({
           </div>
         )}
         <MarketplaceProductsTable
-          group={group}
+          listings={listings}
+          cardName={group.cardName}
           allCards={data.allCards}
           handlers={handlers}
-          suggestions={suggestions}
           onOpenPrinting={onOpenPrinting}
         />
         {pairNames !== undefined && pairNames.size > 0 && (

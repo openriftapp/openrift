@@ -8,7 +8,8 @@ import { saveMappings, unmapPrinting } from "../services/marketplace-mapping.js"
 import { buildUnifiedMappingsResponse } from "../services/unified-mapping-merge.js";
 import { adminUnifiedMappingsRouter } from "./admin-unified-mappings";
 
-vi.mock("../services/marketplace-mapping.js", () => ({
+vi.mock("../services/marketplace-mapping.js", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   getMappingOverview: vi.fn(),
   saveMappings: vi.fn(),
   unmapPrinting: vi.fn(),

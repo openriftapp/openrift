@@ -42,13 +42,12 @@ export const workspaceQueueItemSchema = z.object({
   createdAt: isoDateTime,
 });
 
-export const workspaceQueueInputSchema = z.object({
-  owner: workspaceOwnerSchema.optional(),
-});
-
 export const workspaceQueueResponseSchema = z.object({
   items: z.array(workspaceQueueItemSchema),
 });
+
+/** `cardSlug` is null once the candidate is no longer an open new printing for the caller. */
+export const workspaceCandidatePrintingCardSchema = z.object({ cardSlug: z.string().nullable() });
 
 export const reviewCardSchema = z.object({
   key: z.string(),
@@ -157,11 +156,15 @@ export const workspaceEventsResponseSchema = z.object({
 });
 
 export const adminCatalogWorkspaceContract = {
-  workspaceQueue: authedRoute
-    .route({ method: "GET", path: `${WORKSPACE}/queue`, tags: [TAG] })
+  workspaceCandidatePrintingCard: authedRoute
+    .route({
+      method: "GET",
+      path: `${WORKSPACE}/candidate-printings/{candidatePrintingId}/card`,
+      tags: [TAG],
+    })
     .meta({ adminSections: ["card-review", "printing-desk"] })
-    .input(workspaceQueueInputSchema)
-    .output(workspaceQueueResponseSchema),
+    .input(z.object({ candidatePrintingId: z.string().min(1) }))
+    .output(workspaceCandidatePrintingCardSchema),
   workspaceListings: authedRoute
     .route({ method: "GET", path: `${WORKSPACE}/listings`, tags: [TAG] })
     .output(workspaceQueueResponseSchema),
@@ -172,7 +175,6 @@ export const adminCatalogWorkspaceContract = {
   workspaceRecords: authedRoute
     .route({ method: "GET", path: `${WORKSPACE}/records`, tags: [TAG] })
     .meta({ adminSections: ["card-review", "printing-desk"] })
-    .errors({ BAD_REQUEST: { message: "Invalid cursor" } })
     .input(workspaceRecordsInputSchema)
     .output(workspaceRecordsResponseSchema),
   workspaceCardImages: authedRoute
@@ -197,7 +199,7 @@ export type WorkspaceSegment = z.infer<typeof workspaceSegmentSchema>;
 export type WorkspaceReason = z.infer<typeof workspaceReasonSchema>;
 export type WorkspaceListingVariant = z.infer<typeof workspaceListingVariantSchema>;
 export type WorkspaceQueueItem = z.infer<typeof workspaceQueueItemSchema>;
-export type WorkspaceQueueInput = z.input<typeof workspaceQueueInputSchema>;
+export type WorkspaceCandidatePrintingCard = z.infer<typeof workspaceCandidatePrintingCardSchema>;
 export type WorkspaceQueueResponse = z.infer<typeof workspaceQueueResponseSchema>;
 export type ReviewCard = z.infer<typeof reviewCardSchema>;
 export type ReviewCardsResponse = z.infer<typeof reviewCardsResponseSchema>;

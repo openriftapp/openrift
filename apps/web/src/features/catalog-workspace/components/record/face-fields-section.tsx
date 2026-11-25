@@ -8,12 +8,6 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { useCardDetailData } from "@/features/admin/components/card-detail-shared";
-import {
-  acceptPrintingFieldFn,
-  useAcceptPrintingField,
-} from "@/features/admin/hooks/use-admin-card-mutations";
-import { acceptFieldWithUndo, revertAcceptedField } from "@/features/admin/lib/accept-undo";
-import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { buildAttentionSubmissions } from "@/features/admin/lib/attention-items";
 import { PRINTING_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
 import { formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
@@ -30,17 +24,15 @@ import {
   RecordSection,
 } from "@/features/catalog-workspace/components/record/record-pane";
 import { useDismissSuggestion } from "@/features/catalog-workspace/hooks/use-dismiss-suggestion";
-import {
-  useFaceSuggestionWrites,
-  useValueLabels,
-} from "@/features/catalog-workspace/hooks/use-face-record-actions";
-import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
+import { useFaceSuggestionWrites } from "@/features/catalog-workspace/hooks/use-face-record-actions";
+import { usePrintingFieldAccept } from "@/features/catalog-workspace/hooks/use-suggestion-writes";
+import { useValueLabels } from "@/features/catalog-workspace/hooks/use-value-labels";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
-import type { PrintingFieldSuggestion } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import { passContributor } from "@/features/catalog-workspace/lib/card-pass";
 import { FACE_FIELDS_FOR_READING } from "@/features/catalog-workspace/lib/face-suggestion-rows";
-import { undoScope } from "@/features/catalog-workspace/lib/workspace-undo";
+import { cardRecordScope } from "@/features/catalog-workspace/lib/record-scopes";
+import type { PrintingFieldSuggestion } from "@/features/catalog-workspace/lib/suggestion-rows";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
-import { withSignal, withWriteSignal } from "@/lib/write-signal";
 
 export function FaceFieldsSection({
   cardSlug,
@@ -64,23 +56,23 @@ export function FaceFieldsSection({
   title?: string;
 }) {
   const labels = useValueLabels();
-  const scope = [
-    adminKeys.cards.detail(cardSlug),
-    adminKeys.cards.list,
-    adminKeys.printingDesk.all,
-    adminKeys.workspace,
-  ];
+  const scope = cardRecordScope(cardSlug);
   const { printingSourceFields } = useCardDetailData(scope);
-  const acceptField = useAcceptPrintingField(scope);
   const queueWrite = useQueueWorkspaceWrite();
-  const { announce } = useWorkspaceUndo();
   const [editing, setEditing] = useState<ComparablePrintingField | null>(null);
   const [comparing, setComparing] = useState(false);
   const record = formatPrintingCode(face.publicCode);
   const costKeywords = useCostKeywords();
   const submissions = buildAttentionSubmissions(detail, costKeywords);
   const decisions = useSubmissionDecisions({ cardSlug, detail, submissions, isAdmin });
-  const writes = useFaceSuggestionWrites({ cardSlug, record, face });
+  const writes = useFaceSuggestionWrites({
+    cardSlug,
+    record,
+    face,
+    contributorName: (candidateCardId) =>
+      passContributor(detail, submissions, candidateCardId).name,
+  });
+  const fieldAccept = usePrintingFieldAccept(scope, record);
   const dismissValue = useDismissSuggestion(scope, record);
 
   const stored = (field: ComparablePrintingField) =>
@@ -90,25 +82,15 @@ export function FaceFieldsSection({
     const label = PRINTING_FIELD_LABELS[field];
     let accepted = false;
     await queueWrite(async (signal) => {
-      const accept = withSignal(acceptField.mutateAsync, signal);
-      accepted = await acceptFieldWithUndo({
-        accept,
+      accepted = await fieldAccept.accept(signal, {
         input: { printingId: face.id, faceId: face.faceId, field, value, source: "manual" },
-        fieldLabel: label,
+        label,
         sourceLabel: "your edit",
         previousValue: stored(field),
-        onAccepted: (revert) =>
-          announce({
-            label: `Changed ${label} on ${record}`,
-            undoneLabel: `Undone: ${label} restored on ${record}`,
-            invalidates: undoScope(scope),
-            undo: (undoSignal) =>
-              revertAcceptedField(revert, (data) =>
-                withWriteSignal(undoSignal, () =>
-                  acceptPrintingFieldFn({ data, signal: undoSignal }),
-                ),
-              ),
-          }),
+        undoText: {
+          label: `Changed ${label} on ${record}`,
+          undoneLabel: `Undone: ${label} restored on ${record}`,
+        },
       });
     });
     if (accepted) {
@@ -151,21 +133,21 @@ export function FaceFieldsSection({
                     preview: textChange(field, face[field], suggestion.proposed),
                   })}
                   onUse={(suggestion) =>
-                    void queueWrite((signal) =>
-                      writes.applyChip(signal, { kind: "field", key: suggestion.key, suggestion }),
-                    )
+                    void writes.apply({ kind: "field", key: suggestion.key, suggestion })
                   }
                   onDismiss={
                     isAdmin
-                      ? (suggestion) =>
-                          void dismissValue.run({
-                            kind: "printing",
-                            candidateId: suggestion.candidate.id,
-                            field: suggestion.field,
-                            value: suggestion.proposed,
-                            label: suggestion.label,
-                            source: suggestion.provider,
-                          })
+                      ? (group) =>
+                          void dismissValue.run(
+                            group.map((suggestion) => ({
+                              kind: "printing" as const,
+                              candidateId: suggestion.candidatePrintingId,
+                              field: suggestion.field,
+                              value: suggestion.proposed,
+                              label: suggestion.label,
+                              source: suggestion.sourceLabel,
+                            })),
+                          )
                       : undefined
                   }
                 />
@@ -177,7 +159,7 @@ export function FaceFieldsSection({
                   field={field}
                   def={printingSourceFields.find((def) => def.key === field)}
                   value={stored(field)}
-                  pending={acceptField.isPending}
+                  pending={fieldAccept.pending}
                   onSave={(value) => void save(field, value)}
                   onCancel={() => setEditing(null)}
                 />

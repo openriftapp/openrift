@@ -313,26 +313,11 @@ const PRINTED_FACE_FIELD_CHECKS: {
   })),
 ];
 
-export async function facePrintedFieldConflict(
-  repos: FaceCheckRepos,
-  cardId: string,
-  printingFields: NewPrintingFields,
-): Promise<string | null> {
-  const { size: _size, ...faceIdentity } = newPrintingIdentity(cardId, printingFields);
-  const face = await repos.catalogMutations.findFaceIdByIdentity(faceIdentity);
-  if (!face) {
-    return null;
-  }
-  const stored = await repos.catalogMutations.getFacePrintedFields(face.id);
-  if (!stored) {
-    return null;
-  }
-  const incoming = await printedFaceValues(
-    repos,
-    printingFields,
-    printingFields.rarity,
-    trimToNull(printingFields.artist) ?? "",
-  );
+function describeFaceConflict(
+  stored: FacePrintedFields,
+  incoming: FacePrintedFields,
+  faceIdentity: Pick<PrintingIdentityKey, "shortCode" | "finish" | "language">,
+): string | null {
   const trimmedStored: FacePrintedFields = {
     ...stored,
     artist: stored.artist.trim(),
@@ -350,6 +335,109 @@ export async function facePrintedFieldConflict(
   }
   const { shortCode, finish, language } = faceIdentity;
   return `The existing ${shortCode} ${finish} ${language} face differs in ${differing.map((check) => check.label).join(", ")}. Edit that face or the source first.`;
+}
+
+function incomingFaceValues(repos: FaceCheckRepos, printingFields: NewPrintingFields) {
+  return printedFaceValues(
+    repos,
+    printingFields,
+    printingFields.rarity,
+    trimToNull(printingFields.artist) ?? "",
+  );
+}
+
+export async function facePrintedFieldConflict(
+  repos: FaceCheckRepos,
+  cardId: string,
+  printingFields: NewPrintingFields,
+): Promise<string | null> {
+  const { size: _size, ...faceIdentity } = newPrintingIdentity(cardId, printingFields);
+  const face = await repos.catalogMutations.findFaceIdByIdentity(faceIdentity);
+  if (!face) {
+    return null;
+  }
+  const stored = await repos.catalogMutations.getFacePrintedFields(face.id);
+  if (!stored) {
+    return null;
+  }
+  return describeFaceConflict(
+    stored,
+    await incomingFaceValues(repos, printingFields),
+    faceIdentity,
+  );
+}
+
+function faceIdentityKey(identity: Omit<PrintingIdentityKey, "size">): string {
+  return JSON.stringify([
+    identity.cardId,
+    identity.shortCode,
+    identity.finish,
+    identity.language,
+    [...identity.markerSlugs].sort(),
+  ]);
+}
+
+function cachedFaceCheckRepos(repos: FaceCheckRepos): FaceCheckRepos {
+  const setIds = new Map<
+    string,
+    ReturnType<FaceCheckRepos["catalogMutations"]["getSetIdBySlug"]>
+  >();
+  const totals = new Map<string, ReturnType<FaceCheckRepos["sets"]["getPrintedTotal"]>>();
+  let costKeywords: ReturnType<FaceCheckRepos["keywords"]["listCostKeywords"]> | undefined;
+  return {
+    ...repos,
+    catalogMutations: {
+      ...repos.catalogMutations,
+      getSetIdBySlug: (slug) => {
+        const found = setIds.get(slug) ?? repos.catalogMutations.getSetIdBySlug(slug);
+        setIds.set(slug, found);
+        return found;
+      },
+    },
+    sets: {
+      ...repos.sets,
+      getPrintedTotal: (id) => {
+        const found = totals.get(id) ?? repos.sets.getPrintedTotal(id);
+        totals.set(id, found);
+        return found;
+      },
+    },
+    keywords: {
+      ...repos.keywords,
+      listCostKeywords: () => {
+        costKeywords ??= repos.keywords.listCostKeywords();
+        return costKeywords;
+      },
+    },
+  };
+}
+
+export async function facePrintedFieldConflicts(
+  repos: FaceCheckRepos,
+  entries: readonly { cardId: string; printingFields: NewPrintingFields }[],
+): Promise<(string | null)[]> {
+  const identities = entries.map(({ cardId, printingFields }) => {
+    const { size: _size, ...faceIdentity } = newPrintingIdentity(cardId, printingFields);
+    return faceIdentity;
+  });
+  const stored = await repos.catalogMutations.facePrintedFieldsByIdentities(identities);
+  const storedByKey = new Map(stored.map((row) => [faceIdentityKey(row), row]));
+  const cached = cachedFaceCheckRepos(repos);
+  const conflicts: (string | null)[] = [];
+  for (const [index, identity] of identities.entries()) {
+    const face = storedByKey.get(faceIdentityKey(identity));
+    const entry = entries[index];
+    conflicts.push(
+      face === undefined || entry === undefined
+        ? null
+        : describeFaceConflict(
+            face,
+            await incomingFaceValues(cached, entry.printingFields),
+            identity,
+          ),
+    );
+  }
+  return conflicts;
 }
 
 export async function newPrintingConflict(
@@ -414,12 +502,48 @@ export async function createNewPrinting(
   candidatePrintingIds: readonly string[],
   options: { secondFaceId?: string | null } = {},
 ): Promise<NewPrinting> {
+  const [created] = await createNewPrintings(transact, cardId, [
+    { printingFields, candidatePrintingIds, secondFaceId: options.secondFaceId },
+  ]);
+  if (!created) {
+    throw new Error("createNewPrintings returned no printing");
+  }
+  return created;
+}
+
+/** All or nothing, failing with the first failing group's error. A duplicate caught only at
+ *  commit cannot be pinned on one of several groups and gets the generic message. */
+export async function createNewPrintings(
+  transact: Transact,
+  cardId: string,
+  groups: readonly {
+    printingFields: NewPrintingFields;
+    candidatePrintingIds: readonly string[];
+    secondFaceId?: string | null;
+  }[],
+): Promise<NewPrinting[]> {
+  let current: NewPrintingFields | undefined;
   try {
-    return await transact((trx) =>
-      insertNewPrinting(trx, cardId, printingFields, candidatePrintingIds, options),
-    );
+    return await transact(async (trx) => {
+      const created: NewPrinting[] = [];
+      for (const group of groups) {
+        current = group.printingFields;
+        created.push(
+          await insertNewPrinting(trx, cardId, group.printingFields, group.candidatePrintingIds, {
+            secondFaceId: group.secondFaceId ?? null,
+          }),
+        );
+      }
+      if (groups.length > 1) {
+        current = undefined;
+      }
+      return created;
+    });
   } catch (error) {
-    throw asPrintingIdentityConflict(error, newPrintingIdentity(cardId, printingFields));
+    throw asPrintingIdentityConflict(
+      error,
+      current === undefined ? undefined : newPrintingIdentity(cardId, current),
+    );
   }
 }
 

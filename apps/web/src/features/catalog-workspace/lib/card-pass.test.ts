@@ -1,4 +1,3 @@
-import type { ReviewCard } from "@openrift/shared/contracts/admin/catalog-workspace";
 import type { AdminPrintingImageResponse } from "@openrift/shared/types/api/admin";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -17,7 +16,6 @@ import {
   imageOrigin,
   newPrintingGroups,
   placeNewPrintings,
-  reviewNeighbor,
   seededPrintingDraft,
   showsFaceOnStop,
 } from "./card-pass";
@@ -113,9 +111,9 @@ describe("buildCardPass dismiss targets", () => {
 
     expect(dismiss.candidateCardIds).toEqual([inScope.id]);
     expect(dismiss.candidatePrintingIds).toEqual([]);
-    expect(cardModel.suggestions.map((suggestion) => suggestion.sourceLabel)).toEqual([
-      "provider-a",
-    ]);
+    expect(
+      cardModel.rows.flatMap((row) => row.suggestions).map((suggestion) => suggestion.sourceLabel),
+    ).toEqual(["provider-a"]);
   });
 
   it("lists each face and printing once, with pending work flagged", () => {
@@ -417,50 +415,5 @@ describe("seededPrintingDraft", () => {
 
     expect(group?.hasContributor).toBe(true);
     expect(group && seededPrintingDraft(detail, group, {}, new Set()).ready).toBe(false);
-  });
-});
-
-function reviewCard(cardSlug: string | null, cardName = "Vi, Destructive"): ReviewCard {
-  return {
-    key: cardSlug ?? `new:${cardName}`,
-    cardSlug,
-    cardName,
-    hasContribution: false,
-    providers: [],
-    waitingSince: "2026-11-20T09:00:00.000Z",
-    pending: {
-      cardFields: [],
-      newPrintings: 0,
-      faces: 0,
-      printings: 0,
-      newImages: 0,
-      failedImages: 0,
-    },
-  };
-}
-
-describe("reviewNeighbor", () => {
-  const cards = [reviewCard("ahri"), reviewCard(null, "Jinx"), reviewCard("vi")];
-
-  it("steps forward and back through the list", () => {
-    expect(reviewNeighbor(cards, "ahri", 1, 0)?.cardName).toBe("Jinx");
-    expect(reviewNeighbor(cards, "vi", -1, 2)?.cardName).toBe("Jinx");
-  });
-
-  it("is null past either end", () => {
-    expect(reviewNeighbor(cards, "vi", 1, 2)).toBeNull();
-    expect(reviewNeighbor(cards, "ahri", -1, 0)).toBeNull();
-  });
-
-  it("steps from the slot a resolved card left behind", () => {
-    const rest = [reviewCard("ahri"), reviewCard("vi")];
-    expect(reviewNeighbor(rest, "jinx", 1, 1)?.cardSlug).toBe("vi");
-    expect(reviewNeighbor(rest, "jinx", -1, 1)?.cardSlug).toBe("ahri");
-    expect(reviewNeighbor(rest, "vi-2", 1, 2)).toBeNull();
-  });
-
-  it("opens the first card when the current one was never in the list", () => {
-    expect(reviewNeighbor(cards, "lux", 1, -1)?.cardSlug).toBe("ahri");
-    expect(reviewNeighbor(cards, "lux", -1, -1)).toBeNull();
   });
 });

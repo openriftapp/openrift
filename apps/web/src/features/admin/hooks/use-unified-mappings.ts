@@ -74,7 +74,7 @@ const saveMappingsFn = createServerFn({ method: "POST" })
   );
 
 /** Saves the mappings and toasts each SKU the server skipped. */
-async function saveUnifiedMappings(
+export async function saveUnifiedMappings(
   marketplace: Marketplace,
   mappings: SaveMappingsBody["mappings"],
   signal?: AbortSignal,
@@ -86,7 +86,7 @@ async function saveUnifiedMappings(
   return result;
 }
 
-export function useUnifiedSaveMappings(marketplace: Marketplace) {
+function useUnifiedSaveMappings(marketplace: Marketplace) {
   return useUnifiedMutation((body: SaveMappingsBody, signal) =>
     saveUnifiedMappings(marketplace, body.mappings, signal),
   );
@@ -120,7 +120,7 @@ const ignoreProductsFn = createServerFn({ method: "POST" })
   });
 
 /** Level-3 ignore: deny a specific SKU (finish × language) of an upstream product. */
-export function useUnifiedIgnoreVariants(marketplace: Marketplace) {
+function useUnifiedIgnoreVariants(marketplace: Marketplace) {
   return useUnifiedMutation(
     async (products: { externalId: number; finish: string; language: string | null }[], signal) => {
       await ignoreVariantsFn({ data: { marketplace, products }, signal });
@@ -129,7 +129,7 @@ export function useUnifiedIgnoreVariants(marketplace: Marketplace) {
 }
 
 /** Level-2 ignore: deny an entire upstream product regardless of finish/language. */
-export function useUnifiedIgnoreProducts(marketplace: Marketplace) {
+function useUnifiedIgnoreProducts(marketplace: Marketplace) {
   return useUnifiedMutation(async (products: { externalId: number }[], signal) => {
     await ignoreProductsFn({ data: { marketplace, products }, signal });
   });
@@ -150,7 +150,7 @@ const assignToCardFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminStagingCardOverridesContract, context.cookie).create(data);
   });
 
-export function useUnifiedAssignToCard(marketplace: Marketplace) {
+function useUnifiedAssignToCard(marketplace: Marketplace) {
   return useUnifiedMutation(
     async (
       override: {
@@ -187,7 +187,7 @@ const unassignFromCardFn = createServerFn({ method: "POST" })
     });
   });
 
-export function useUnifiedUnassignFromCard(marketplace: Marketplace) {
+function useUnifiedUnassignFromCard(marketplace: Marketplace) {
   return useUnifiedMutation(
     async (params: { externalId: number; finish: string; language: string | null }, signal) => {
       await unassignFromCardFn({ data: { marketplace, ...params }, signal });

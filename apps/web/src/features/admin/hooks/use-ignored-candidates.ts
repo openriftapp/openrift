@@ -20,22 +20,27 @@ export function useIgnoredCandidates() {
   return useSuspenseQuery(ignoredCandidatesQueryOptions);
 }
 
-const ignoreCandidateCardFn = createServerFn({ method: "POST" })
-  .validator((input: { provider: string; externalId: string }) => input)
+interface CardSource {
+  provider: string;
+  externalId: string;
+}
+
+const ignoreCandidateCardsFn = createServerFn({ method: "POST" })
+  .validator((input: { sources: CardSource[] }) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
-    await apiOrpcClient(adminIgnoredCandidatesContract, context.cookie).ignoreCard(data);
+    await apiOrpcClient(adminIgnoredCandidatesContract, context.cookie).ignoreCards(data);
   });
 
 export function useIgnoreCandidateCard(invalidates: Scope = []) {
   return useMutationWithInvalidation({
-    mutationFn: (params: { provider: string; externalId: string }, signal) =>
-      ignoreCandidateCardFn({ data: params, signal }),
+    mutationFn: (params: CardSource, signal) =>
+      ignoreCandidateCardsFn({ data: { sources: [params] }, signal }),
     invalidates: [...IGNORE_INVALIDATES, ...invalidates],
   });
 }
 
-/** Ignores every provider source of each new-card draft, one at a time, and
+/** Ignores every provider source of each new-card draft in one write and
  *  refreshes once. A draft with only contributor submissions stays. */
 export function useIgnoreNewCardDrafts(invalidates: Scope = []) {
   const queryClient = useQueryClient();
@@ -44,7 +49,7 @@ export function useIgnoreNewCardDrafts(invalidates: Scope = []) {
     mutationFn: async (
       names: readonly string[],
       signal,
-    ): Promise<{ ignored: number; sources: { provider: string; externalId: string }[] }> => {
+    ): Promise<{ ignored: number; sources: CardSource[] }> => {
       const details = await Promise.all(
         names.map((name) =>
           queryClient.query({ ...unmatchedCardDetailQueryOptions(name), staleTime: 0 }),
@@ -56,8 +61,8 @@ export function useIgnoreNewCardDrafts(invalidates: Scope = []) {
       const sources = drafts
         .flat()
         .map((source) => ({ provider: source.provider, externalId: source.externalId }));
-      for (const source of sources) {
-        await ignoreCandidateCardFn({ data: source, signal });
+      if (sources.length > 0) {
+        await ignoreCandidateCardsFn({ data: { sources }, signal });
       }
       return { ignored: drafts.length, sources };
     },
@@ -84,17 +89,17 @@ export function useNewCardDraftIgnorePending(name: string): boolean {
   return pending > 0;
 }
 
-export const unignoreCandidateCardFn = createServerFn({ method: "POST" })
-  .validator((input: { provider: string; externalId: string }) => input)
+export const unignoreCandidateCardsFn = createServerFn({ method: "POST" })
+  .validator((input: { sources: CardSource[] }) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
-    await apiOrpcClient(adminIgnoredCandidatesContract, context.cookie).unignoreCard(data);
+    await apiOrpcClient(adminIgnoredCandidatesContract, context.cookie).unignoreCards(data);
   });
 
 export function useUnignoreCandidateCard() {
   return useMutationWithInvalidation({
-    mutationFn: (params: { provider: string; externalId: string }, signal) =>
-      unignoreCandidateCardFn({ data: params, signal }),
+    mutationFn: (params: CardSource, signal) =>
+      unignoreCandidateCardsFn({ data: { sources: [params] }, signal }),
     invalidates: IGNORE_INVALIDATES,
   });
 }

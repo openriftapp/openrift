@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
+import { useWorkspaceUndoStore } from "@/features/catalog-workspace/stores/workspace-undo-store";
 import { createStoreResetter } from "@/test/store-helpers";
 
 const router = vi.hoisted(() => ({ latestLocation: { pathname: "/admin/workspace/faces" } }));
@@ -13,8 +13,8 @@ const { isWorkspacePath, useClearUndoOnLeave } = await import("./use-clear-undo-
 let resetStore: () => void;
 
 beforeEach(() => {
-  resetStore = createStoreResetter(useWorkspaceSelectionStore);
-  useWorkspaceSelectionStore.getState().pushUndo({
+  resetStore = createStoreResetter(useWorkspaceUndoStore);
+  useWorkspaceUndoStore.getState().pushUndo({
     label: "Ignored Ekko",
     undoneLabel: "Undone: Ekko is back in the queue",
     invalidates: [],
@@ -40,13 +40,13 @@ describe("useClearUndoOnLeave", () => {
     const { unmount } = renderHook(() => useClearUndoOnLeave());
     router.latestLocation = { pathname: "/admin/workspace/printings" };
     unmount();
-    expect(useWorkspaceSelectionStore.getState().undoStack).toHaveLength(1);
+    expect(useWorkspaceUndoStore.getState().undoStack).toHaveLength(1);
   });
 
   it("clears the stack when the next page is outside the workspace", () => {
     const { unmount } = renderHook(() => useClearUndoOnLeave());
     router.latestLocation = { pathname: "/admin/sets" };
     unmount();
-    expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]);
+    expect(useWorkspaceUndoStore.getState().undoStack).toEqual([]);
   });
 });

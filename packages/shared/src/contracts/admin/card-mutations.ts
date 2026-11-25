@@ -27,7 +27,7 @@ const providerParam = z.object({ provider: z.string() });
 
 const updatedCountOutput = z.object({ updated: z.number() });
 
-const MAX_BATCH_UNCHECK_IDS = 1000;
+const MAX_BATCH_CHECK_IDS = 1000;
 
 export const errataAnnouncementInputSchema = z.object(errataAnnouncementFieldRules);
 
@@ -285,6 +285,16 @@ export const acceptPrintingFieldsSchema = createPrintingFieldsSchema.extend({
   setId: setFieldRules.slug.optional(),
 });
 
+const MAX_ACCEPT_PRINTING_GROUPS = 100;
+
+const acceptPrintingGroupSchema = z.object({
+  printingFields: acceptPrintingFieldsSchema,
+  candidatePrintingIds: z.array(z.uuid()).max(MAX_BATCH_CHECK_IDS),
+  secondSideFaceId: z.uuid().optional(),
+});
+
+export type AcceptPrintingGroup = z.infer<typeof acceptPrintingGroupSchema>;
+
 const skippedPrintingSchema = z.object({ shortCode: z.string(), reason: z.string() });
 
 // Value constraints are checked per-card in the ingest service so individual
@@ -539,16 +549,36 @@ export const adminCardMutationsContract = {
   uncheckCandidatePrintings: authedRoute
     .route({ method: "POST", path: `${CARDS}/candidate-printings/uncheck-batch`, tags: [TAG] })
     .errors({ NOT_FOUND: { message: "Candidate printing not found" } })
-    .input(z.object({ candidatePrintingIds: z.array(z.uuid()).min(1).max(MAX_BATCH_UNCHECK_IDS) }))
+    .input(z.object({ candidatePrintingIds: z.array(z.uuid()).min(1).max(MAX_BATCH_CHECK_IDS) }))
     .output(updatedCountOutput),
   checkAllForCard: authedRoute
     .route({ method: "POST", path: `${CARDS}/{cardId}/check-all`, tags: [TAG] })
-    .errors({ NOT_FOUND: { message: "Card not found" } })
-    .input(cardIdParam.extend({ candidateCardIds: z.array(z.uuid()).optional() }))
+    .errors({ NOT_FOUND: { message: "Card or candidate card not found" } })
+    .input(
+      cardIdParam.extend({
+        candidateCardIds: z.array(z.uuid()).max(MAX_BATCH_CHECK_IDS).optional(),
+      }),
+    )
     .output(updatedCountOutput.extend({ candidateCardIds: z.array(z.string()) })),
+  checkPass: authedRoute
+    .route({ method: "POST", path: `${CARDS}/{cardId}/check-pass`, tags: [TAG] })
+    .errors({ NOT_FOUND: { message: "Card or candidate not found" } })
+    .input(
+      cardIdParam
+        .extend({
+          candidateCardIds: z.array(z.uuid()).max(MAX_BATCH_CHECK_IDS),
+          candidatePrintingIds: z.array(z.uuid()).max(MAX_BATCH_CHECK_IDS),
+        })
+        .refine(
+          (input) => input.candidateCardIds.length > 0 || input.candidatePrintingIds.length > 0,
+          { message: "Nothing to check" },
+        ),
+    )
+    .output(z.object({ cardsUpdated: z.number(), printingsUpdated: z.number() })),
   uncheckCandidateCards: authedRoute
     .route({ method: "POST", path: `${CARDS}/candidate-cards/uncheck-batch`, tags: [TAG] })
-    .input(z.object({ candidateCardIds: z.array(z.uuid()).min(1).max(MAX_BATCH_UNCHECK_IDS) }))
+    .errors({ NOT_FOUND: { message: "Candidate card not found" } })
+    .input(z.object({ candidateCardIds: z.array(z.uuid()).min(1).max(MAX_BATCH_CHECK_IDS) }))
     .output(updatedCountOutput),
   patchCandidatePrinting: authedRoute
     .route({
@@ -728,14 +758,22 @@ export const adminCardMutationsContract = {
       BAD_REQUEST: { message: "Invalid printing fields" },
       CONFLICT: { message: "Printing already exists" },
     })
+    .input(cardIdParam.extend(acceptPrintingGroupSchema.shape))
+    .output(z.object({ printingId: z.string() })),
+  acceptPrintings: authedRoute
+    .route({ method: "POST", path: `${CARDS}/{cardId}/accept-printings`, tags: [TAG] })
+    .meta({ adminSections: ["card-review"] })
+    .errors({
+      NOT_FOUND: { message: "Card or printing not found" },
+      BAD_REQUEST: { message: "Invalid printing fields" },
+      CONFLICT: { message: "Printing already exists" },
+    })
     .input(
       cardIdParam.extend({
-        printingFields: acceptPrintingFieldsSchema,
-        candidatePrintingIds: z.array(z.uuid()),
-        secondSideFaceId: z.uuid().optional(),
+        groups: z.array(acceptPrintingGroupSchema).min(1).max(MAX_ACCEPT_PRINTING_GROUPS),
       }),
     )
-    .output(z.object({ printingId: z.string() })),
+    .output(z.object({ printingIds: z.array(z.string()) })),
   createCard: authedRoute
     .route({ method: "POST", path: `${CARDS}/create`, tags: [TAG] })
     .input(cardFieldsSchema)

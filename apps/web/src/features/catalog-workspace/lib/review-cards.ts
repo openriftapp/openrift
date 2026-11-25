@@ -1,3 +1,4 @@
+import { COMPARABLE_CARD_FIELDS } from "@openrift/shared/catalog-field-compare";
 import { adminCatalogWorkspaceContract } from "@openrift/shared/contracts/admin/catalog-workspace";
 import type {
   ReviewCard,
@@ -44,9 +45,10 @@ function cardFieldsText(fields: readonly string[]): string | null {
   if (fields.length === 0) {
     return null;
   }
-  const labels = fields.map(
-    (field) => (CARD_FIELD_LABELS as Partial<Record<string, string>>)[field] ?? field,
-  );
+  const labels = fields.map((field) => {
+    const known = COMPARABLE_CARD_FIELDS.find((entry) => entry === field);
+    return known === undefined ? field : CARD_FIELD_LABELS[known];
+  });
   return `${labels.join(", ")}${differ(fields.length)}`;
 }
 
@@ -61,10 +63,9 @@ function hasDataWork(card: ReviewCard): boolean {
   return data || !hasImageWork(card);
 }
 
-/** The cards Skip walks: one segment, or every card with work when no segment is open. */
 export function selectReviewQueue(
   cards: readonly ReviewCard[],
-  view: CardView | undefined,
+  view: "review" | "images" | undefined,
 ): ReviewCard[] {
   if (view === "review") {
     return cards.filter((card) => hasDataWork(card));
@@ -73,6 +74,57 @@ export function selectReviewQueue(
     return cards.filter((card) => hasImageWork(card));
   }
   return [...cards];
+}
+
+export interface ReviewStep {
+  key: string;
+  cardSlug: string | null;
+}
+
+export function reviewSteps(
+  view: CardView | undefined,
+  lists: {
+    reviewCards: readonly ReviewCard[];
+    listingCards?: readonly { cardSlug: string }[];
+    readyRows?: readonly { cardSlug: string | null; reviewKey: string | null }[];
+  },
+): ReviewStep[] {
+  if (view === "listings") {
+    return (lists.listingCards ?? []).map((card) => ({
+      key: card.cardSlug,
+      cardSlug: card.cardSlug,
+    }));
+  }
+  if (view === "ready") {
+    const steps = (lists.readyRows ?? []).flatMap((row) => {
+      const key = row.cardSlug ?? row.reviewKey;
+      return key === null ? [] : [{ key, cardSlug: row.cardSlug }];
+    });
+    return [...new Map(steps.map((step) => [step.key, step])).values()];
+  }
+  return selectReviewQueue(lists.reviewCards, view);
+}
+
+export function reviewNeighbor<T extends { key: string }>(
+  steps: readonly T[],
+  key: string,
+  delta: 1 | -1,
+  lastIndex: number,
+  skipKey?: string,
+): T | null {
+  const index = steps.findIndex((step) => step.key === key);
+  let targetIndex: number;
+  if (index !== -1) {
+    targetIndex = index + delta;
+  } else if (lastIndex === -1) {
+    targetIndex = delta === 1 ? 0 : -1;
+  } else {
+    targetIndex = delta === 1 ? lastIndex : lastIndex - 1;
+  }
+  if (skipKey !== undefined && steps[targetIndex]?.key === skipKey) {
+    targetIndex += delta;
+  }
+  return targetIndex < 0 ? null : (steps[targetIndex] ?? null);
 }
 
 export function summaryReviewKey(row: { cardSlug: string | null; normalizedName: string }): string {

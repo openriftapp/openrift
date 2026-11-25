@@ -1,5 +1,4 @@
 import {
-  COMPARABLE_CARD_FIELDS,
   COMPARABLE_PRINTING_FIELDS,
   hasFieldValue,
   sameFieldValue,
@@ -26,11 +25,19 @@ import {
 } from "@/features/admin/lib/catalog-field-labels";
 import {
   buildPrintingFieldsFromCandidate,
-  printingAsAccepted,
   summarizeCandidatePrinting,
 } from "@/features/admin/lib/printing-fields";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
-import { activeImageSourceUrl, imagesOnSide } from "@/features/admin/lib/printing-side-images";
+import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
+import type { FieldDifference } from "@/features/admin/lib/source-compare";
+import {
+  candidateFaceRow,
+  candidateHasNewImage,
+  cardDifferences,
+  hiddenProviders,
+  ownImageUrls,
+  printingDifferences,
+} from "@/features/admin/lib/source-compare";
 
 type AttentionChangeKind = "value" | "text" | "image";
 
@@ -57,7 +64,6 @@ export interface AttentionGroup {
   imageUrl: string | null;
   candidate: CandidatePrintingResponse | null;
   changes: AttentionChange[];
-  unchangedFields: string[];
   summary: string | null;
   closest: ClosestPrinting | null;
 }
@@ -146,47 +152,26 @@ function releasePrecisionOf(value: unknown): ReleasePrecision | null {
   return deskReleasePrecisionSchema.safeParse(value).data ?? null;
 }
 
-function compareFields(
+function attentionChanges(
   groupKey: string,
-  fields: readonly string[],
+  differences: readonly FieldDifference<string>[],
   labels: Record<string, string>,
-  current: Record<string, unknown> | null,
-  proposed: Record<string, unknown>,
-  normalize?: (field: string, value: unknown) => unknown,
-): { changes: AttentionChange[]; unchangedFields: string[] } {
-  const changes: AttentionChange[] = [];
-  const unchangedFields: string[] = [];
-  for (const field of fields) {
-    const raw = proposed[field];
-    const proposedValue = normalize ? normalize(field, raw) : raw;
-    if (!hasFieldValue(proposedValue)) {
-      continue;
-    }
-    const currentValue = current?.[field] ?? null;
-    if (sameFieldValue(currentValue, proposedValue, field)) {
-      unchangedFields.push(labels[field] ?? field);
-      continue;
-    }
-    changes.push({
-      key: `${groupKey}:${field}`,
-      field,
-      label: labels[field] ?? field,
-      current: currentValue,
-      proposed: proposedValue,
-      kind: changeKind(field),
-      ...(field === "releasedAt" && {
-        precision: {
-          current: releasePrecisionOf(current?.releasePrecision),
-          proposed: releasePrecisionOf(
-            normalize
-              ? normalize("releasePrecision", proposed.releasePrecision)
-              : proposed.releasePrecision,
-          ),
-        },
-      }),
-    });
-  }
-  return { changes, unchangedFields };
+  precisions: { current: unknown; proposed: unknown },
+): AttentionChange[] {
+  return differences.map(({ field, current, proposed }) => ({
+    key: `${groupKey}:${field}`,
+    field,
+    label: labels[field] ?? field,
+    current,
+    proposed,
+    kind: changeKind(field),
+    ...(field === "releasedAt" && {
+      precision: {
+        current: releasePrecisionOf(precisions.current),
+        proposed: releasePrecisionOf(precisions.proposed),
+      },
+    }),
+  }));
 }
 
 function buildCardGroup(
@@ -194,12 +179,11 @@ function buildCardGroup(
   detail: AdminCardDetailResponse,
 ): AttentionGroup | null {
   const groupKey = `card:${source.id}`;
-  const { changes, unchangedFields } = compareFields(
+  const changes = attentionChanges(
     groupKey,
-    COMPARABLE_CARD_FIELDS,
+    cardDifferences(detail.card as Record<string, unknown> | null, source),
     CARD_FIELD_LABELS,
-    detail.card as Record<string, unknown> | null,
-    source,
+    { current: null, proposed: null },
   );
   if (changes.length === 0) {
     return null;
@@ -214,7 +198,6 @@ function buildCardGroup(
     imageUrl: primaryImageUrl(detail),
     candidate: null,
     changes,
-    unchangedFields,
     summary: null,
     closest: null,
   };
@@ -223,31 +206,28 @@ function buildCardGroup(
 function buildLinkedPrintingGroup(
   candidate: CandidatePrintingResponse,
   printing: AdminPrintingResponse,
-  images: readonly AdminPrintingImageResponse[],
+  detail: AdminCardDetailResponse,
   accept: AcceptTransforms,
   isContributor: boolean,
 ): AttentionGroup | null {
   const groupKey = `printing:${candidate.id}`;
-  const printedTotal = accept.setTotals[printing.setSlug] ?? null;
-  const { changes, unchangedFields } = compareFields(
+  const images = detail.printingImages;
+  const face = candidateFaceRow(candidate, detail.printings) ?? printing;
+  const changes = attentionChanges(
     groupKey,
-    COMPARABLE_PRINTING_FIELDS,
+    printingDifferences(candidate, face, COMPARABLE_PRINTING_FIELDS, accept),
     PRINTING_FIELD_LABELS,
-    printingAsAccepted(printing),
-    candidate,
-    (field, value) =>
-      normalizeProvidedPrintingValue(field, value, {
+    {
+      current: printing.releasePrecision,
+      proposed: normalizeProvidedPrintingValue("releasePrecision", candidate.releasePrecision, {
         costKeywords: accept.costKeywords,
-        printedTotal,
+        printedTotal: accept.setTotals[printing.setSlug] ?? null,
       }),
+    },
   );
 
-  const currentImage = displayImageUrl(printing, images);
-  if (
-    hasFieldValue(candidate.imageUrl) &&
-    candidate.imageUrl !== activeImageSourceUrl(imagesOnSide(images, printing)) &&
-    (isContributor || candidate.imageMatch !== "same")
-  ) {
+  const currentImage = displayImageUrl(face, images);
+  if (candidateHasNewImage(candidate, ownImageUrls(images, face), isContributor)) {
     changes.push({
       key: `${groupKey}:imageUrl`,
       field: "imageUrl",
@@ -270,11 +250,10 @@ function buildLinkedPrintingGroup(
     printingLabel: printing.expectedPrintingId,
     language: printing.language,
     printingId: printing.id,
-    faceId: printing.faceId,
-    imageUrl: displayImageUrl(printing, images),
+    faceId: face.faceId,
+    imageUrl: currentImage,
     candidate,
     changes,
-    unchangedFields,
     summary: null,
     closest: null,
   };
@@ -362,7 +341,6 @@ function buildNewPrintingGroup(
     imageUrl: hasFieldValue(candidate.imageUrl) ? candidate.imageUrl : null,
     candidate,
     changes: [],
-    unchangedFields: [],
     summary: summarizeCandidatePrinting(candidate),
     closest: findClosestPrinting(candidate, printings, accept),
   };
@@ -408,13 +386,7 @@ export function buildAttentionSubmissions(
         if (!printing) {
           continue;
         }
-        const group = buildLinkedPrintingGroup(
-          candidate,
-          printing,
-          detail.printingImages,
-          accept,
-          true,
-        );
+        const group = buildLinkedPrintingGroup(candidate, printing, detail, accept, true);
         if (group) {
           groups.push(group);
         }
@@ -480,13 +452,7 @@ function buildSourceEntry(
     if (!printing) {
       continue;
     }
-    const group = buildLinkedPrintingGroup(
-      candidate,
-      printing,
-      detail.printingImages,
-      accept,
-      false,
-    );
+    const group = buildLinkedPrintingGroup(candidate, printing, detail, accept, false);
     if (group) {
       groups.push(group);
     }
@@ -519,15 +485,14 @@ export function buildAttentionSources(
   detail: AdminCardDetailResponse,
   providerSettings: readonly ProviderSettingResponse[],
   costKeywords: readonly string[],
+  isAdmin: boolean,
 ): AttentionSourceBlock[] {
   const accept: AcceptTransforms = { costKeywords, setTotals: detail.setTotals };
-  const trusted = new Set(
-    providerSettings.filter((setting) => setting.isFavorite).map((setting) => setting.provider),
-  );
+  const hidden = hiddenProviders(providerSettings, isAdmin);
   const printingsById = new Map(detail.printings.map((printing) => [printing.id, printing]));
 
   const entries = detail.sources.flatMap((source) => {
-    if (source.provider === USER_SUBMISSION_PROVIDER || !trusted.has(source.provider)) {
+    if (source.provider === USER_SUBMISSION_PROVIDER || hidden.has(source.provider)) {
       return [];
     }
     const entry = buildSourceEntry(detail, source, printingsById, accept);

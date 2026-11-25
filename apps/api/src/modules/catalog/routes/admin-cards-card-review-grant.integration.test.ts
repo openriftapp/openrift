@@ -474,7 +474,7 @@ describe.skipIf(!adminCtx || !grantCtx)("card-review grant (integration)", () =>
           mode: "main",
         }),
       );
-      expect(res.status).toBe(204);
+      expect(res.status).toBe(200);
     });
 
     it("accepts a printing from allowed candidate ids", async () => {

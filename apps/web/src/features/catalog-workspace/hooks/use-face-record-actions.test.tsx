@@ -8,7 +8,7 @@ import type { FaceChip } from "@/features/catalog-workspace/hooks/use-face-recor
 import type { FaceSuggestionModel } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import { buildFaceSuggestions } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import { resetWorkspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
-import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
+import { useWorkspaceUndoStore } from "@/features/catalog-workspace/stores/workspace-undo-store";
 import {
   makeAdminCardDetail,
   makeAdminPrinting,
@@ -76,7 +76,7 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 function latest() {
-  return useWorkspaceSelectionStore.getState().undoStack.at(-1);
+  return useWorkspaceUndoStore.getState().undoStack.at(-1);
 }
 
 function setup(options: { contributor?: boolean } = {}) {
@@ -107,7 +107,7 @@ afterEach(() => {
 
 beforeEach(() => {
   resetIdCounter();
-  resetStore = createStoreResetter(useWorkspaceSelectionStore);
+  resetStore = createStoreResetter(useWorkspaceUndoStore);
   vi.mocked(toast.success).mockClear();
   mocks.acceptField.current = mutation();
   mocks.acceptPrintingFieldFn.mockClear();
@@ -116,8 +116,6 @@ beforeEach(() => {
   mocks.scopes.length = 0;
   mocks.toast.mockReset();
 });
-
-const { signal } = new AbortController();
 
 function chipsOf(model: FaceSuggestionModel): FaceChip[] {
   return [
@@ -137,15 +135,23 @@ function chipsOf(model: FaceSuggestionModel): FaceChip[] {
 function renderWrites(model: FaceSuggestionModel) {
   return renderHook(
     () =>
-      useFaceSuggestionWrites({ cardSlug: "OGN-001", record: "Teemo, Scout", face: model.face }),
+      useFaceSuggestionWrites({
+        cardSlug: "OGN-001",
+        record: "Teemo, Scout",
+        face: model.face,
+        contributorName: () => "Renata",
+      }),
     { wrapper },
   );
 }
 
+const { signal } = new AbortController();
+
 describe("useFaceSuggestionWrites", () => {
-  it("refreshes the workspace queue and records after a field is used", () => {
+  it("refreshes the card and its history after a field is used, not the review list", () => {
     renderWrites(setup().model);
-    expect(mocks.scopes[0]).toContainEqual(["admin", "workspace"]);
+    expect(mocks.scopes[0]).toContainEqual(["admin", "cards", "detail", "OGN-001"]);
+    expect(mocks.scopes[0]).not.toContainEqual(["admin", "workspace"]);
   });
 
   it("uses a scan as the main image and a field with its face", async () => {
@@ -153,13 +159,13 @@ describe("useFaceSuggestionWrites", () => {
     const { result } = renderWrites(model);
     const [image, field] = chipsOf(model);
 
-    await result.current.applyChip(signal, image!);
+    await result.current.apply(image!);
     expect(mocks.setImage.current?.mutateAsync).toHaveBeenCalledWith(
       { candidatePrintingId: candidate.id, mode: "main" },
       { signal: expect.any(AbortSignal) },
     );
 
-    await result.current.applyChip(signal, field!);
+    await result.current.apply(field!);
     expect(mocks.toast).toHaveBeenCalledOnce();
     expect(mocks.toast.mock.lastCall?.[0]).toEqual(
       expect.objectContaining({
@@ -179,8 +185,8 @@ describe("useFaceSuggestionWrites", () => {
     const { model } = setup();
     const { result } = renderWrites(model);
 
-    await result.current.applyChip(signal, chipsOf(model)[1]!);
-    expect(useWorkspaceSelectionStore.getState().undoStack).toEqual([]);
+    await result.current.apply(chipsOf(model)[1]!);
+    expect(useWorkspaceUndoStore.getState().undoStack).toEqual([]);
     const [options] = mocks.toast.mock.lastCall as [{ onAccepted: (revert: unknown) => void }];
     const revert = { printingId: "printing-1", field: "artist", value: "", source: "manual" };
     act(() => options.onAccepted(revert));
@@ -199,7 +205,7 @@ describe("useFaceSuggestionWrites", () => {
     const { result } = renderWrites(model);
     const [image, field] = chipsOf(model);
 
-    await result.current.applyChip(signal, image!);
+    await result.current.apply(image!);
     expect(mocks.acceptSubmission.current?.mutateAsync).toHaveBeenCalledWith(
       {
         candidateCardId: source.id,
@@ -208,7 +214,7 @@ describe("useFaceSuggestionWrites", () => {
       { signal: expect.any(AbortSignal) },
     );
 
-    await result.current.applyChip(signal, field!);
+    await result.current.apply(field!);
     expect(mocks.acceptSubmission.current?.mutateAsync).toHaveBeenLastCalledWith(
       {
         candidateCardId: source.id,
@@ -222,7 +228,7 @@ describe("useFaceSuggestionWrites", () => {
           },
         ],
       },
-      { signal },
+      { signal: expect.any(AbortSignal) },
     );
     expect(mocks.toast).not.toHaveBeenCalled();
   });

@@ -3,30 +3,20 @@ import type {
   WorkspaceRecordFilter,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { WORKSPACE_RECORD_SORTS } from "@openrift/shared/workspace-kinds";
-import {
-  Link,
-  Outlet,
-  useCanGoBack,
-  useChildMatches,
-  useNavigate,
-  useRouter,
-} from "@tanstack/react-router";
+import { Link, Outlet, useChildMatches, useLocation, useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
-import type { MouseEvent } from "react";
 import { useEffect, useEffectEvent } from "react";
 
-import {
-  PageDescription,
-  PageTopBarBack,
-  PageTopBarPrimaryButton,
-} from "@/components/layout/page-top-bar";
+import { PageDescription } from "@/components/layout/page-top-bar";
+import { buttonVariants } from "@/components/ui/button";
 import { SimpleSelect } from "@/components/ui/simple-select";
-import { Spinner } from "@/components/ui/spinner";
 import { TextLink } from "@/components/ui/text-link";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
 import { DebouncedSearchInput } from "@/features/admin/components/debounced-search-input";
 import { CardsBody } from "@/features/catalog-workspace/components/cards-body";
+import { ListState } from "@/features/catalog-workspace/components/list-state";
+import { WorkspaceBack } from "@/features/catalog-workspace/components/pass/pass-parts";
 import { RecordsTable, summaryText } from "@/features/catalog-workspace/components/records-table";
 import { SetFilterSelect } from "@/features/catalog-workspace/components/set-filter-select";
 import { WorkspaceUndoButton } from "@/features/catalog-workspace/components/workspace-undo-button";
@@ -40,7 +30,7 @@ import {
   useWorkspaceRecords,
   useWorkspaceRole,
   useWorkspaceSearch,
-} from "@/features/catalog-workspace/hooks/use-workspace-queue";
+} from "@/features/catalog-workspace/hooks/use-workspace-records";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import type { DeskMode } from "@/features/catalog-workspace/lib/owner-items";
 import { OWNER_LABELS, ownersForRole } from "@/features/catalog-workspace/lib/owner-items";
@@ -65,9 +55,10 @@ const KEYBOARD_ROUTES: ReadonlySet<string> = new Set([
   "/_app/_authenticated/admin/workspace/printings/new/$candidatePrintingId",
 ]);
 
+const STOP_BAR_ROUTE = "/_app/_authenticated/admin/workspace/printings/$printingId";
+
 const RECORD_KEY_ROUTES: ReadonlySet<string> = new Set([
-  ...KEYBOARD_ROUTES,
-  "/_app/_authenticated/admin/workspace/printings/$printingId",
+  STOP_BAR_ROUTE,
   "/_app/_authenticated/admin/workspace/faces/$cardSlug/$faceId",
 ]);
 
@@ -110,6 +101,9 @@ const DESK_SORT_ITEMS = DESK_SORTS.map((value) => ({
 export function WorkspaceOwnerPage({ owner }: { owner: WorkspaceOwner }) {
   useClearUndoOnLeave();
   const childRouteId = useChildMatches({ select: (matches) => matches.at(0)?.routeId });
+  const reviewing = useLocation({
+    select: (location) => location.state.workspaceReview !== undefined,
+  });
   if (childRouteId === undefined) {
     return (
       <>
@@ -121,22 +115,18 @@ export function WorkspaceOwnerPage({ owner }: { owner: WorkspaceOwner }) {
   if (PASS_ROUTES.has(childRouteId)) {
     return <Outlet />;
   }
+  const keyboardRoute = KEYBOARD_ROUTES.has(childRouteId);
+  const recordKeyRoute = RECORD_KEY_ROUTES.has(childRouteId);
+  const stopBarKeys = reviewing && childRouteId === STOP_BAR_ROUTE;
   return (
     <>
-      {KEYBOARD_ROUTES.has(childRouteId) ? (
-        <AdminPageTopBar
-          back={<PageTopBarBack to="/admin/workspace/cards" search aria-label="Back to cards" />}
-          title="Review"
-          actions={<WorkspaceUndoButton />}
-        />
-      ) : (
-        <AdminPageTopBar
-          back={<BackToTable owner={owner} />}
-          title={OWNER_LABELS[owner]}
-          actions={<WorkspaceUndoButton />}
-        />
-      )}
-      {RECORD_KEY_ROUTES.has(childRouteId) ? <RecordKeyboard /> : <UndoKey />}
+      <AdminPageTopBar
+        back={<WorkspaceBack owner={owner} history={!keyboardRoute} />}
+        title={keyboardRoute || reviewing ? "Review" : OWNER_LABELS[owner]}
+        actions={<WorkspaceUndoButton />}
+      />
+      {keyboardRoute || (recordKeyRoute && !stopBarKeys) ? <RecordKeyboard /> : null}
+      {!keyboardRoute && !recordKeyRoute && <UndoKey />}
       <Outlet />
     </>
   );
@@ -167,45 +157,20 @@ function UndoKey() {
   return null;
 }
 
-function BackToTable({ owner }: { owner: WorkspaceOwner }) {
-  const router = useRouter();
-  const canGoBack = useCanGoBack();
-  const label = canGoBack ? "Back" : `Back to ${OWNER_LABELS[owner].toLowerCase()}`;
-  const onClick = (event: MouseEvent) => {
-    if (canGoBack) {
-      event.preventDefault();
-      router.history.back();
-    }
-  };
-  if (owner === "card") {
-    return (
-      <PageTopBarBack to="/admin/workspace/cards" search aria-label={label} onClick={onClick} />
-    );
-  }
-  if (owner === "face") {
-    return (
-      <PageTopBarBack to="/admin/workspace/faces" search aria-label={label} onClick={onClick} />
-    );
-  }
-  return (
-    <PageTopBarBack to="/admin/workspace/printings" search aria-label={label} onClick={onClick} />
-  );
-}
-
 function NewButton({ owner }: { owner: WorkspaceOwner }) {
   if (owner === "card") {
     return (
-      <PageTopBarPrimaryButton render={<Link to="/admin/workspace/cards/create" />}>
+      <Link to="/admin/workspace/cards/create" className={buttonVariants()}>
         <PlusIcon />
         New card
-      </PageTopBarPrimaryButton>
+      </Link>
     );
   }
   return (
-    <PageTopBarPrimaryButton render={<Link to="/admin/workspace/printings/create" search />}>
+    <Link to="/admin/workspace/printings/create" search className={buttonVariants()}>
       <PlusIcon />
       New printing
-    </PageTopBarPrimaryButton>
+    </Link>
   );
 }
 
@@ -391,19 +356,9 @@ function RecordsPage({ owner }: { owner: WorkspaceOwner }) {
 
 function RecordsBody(props: Parameters<typeof RecordsTable>[0]) {
   const { records } = props;
-  if (records.error !== null) {
-    return (
-      <p role="alert" className="text-muted-foreground py-6">
-        This list could not be loaded. {records.error.message}
-      </p>
-    );
-  }
-  if (records.isPending) {
-    return (
-      <div className="flex justify-center py-8">
-        <Spinner />
-      </div>
-    );
-  }
-  return <RecordsTable {...props} />;
+  return (
+    <ListState isPending={records.isPending} error={records.error}>
+      <RecordsTable {...props} />
+    </ListState>
+  );
 }

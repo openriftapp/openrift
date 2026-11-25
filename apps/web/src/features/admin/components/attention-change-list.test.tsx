@@ -47,7 +47,6 @@ const cardGroup: AttentionGroup = {
       kind: "value",
     },
   ],
-  unchangedFields: ["Domains"],
   summary: null,
   closest: null,
 };
@@ -62,7 +61,6 @@ const newPrintingGroup: AttentionGroup = {
   imageUrl: null,
   candidate: null,
   changes: [],
-  unchangedFields: [],
   summary: "foil · epic · Riot Artist",
   closest: null,
 };
@@ -86,7 +84,6 @@ const linkedPrintingGroup: AttentionGroup = {
       kind: "value",
     },
   ],
-  unchangedFields: [],
   summary: null,
   closest: null,
 };

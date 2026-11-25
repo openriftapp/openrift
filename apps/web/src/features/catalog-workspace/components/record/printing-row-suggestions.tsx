@@ -4,7 +4,6 @@ import type {
   AdminPrintingResponse,
 } from "@openrift/shared/types/api/admin";
 
-import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { buildAttentionSubmissions } from "@/features/admin/lib/attention-items";
 import type { PrintingValueLabels } from "@/features/admin/lib/field-value-text";
 import { formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
@@ -13,8 +12,9 @@ import { proposedValue } from "@/features/catalog-workspace/components/pass/fiel
 import { useSubmissionDecisions } from "@/features/catalog-workspace/components/pass/submission-decisions";
 import { useDismissSuggestion } from "@/features/catalog-workspace/hooks/use-dismiss-suggestion";
 import { usePrintingFieldWrites } from "@/features/catalog-workspace/hooks/use-printing-record-actions";
-import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
-import type { PrintingFieldSuggestion } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import { passContributor } from "@/features/catalog-workspace/lib/card-pass";
+import { printingRecordScope } from "@/features/catalog-workspace/lib/record-scopes";
+import type { PrintingFieldSuggestion } from "@/features/catalog-workspace/lib/suggestion-rows";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
 
 export function PrintingRowSuggestions({
@@ -23,6 +23,7 @@ export function PrintingRowSuggestions({
   printing,
   detail,
   cardSlug,
+  cardSlugs,
   isAdmin,
   labels,
 }: {
@@ -31,6 +32,7 @@ export function PrintingRowSuggestions({
   printing: AdminPrintingResponse;
   detail: AdminCardDetailResponse;
   cardSlug: string;
+  cardSlugs: readonly string[];
   isAdmin: boolean;
   labels: PrintingValueLabels;
 }) {
@@ -38,23 +40,29 @@ export function PrintingRowSuggestions({
   const costKeywords = useCostKeywords();
   const submissions = buildAttentionSubmissions(detail, costKeywords);
   const decisions = useSubmissionDecisions({ cardSlug, detail, submissions, isAdmin });
-  const writes = usePrintingFieldWrites({ printingId: printing.id, record, printing });
-  const queueWrite = useQueueWorkspaceWrite();
-  const dismissValue = useDismissSuggestion(
-    [adminKeys.cards.all, adminKeys.printingDesk.all, adminKeys.workspace],
+  const writes = usePrintingFieldWrites({
+    cardSlugs,
     record,
-  );
+    printing,
+    contributorName: (candidateCardId) =>
+      passContributor(detail, submissions, candidateCardId).name,
+  });
+  const dismissValue = useDismissSuggestion(printingRecordScope(cardSlugs), record);
 
   const shown = suggestions.filter((suggestion) => fields.includes(suggestion.field));
   const precisionOf = (date: PrintingFieldSuggestion) =>
     shown.find(
-      (other) => other.field === "releasePrecision" && other.candidate.id === date.candidate.id,
+      (other) =>
+        other.field === "releasePrecision" &&
+        other.candidatePrintingId === date.candidatePrintingId,
     );
   const rows = shown.filter(
     (suggestion) =>
       suggestion.field !== "releasePrecision" ||
       !shown.some(
-        (other) => other.field === "releasedAt" && other.candidate.id === suggestion.candidate.id,
+        (other) =>
+          other.field === "releasedAt" &&
+          other.candidatePrintingId === suggestion.candidatePrintingId,
       ),
   );
   const withPrecision = (suggestion: PrintingFieldSuggestion) => {
@@ -78,27 +86,22 @@ export function PrintingRowSuggestions({
               ? undefined
               : formatCatalogFieldValue(suggestion.field, printing[suggestion.field], labels),
         })}
-        onUse={(suggestion) =>
-          void queueWrite(async (signal) => {
-            for (const part of withPrecision(suggestion)) {
-              await writes.applyField(signal, part);
-            }
-          })
-        }
+        onUse={(suggestion) => void writes.apply(suggestion)}
         onDismiss={
           isAdmin
-            ? (suggestion) => {
-                for (const part of withPrecision(suggestion)) {
-                  void dismissValue.run({
-                    kind: "printing",
-                    candidateId: part.candidate.id,
-                    field: part.field,
-                    value: part.proposed,
-                    label: part.label,
-                    source: part.provider,
-                  });
-                }
-              }
+            ? (group) =>
+                void dismissValue.run(
+                  group
+                    .flatMap((suggestion) => withPrecision(suggestion))
+                    .map((part) => ({
+                      kind: "printing" as const,
+                      candidateId: part.candidatePrintingId,
+                      field: part.field,
+                      value: part.proposed,
+                      label: part.label,
+                      source: part.sourceLabel,
+                    })),
+                )
             : undefined
         }
       />

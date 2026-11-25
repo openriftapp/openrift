@@ -2,16 +2,14 @@ import type { CreateCardBody } from "@openrift/shared/contracts/admin/card-mutat
 import { slugifyName } from "@openrift/shared/strings";
 import { useState } from "react";
 
+import { CARD_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
 import { parseIntegerFields } from "@/lib/integer-input";
 
 type ManualCardStat = "might" | "energy" | "power" | "mightBonus";
 
-export const MANUAL_CARD_STATS: { key: ManualCardStat; label: string }[] = [
-  { key: "might", label: "Might" },
-  { key: "energy", label: "Energy" },
-  { key: "power", label: "Power" },
-  { key: "mightBonus", label: "Might bonus" },
-];
+export const MANUAL_CARD_STATS: { key: ManualCardStat; label: string }[] = (
+  ["might", "energy", "power", "mightBonus"] as const
+).map((key) => ({ key, label: CARD_FIELD_LABELS[key] }));
 
 export function useManualCardDraft() {
   const [name, setName] = useState("");

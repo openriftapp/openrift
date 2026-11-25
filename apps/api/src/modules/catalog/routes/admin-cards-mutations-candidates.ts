@@ -12,13 +12,17 @@ import {
   reviewableProviderScope,
 } from "../../candidates/lib/card-review-scope.js";
 import { resolveCheckedSubmissions } from "../../candidates/services/card-submission-outcomes.js";
+import {
+  checkCardCandidates,
+  recordCandidateChecks,
+} from "../../candidates/services/check-card-candidates.js";
 import { ingestCandidates } from "../../candidates/services/ingest-candidates.js";
 import {
   relinkCandidatePrintings,
   reresolveEditedCandidateLink,
 } from "../../candidates/services/relink-candidates.js";
 import { requireScheduler } from "../../system/services/job-scheduler.js";
-import { recordAdminEvent } from "../../system/services/record-admin-event.js";
+import { recordAdminEvent, recordAdminEvents } from "../../system/services/record-admin-event.js";
 
 const os = implement(adminCardMutationsContract).$context<ApiContext>().use(requireAuthedUser);
 
@@ -32,6 +36,38 @@ async function settleCheckedSubmissions(
   }
 }
 
+function checkContext(context: ApiContext & { userId: string }) {
+  return {
+    repos: context.repos,
+    transact: context.transact,
+    io: context.io,
+    userId: context.userId,
+    notifySubmitter: (submissionId: string) => {
+      void context.services.notifySubmitterOfCardAcceptance(context.repos, submissionId);
+    },
+  };
+}
+
+function recordDismissal(
+  context: ApiContext & { userId: string },
+  action: "dismiss-value" | "restore-value",
+  input: { kind: "card" | "printing"; candidateId: string; field: string; value?: unknown },
+): Promise<void> {
+  const prefix = input.kind === "card" ? "candidate-card" : "candidate-printing";
+  return recordAdminEvents(context.repos, context.userId, () =>
+    Promise.resolve([
+      {
+        action: `${prefix}.${action}` as const,
+        entityType: prefix,
+        entityId: input.candidateId,
+        ...(action === "dismiss-value"
+          ? { newValues: { field: input.field, value: input.value ?? null } }
+          : { oldValues: { field: input.field } }),
+      },
+    ]),
+  );
+}
+
 export const adminCardMutationsCandidatesRouter = {
   checkCandidateCard: os.checkCandidateCard.handler(async ({ input, context }): Promise<void> => {
     const { candidateCards } = context.repos;
@@ -43,6 +79,9 @@ export const adminCardMutationsCandidatesRouter = {
       adminUserId: context.userId,
       now: new Date(),
     });
+    await recordCandidateChecks(context.repos, context.userId, "candidate-card.check", {
+      ids: [input.candidateCardId],
+    });
   }),
 
   uncheckCandidateCard: os.uncheckCandidateCard.handler(
@@ -50,12 +89,15 @@ export const adminCardMutationsCandidatesRouter = {
       const { candidateCards } = context.repos;
       const result = await candidateCards.uncheckCandidateCard(input.candidateCardId);
       assertUpdated(result, "Candidate card not found");
+      await recordCandidateChecks(context.repos, context.userId, "candidate-card.uncheck", {
+        ids: [input.candidateCardId],
+      });
     },
   ),
 
   checkAllCandidatePrintings: os.checkAllCandidatePrintings.handler(async ({ input, context }) => {
     const { candidateCards } = context.repos;
-    const { updated, candidateCardIds } = await candidateCards.checkAllCandidatePrintings(
+    const { updated, ids, candidateCardIds } = await candidateCards.checkAllCandidatePrintings(
       input.printingId,
       input.extraIds,
     );
@@ -64,6 +106,9 @@ export const adminCardMutationsCandidatesRouter = {
       candidateCardIds,
       adminUserId: context.userId,
       now: new Date(),
+    });
+    await recordCandidateChecks(context.repos, context.userId, "candidate-printing.check", {
+      ids,
     });
     return { updated };
   }),
@@ -79,6 +124,9 @@ export const adminCardMutationsCandidatesRouter = {
         adminUserId: context.userId,
         now: new Date(),
       });
+      await recordCandidateChecks(context.repos, context.userId, "candidate-printing.check", {
+        ids: [input.id],
+      });
     },
   ),
 
@@ -87,6 +135,9 @@ export const adminCardMutationsCandidatesRouter = {
       const { candidateCards } = context.repos;
       const result = await candidateCards.uncheckCandidatePrinting(input.id);
       assertUpdated(result, "Candidate printing not found");
+      await recordCandidateChecks(context.repos, context.userId, "candidate-printing.uncheck", {
+        ids: [input.id],
+      });
     },
   ),
 
@@ -105,6 +156,7 @@ export const adminCardMutationsCandidatesRouter = {
       if (!found) {
         throw errors.NOT_FOUND();
       }
+      await recordDismissal(context, "dismiss-value", input);
     },
   ),
 
@@ -118,6 +170,7 @@ export const adminCardMutationsCandidatesRouter = {
       if (!found) {
         throw errors.NOT_FOUND();
       }
+      await recordDismissal(context, "restore-value", input);
     },
   ),
 
@@ -131,35 +184,38 @@ export const adminCardMutationsCandidatesRouter = {
         }
         return count;
       });
+      await recordCandidateChecks(context.repos, context.userId, "candidate-printing.uncheck", {
+        ids,
+      });
       return { updated };
     },
   ),
 
   checkAllForCard: os.checkAllForCard.handler(async ({ input, context }) => {
-    const { catalogMutations: mut, candidateCards } = context.repos;
-
-    const card = await mut.getCardById(input.cardId);
-    assertFound(card, "Card not found");
-
-    const { updated, candidateCardIds } =
-      input.candidateCardIds === undefined
-        ? await candidateCards.checkAllCandidateCards(
-            await candidateCards.cardNameKeys(card.id),
-            card.id,
-          )
-        : await candidateCards.checkCandidateCards(input.candidateCardIds);
-
-    await settleCheckedSubmissions(context, {
-      candidateCardIds,
-      adminUserId: context.userId,
-      now: new Date(),
+    const result = await checkCardCandidates(checkContext(context), {
+      cardId: input.cardId,
+      candidateCardIds: input.candidateCardIds,
     });
-    return { updated, candidateCardIds };
+    return { updated: result.cardsUpdated, candidateCardIds: result.candidateCardIds };
   }),
 
-  uncheckCandidateCards: os.uncheckCandidateCards.handler(async ({ input, context }) => ({
-    updated: await context.repos.candidateCards.uncheckCandidateCards(input.candidateCardIds),
-  })),
+  checkPass: os.checkPass.handler(async ({ input, context }) => {
+    const result = await checkCardCandidates(checkContext(context), input);
+    return { cardsUpdated: result.cardsUpdated, printingsUpdated: result.printingsUpdated };
+  }),
+
+  uncheckCandidateCards: os.uncheckCandidateCards.handler(async ({ input, context, errors }) => {
+    const ids = [...new Set(input.candidateCardIds)];
+    const updated = await context.transact(async (trx) => {
+      const count = await trx.candidateCards.uncheckCandidateCards(ids);
+      if (count !== ids.length) {
+        throw errors.NOT_FOUND();
+      }
+      return count;
+    });
+    await recordCandidateChecks(context.repos, context.userId, "candidate-card.uncheck", { ids });
+    return { updated };
+  }),
 
   patchCandidatePrinting: os.patchCandidatePrinting.handler(
     async ({ input, context, errors }): Promise<void> => {

@@ -30,19 +30,17 @@ describe("AssignSuggestedListingsButton", () => {
       </QueryClientProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Assign 2 listings by suggestion" }));
+    fireEvent.click(screen.getByRole("button", { name: "Map 2 listings by suggestion" }));
     const dialog = await screen.findByRole("dialog");
-    fireEvent.click(
-      within(dialog).getByRole("button", { name: "Assign 2 listings by suggestion" }),
-    );
+    fireEvent.click(within(dialog).getByRole("button", { name: "Map 2 listings by suggestion" }));
     fireEvent.click(await screen.findByRole("button", { name: "Done" }));
     expect(run.reset).toHaveBeenCalled();
 
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    fireEvent.click(screen.getByRole("button", { name: "Assign 2 listings by suggestion" }));
+    fireEvent.click(screen.getByRole("button", { name: "Map 2 listings by suggestion" }));
     const reopened = await screen.findByRole("dialog");
     expect(
-      within(reopened).getByRole("button", { name: "Assign 2 listings by suggestion" }),
+      within(reopened).getByRole("button", { name: "Map 2 listings by suggestion" }),
     ).toBeVisible();
     expect(screen.queryByRole("button", { name: "Done" })).toBeNull();
   });

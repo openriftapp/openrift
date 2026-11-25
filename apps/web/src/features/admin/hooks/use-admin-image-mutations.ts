@@ -21,7 +21,7 @@ import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 import { sentVariables } from "@/lib/write-signal";
 
-const deletePrintingImageFn = createServerFn({ method: "POST" })
+export const deletePrintingImageFn = createServerFn({ method: "POST" })
   .validator((input: { imageId: string }) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
@@ -30,7 +30,7 @@ const deletePrintingImageFn = createServerFn({ method: "POST" })
     });
   });
 
-const activatePrintingImageFn = createServerFn({ method: "POST" })
+export const activatePrintingImageFn = createServerFn({ method: "POST" })
   .validator((input: { imageId: string; active: boolean }) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
@@ -45,6 +45,15 @@ const keepPrintingImageFn = createServerFn({ method: "POST" })
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
     await apiOrpcClient(adminCardImagesContract, context.cookie).keepImage({
+      imageId: data.imageId,
+    });
+  });
+
+export const unkeepPrintingImageFn = createServerFn({ method: "POST" })
+  .validator((input: { imageId: string }) => input)
+  .middleware([withCookies])
+  .handler(async ({ context, data }) => {
+    await apiOrpcClient(adminCardImagesContract, context.cookie).unkeepImage({
       imageId: data.imageId,
     });
   });
@@ -135,12 +144,12 @@ const addImageFromUrlFn = createServerFn({ method: "POST" })
 const setCandidatePrintingImageFn = createServerFn({ method: "POST" })
   .validator((input: { candidatePrintingId: string; mode: "main" | "additional" }) => input)
   .middleware([withCookies])
-  .handler(async ({ context, data }) => {
-    await apiOrpcClient(adminCardImagesContract, context.cookie).setImage({
+  .handler(async ({ context, data }) =>
+    apiOrpcClient(adminCardImagesContract, context.cookie).setImage({
       id: data.candidatePrintingId,
       mode: data.mode,
-    });
-  });
+    }),
+  );
 
 const setFallbackArtFn = createServerFn({ method: "POST" })
   .validator(
@@ -456,9 +465,7 @@ export function useSetCandidatePrintingImage(invalidates: Scope = defaultScope) 
         mode: "main" | "additional";
       },
       signal,
-    ) => {
-      await setCandidatePrintingImageFn({ data: { candidatePrintingId, mode }, signal });
-    },
+    ) => setCandidatePrintingImageFn({ data: { candidatePrintingId, mode }, signal }),
     invalidates,
   });
 }

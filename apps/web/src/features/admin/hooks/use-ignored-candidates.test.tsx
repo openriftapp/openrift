@@ -13,12 +13,17 @@ vi.mock("@tanstack/react-start", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   createServerFn: () => {
     const chain = {
-      handler: () => async (args?: { data?: { externalId?: string } }) => {
-        server.calls.push(args?.data);
-        if (server.failOn !== null && args?.data?.externalId === server.failOn) {
-          throw new Error("refused");
-        }
-      },
+      handler:
+        () =>
+        async (args?: { data?: { externalId?: string; sources?: { externalId: string }[] } }) => {
+          server.calls.push(args?.data);
+          const ids = args?.data?.sources?.map((source) => source.externalId) ?? [
+            args?.data?.externalId,
+          ];
+          if (server.failOn !== null && ids.includes(server.failOn)) {
+            throw new Error("refused");
+          }
+        },
       middleware: () => chain,
       validator: () => chain,
     };
@@ -91,6 +96,22 @@ describe.each([
   });
 });
 
+describe.each([
+  ["useIgnoreCandidateCard", () => useIgnoreCandidateCard()],
+  ["useUnignoreCandidateCard", () => useUnignoreCandidateCard()],
+] as const)("%s", (_name, useHook) => {
+  it("sends the source as a one-item list", async () => {
+    server.calls.length = 0;
+    const { result } = renderHook(() => useHook(), { wrapper: wrap(makeClient()) });
+
+    await act(async () => {
+      await result.current.mutateAsync(cardInput);
+    });
+
+    expect(server.calls).toEqual([{ sources: [cardInput] }]);
+  });
+});
+
 describe("useIgnoreNewCardDrafts", () => {
   beforeEach(() => {
     server.calls.length = 0;
@@ -106,7 +127,7 @@ describe("useIgnoreNewCardDrafts", () => {
     server.drafts.set("ekko", { sources: [{ provider: "usersubmission", externalId: "u2" }] });
   });
 
-  it("ignores only provider sources, counts drafts that had one, and refreshes once", async () => {
+  it("ignores only provider sources in one write, counts drafts that had one, and refreshes once", async () => {
     const client = makeClient();
     const { result } = renderHook(() => useIgnoreNewCardDrafts([["admin", "workspace"]]), {
       wrapper: wrap(client),
@@ -125,15 +146,35 @@ describe("useIgnoreNewCardDrafts", () => {
       ],
     });
     expect(server.calls).toEqual([
-      { provider: "provider-a", externalId: "a1" },
-      { provider: "provider-b", externalId: "b1" },
+      {
+        sources: [
+          { provider: "provider-a", externalId: "a1" },
+          { provider: "provider-b", externalId: "b1" },
+        ],
+      },
     ]);
     const keys = invalidatedKeys(client);
     expect(keys.filter((key) => key.join("/") === "admin/workspace")).toHaveLength(1);
     expect(keys).toContainEqual(["admin", "review-queue"]);
   });
 
-  it("stops at the first refused source and still refreshes", async () => {
+  it("writes nothing for drafts with only contributor submissions", async () => {
+    const client = makeClient();
+    const { result } = renderHook(() => useIgnoreNewCardDrafts([["admin", "workspace"]]), {
+      wrapper: wrap(client),
+    });
+
+    await act(async () => {
+      await expect(result.current.mutateAsync(["ekko"])).resolves.toEqual({
+        ignored: 0,
+        sources: [],
+      });
+    });
+
+    expect(server.calls).toEqual([]);
+  });
+
+  it("refreshes after a refused write", async () => {
     server.failOn = "a1";
     const client = makeClient();
     const { result } = renderHook(() => useIgnoreNewCardDrafts([["admin", "workspace"]]), {
@@ -144,7 +185,7 @@ describe("useIgnoreNewCardDrafts", () => {
       await expect(result.current.mutateAsync(["jinx", "vi"])).rejects.toThrow("refused");
     });
 
-    expect(server.calls).toEqual([{ provider: "provider-a", externalId: "a1" }]);
+    expect(server.calls).toHaveLength(1);
     expect(invalidatedKeys(client)).toContainEqual(["admin", "workspace"]);
   });
 });

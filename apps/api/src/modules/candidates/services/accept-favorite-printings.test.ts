@@ -20,7 +20,7 @@ function makeRepos(
   return {
     catalogMutations: {
       getCardBySlug: vi.fn(async () => ({ id: "card-1", name: "Poro Herder" })),
-      findFaceIdByIdentity: vi.fn(async () => undefined),
+      facePrintedFieldsByIdentities: vi.fn(async (_identities: object[]): Promise<object[]> => []),
     },
     candidateCards: {
       cardNameKeys: vi.fn(async () => ["poroherder", "poroherd"]),
@@ -170,18 +170,29 @@ describe("acceptFavoritePrintingsForCard", () => {
     ]);
   });
 
-  it("hands back a created printing when a later group's check throws", async () => {
+  it("reads the faces of every group in one lookup before accepting any", async () => {
     const repos = makeRepos([
       candidatePrintingRow("cp-1"),
       candidatePrintingRow("cp-2", { shortCode: "OGN-028", publicCode: "OGN-028/298" }),
     ]);
-    repos.catalogMutations.findFaceIdByIdentity
-      .mockResolvedValueOnce(undefined)
-      .mockRejectedValueOnce(new Error("connection reset"));
+
+    await accept(repos);
+
+    expect(repos.catalogMutations.facePrintedFieldsByIdentities).toHaveBeenCalledOnce();
+    expect(repos.catalogMutations.facePrintedFieldsByIdentities.mock.calls[0]?.[0]).toHaveLength(2);
+    expect(acceptCandidateGroup).toHaveBeenCalledTimes(2);
+  });
+
+  it("creates nothing when the face lookup throws", async () => {
+    const repos = makeRepos();
+    repos.catalogMutations.facePrintedFieldsByIdentities.mockRejectedValue(
+      new Error("connection reset"),
+    );
     const created: NewPrinting[] = [];
 
     await expect(accept(repos, created)).rejects.toThrow("connection reset");
-    expect(created).toEqual([{ printingId: "p-1", imageIds: [] }]);
+    expect(created).toEqual([]);
+    expect(acceptCandidateGroup).not.toHaveBeenCalled();
   });
 
   it("hands back the printings it created when marking checked throws", async () => {

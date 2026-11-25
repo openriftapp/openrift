@@ -1,10 +1,9 @@
 import type { AdminCardResponse } from "@openrift/shared/types/api/admin";
-import { useNavigate } from "@tanstack/react-router";
 import { EllipsisVerticalIcon, RefreshCwIcon, Trash2Icon } from "lucide-react";
+import type { ReactElement } from "react";
 import { useState } from "react";
 
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,19 +16,25 @@ import {
   useLeaveCardPage,
   useRenameCard,
 } from "@/features/admin/hooks/use-admin-card-mutations";
-import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
+import type { RunWrite } from "@/features/admin/lib/run-write";
 
 export function CardMenu({
   card,
   cardSlug,
   expectedCardId,
+  runWrite,
+  trigger,
+  onRenamed,
+  onDeleted,
 }: {
   card: AdminCardResponse;
   cardSlug: string;
   expectedCardId: string;
+  runWrite: RunWrite;
+  trigger: ReactElement;
+  onRenamed: (cardSlug: string) => Promise<unknown>;
+  onDeleted: () => Promise<unknown>;
 }) {
-  const queueWrite = useQueueWorkspaceWrite();
-  const navigate = useNavigate();
   const renameCard = useRenameCard();
   const deleteCard = useDeleteCard();
   const leaveCardPage = useLeaveCardPage();
@@ -38,32 +43,26 @@ export function CardMenu({
 
   async function regenerateId() {
     const input = { cardId: card.id, newId: expectedCardId };
-    if (await queueWrite((signal) => renameCard.mutateAsync(input, { signal }))) {
-      await leaveCardPage(cardSlug, () =>
-        navigate({
-          to: "/admin/workspace/cards/$cardSlug",
-          params: { cardSlug: expectedCardId },
-          ignoreBlocker: true,
-        }),
-      );
+    if (await runWrite((signal) => renameCard.mutateAsync(input, { signal }))) {
+      await leaveCardPage(cardSlug, async () => {
+        await onRenamed(expectedCardId);
+      });
     }
   }
 
   async function confirmDelete() {
-    if (await queueWrite((signal) => deleteCard.mutateAsync(card.id, { signal }))) {
+    if (await runWrite((signal) => deleteCard.mutateAsync(card.id, { signal }))) {
       setDeleteOpen(false);
-      await leaveCardPage(cardSlug, () =>
-        navigate({ to: "/admin/workspace/cards", ignoreBlocker: true }),
-      );
+      await leaveCardPage(cardSlug, async () => {
+        await onDeleted();
+      });
     }
   }
 
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger
-          render={<Button variant="ghost" size="icon-sm" aria-label="Card actions" />}
-        >
+        <DropdownMenuTrigger render={trigger}>
           <EllipsisVerticalIcon />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">

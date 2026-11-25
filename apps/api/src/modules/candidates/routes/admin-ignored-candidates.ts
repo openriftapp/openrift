@@ -3,13 +3,25 @@ import { implement } from "@orpc/server";
 
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
-import { recordAdminEvent } from "../../system/services/record-admin-event.js";
+import { recordAdminEvent, recordAdminEvents } from "../../system/services/record-admin-event.js";
 import {
   rejectIgnoredSubmission,
   reopenUnignoredSubmission,
 } from "../services/card-submission-outcomes.js";
 
 const os = implement(adminIgnoredCandidatesContract).$context<ApiContext>().use(requireAuthedUser);
+
+function uniqueSources(
+  sources: readonly { provider: string; externalId: string }[],
+): { provider: string; externalId: string }[] {
+  const byKey = new Map(
+    sources.map(({ provider, externalId }) => [
+      JSON.stringify([provider, externalId]),
+      { provider, externalId },
+    ]),
+  );
+  return [...byKey.values()];
+}
 
 export const adminIgnoredCandidatesRouter = {
   list: os.list.handler(async ({ context }) => {
@@ -42,44 +54,55 @@ export const adminIgnoredCandidatesRouter = {
     };
   }),
 
-  ignoreCard: os.ignoreCard.handler(async ({ input, context }): Promise<void> => {
-    const { ignoredCandidates } = context.repos;
-    const { provider, externalId } = input;
-    await ignoredCandidates.ignoreCard({ provider, externalId });
+  ignoreCards: os.ignoreCards.handler(async ({ input, context }): Promise<void> => {
+    const sources = uniqueSources(input.sources);
+    await context.repos.ignoredCandidates.ignoreCards(sources);
 
     // For a user submission this rejects it (per-submission external_id makes
     // the key exact); no-ops for scraped providers.
-    await rejectIgnoredSubmission(context.repos, {
-      provider,
-      externalId,
-      adminUserId: context.userId,
-      now: new Date(),
-      io: context.io,
-    });
+    const now = new Date();
+    for (const { provider, externalId } of sources) {
+      await rejectIgnoredSubmission(context.repos, {
+        provider,
+        externalId,
+        adminUserId: context.userId,
+        now,
+        io: context.io,
+      });
+    }
 
-    await recordAdminEvent(context.repos, context.userId, {
-      action: "candidate-card.ignore",
-      entityType: "candidate-card",
-      entityId: `${provider}:${externalId}`,
-      newValues: { provider, externalId },
-    });
+    await recordAdminEvents(context.repos, context.userId, () =>
+      Promise.resolve(
+        sources.map(({ provider, externalId }) => ({
+          action: "candidate-card.ignore" as const,
+          entityType: "candidate-card" as const,
+          entityId: `${provider}:${externalId}`,
+          newValues: { provider, externalId },
+        })),
+      ),
+    );
   }),
 
-  unignoreCard: os.unignoreCard.handler(async ({ input, context }): Promise<void> => {
-    const { ignoredCandidates } = context.repos;
-    const { provider, externalId } = input;
-    await ignoredCandidates.unignoreCard(provider, externalId);
+  unignoreCards: os.unignoreCards.handler(async ({ input, context }): Promise<void> => {
+    const sources = uniqueSources(input.sources);
+    await context.repos.ignoredCandidates.unignoreCards(sources);
 
     // Undoing the rejection puts the submission back in the queue, so a
     // misclick doesn't leave a contributor looking at a wrong outcome.
-    await reopenUnignoredSubmission(context.repos, { provider, externalId });
+    for (const source of sources) {
+      await reopenUnignoredSubmission(context.repos, source);
+    }
 
-    await recordAdminEvent(context.repos, context.userId, {
-      action: "candidate-card.unignore",
-      entityType: "candidate-card",
-      entityId: `${provider}:${externalId}`,
-      oldValues: { provider, externalId },
-    });
+    await recordAdminEvents(context.repos, context.userId, () =>
+      Promise.resolve(
+        sources.map(({ provider, externalId }) => ({
+          action: "candidate-card.unignore" as const,
+          entityType: "candidate-card" as const,
+          entityId: `${provider}:${externalId}`,
+          oldValues: { provider, externalId },
+        })),
+      ),
+    );
   }),
 
   ignorePrinting: os.ignorePrinting.handler(async ({ input, context }): Promise<void> => {

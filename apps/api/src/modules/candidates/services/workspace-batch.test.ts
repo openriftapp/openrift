@@ -10,14 +10,16 @@ vi.mock("./accept-candidate-printings.js", () => ({
   acceptCandidateGroup: vi.fn(),
   finishPrintingAccepts: vi.fn(async () => {}),
 }));
-vi.mock("./accept-gallery.js", () => ({
+vi.mock("./accept-gallery.js", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   acceptFavoriteNewCard: vi.fn(),
 }));
 vi.mock("../../marketplace/services/marketplace-mapping.js", () => ({
-  saveMappings: vi.fn(async () => ({ saved: 1, skipped: [] })),
+  saveMappings: vi.fn(async () => ({ saved: 1, skipped: [], applied: [] })),
+  mappingEvents: vi.fn(async () => [{ action: "marketplace-variant.map" }]),
 }));
 
-import { saveMappings } from "../../marketplace/services/marketplace-mapping.js";
+import { mappingEvents, saveMappings } from "../../marketplace/services/marketplace-mapping.js";
 import { acceptCandidateGroup, finishPrintingAccepts } from "./accept-candidate-printings.js";
 import { acceptFavoriteNewCard } from "./accept-gallery.js";
 import {
@@ -119,13 +121,14 @@ function makeRepos(
     },
     catalog: { refreshCatalogViews: vi.fn(async () => {}) },
     catalogMutations: {
-      findFaceIdByIdentity: vi.fn(async () => (over.storedFace ? { id: "face-1" } : undefined)),
-      getFacePrintedFields: vi.fn(async () => over.storedFace),
+      facePrintedFieldsByIdentities: vi.fn(async (identities: object[]) =>
+        over.storedFace ? identities.map((identity) => ({ ...identity, ...over.storedFace })) : [],
+      ),
       getSetIdBySlug: vi.fn(async () => ({ id: "set-uuid" })),
     },
     sets: { getPrintedTotal: vi.fn(async () => null) },
     keywords: { listCostKeywords: vi.fn(async () => []) },
-    adminEvents: { insert: vi.fn(async () => {}) },
+    adminEvents: { insert: vi.fn(async () => {}), insertMany: vi.fn(async () => {}) },
     enums: {
       all: vi.fn(async () => ({
         languages: [{ slug: "EN" }],
@@ -177,6 +180,7 @@ describe("trusted cards", () => {
       cardSlug: "poro-herder",
       printingsCreated: 0,
       skipped: [],
+      accepted: [],
     });
     const repos = makeRepos({ printings });
 
@@ -184,6 +188,7 @@ describe("trusted cards", () => {
 
     expect(result).toEqual({ accepted: 1, skipped: [] });
     expect(acceptFavoriteNewCard).toHaveBeenCalledOnce();
+    expect(repos.providerSettings.favoriteProviders).toHaveBeenCalledOnce();
   });
 
   it("previews complete drafts", async () => {
@@ -196,13 +201,24 @@ describe("trusted cards", () => {
     expect(repos.workspaceBatch.trustedNewCardDrafts).toHaveBeenCalledWith(["gallery"]);
   });
 
-  it("accepts each draft, records an event per card, reports failures and finishes once", async () => {
+  it("accepts each draft, records the card and its printings, reports failures and finishes once", async () => {
     const created = [{ printingId: "printing-1", imageIds: [] }];
     vi.mocked(acceptFavoriteNewCard)
       .mockRejectedValueOnce(new Error("Card already exists"))
       .mockImplementationOnce(async (_transact, _repos, _name, _providers, sink) => {
         sink.push(...created);
-        return { cardSlug: "poro-herder", printingsCreated: 1, skipped: [] };
+        return {
+          cardSlug: "poro-herder",
+          printingsCreated: 1,
+          skipped: [],
+          accepted: [
+            {
+              printing: created[0]!,
+              fields: { shortCode: "OGN-027" } as never,
+              candidatePrintingIds: ["p1"],
+            },
+          ],
+        };
       });
     const repos = makeRepos({ printings });
 
@@ -213,10 +229,17 @@ describe("trusted cards", () => {
       skipped: [{ name: "Blast Cone", reason: "Card already exists" }],
     });
     expect(acceptFavoriteNewCard).toHaveBeenCalledTimes(2);
-    expect(repos.adminEvents.insert).toHaveBeenCalledTimes(1);
-    expect(repos.adminEvents.insert).toHaveBeenCalledWith(
+    expect(repos.adminEvents.insertMany).toHaveBeenCalledTimes(1);
+    expect(repos.adminEvents.insertMany).toHaveBeenCalledWith([
       expect.objectContaining({ action: "card.accept-favorites", cardSlug: "poro-herder" }),
-    );
+      expect.objectContaining({
+        action: "printing.accept",
+        entityType: "printing",
+        entityId: "printing-1",
+        entityLabel: "OGN-027",
+        cardSlug: "poro-herder",
+      }),
+    ]);
     expect(finishPrintingAccepts).toHaveBeenCalledWith(repos, io, created, {
       catalogChanged: true,
     });
@@ -246,6 +269,7 @@ describe("trusted cards", () => {
       cardSlug: "poro-herder",
       printingsCreated: 0,
       skipped: [],
+      accepted: [],
     });
     const repos = makeRepos({ printings });
 
@@ -608,30 +632,65 @@ describe("suggested listings", () => {
     });
   });
 
-  it("assigns each listing on its own, limited to the given keys", async () => {
+  const mappingRepos = { adminEvents: { insertMany: vi.fn(async () => {}) } };
+
+  function assign(configs: MarketplaceConfigs, listingKeys: string[], listings = LISTINGS) {
+    return assignSuggestedListings(
+      {
+        access: ADMIN,
+        userId: "user-1",
+        repos: mappingRepos as never,
+        transact,
+        configs,
+        input: { listingKeys },
+      },
+      async () => listings,
+    );
+  }
+
+  it("assigns only the given keys in one save per marketplace and records the mappings", async () => {
+    const applied = [
+      { printingId: "pr-1", externalId: 1, finish: "normal", language: null },
+      { printingId: "pr-4", externalId: 4, finish: "normal", language: null },
+    ];
+    vi.mocked(saveMappings).mockResolvedValueOnce({ saved: 2, skipped: [], applied });
     const configs = { tcgplayer: { marketplace: "tcgplayer" } } as unknown as MarketplaceConfigs;
 
-    const result = await assignSuggestedListings(
-      { access: ADMIN, transact, configs, input: { listingKeys: ["tcgplayer::4::normal::"] } },
-      async () => LISTINGS,
-    );
+    const result = await assign(configs, ["tcgplayer::1::normal::", "tcgplayer::4::normal::"]);
 
-    expect(result).toEqual({ assigned: 1, skipped: [] });
+    expect(result).toEqual({ assigned: 2, skipped: [] });
     expect(saveMappings).toHaveBeenCalledTimes(1);
-    expect(saveMappings).toHaveBeenCalledWith(transact, configs.tcgplayer, [
-      { printingId: "pr-4", externalId: 4, finish: "normal", language: null },
+    expect(saveMappings).toHaveBeenCalledWith(transact, configs.tcgplayer, applied);
+    expect(mappingEvents).toHaveBeenCalledWith(mappingRepos, "tcgplayer", applied);
+    expect(mappingRepos.adminEvents.insertMany).toHaveBeenCalledWith([
+      { actorUserId: "user-1", action: "marketplace-variant.map" },
     ]);
   });
 
-  it("reports a failing listing with its reason and keeps going", async () => {
+  it("saves nothing for an empty key list", async () => {
+    const result = await assign({} as MarketplaceConfigs, []);
+    expect(result).toEqual({ assigned: 0, skipped: [] });
+    expect(saveMappings).not.toHaveBeenCalled();
+  });
+
+  it("skips every listing of a marketplace whose save failed and keeps going", async () => {
+    const listings: UnassignedListings = {
+      suggested: [suggestion(1, "pr-1"), { ...suggestion(9, "pr-9"), marketplace: "cardmarket" }],
+      unmatched: [],
+    };
     vi.mocked(saveMappings)
       .mockRejectedValueOnce(new Error("boom"))
-      .mockResolvedValueOnce({ saved: 1, skipped: [], applied: [] });
-    const configs = { tcgplayer: {} } as unknown as MarketplaceConfigs;
+      .mockResolvedValueOnce({
+        saved: 1,
+        skipped: [],
+        applied: [{ printingId: "pr-9", externalId: 9, finish: "normal", language: null }],
+      });
+    const configs = { tcgplayer: {}, cardmarket: {} } as unknown as MarketplaceConfigs;
 
-    const result = await assignSuggestedListings(
-      { access: ADMIN, transact, configs, input: {} },
-      async () => LISTINGS,
+    const result = await assign(
+      configs,
+      ["tcgplayer::1::normal::", "cardmarket::9::normal::"],
+      listings,
     );
 
     expect(result).toEqual({
@@ -639,6 +698,7 @@ describe("suggested listings", () => {
       skipped: [{ label: "Product 1 → Poro Herder OGN-027 normal EN", reason: "boom" }],
     });
     expect(saveMappings).toHaveBeenCalledTimes(2);
+    expect(mappingEvents).toHaveBeenCalledTimes(1);
   });
 
   it("reports a listing the mapping save refused", async () => {
@@ -649,10 +709,7 @@ describe("suggested listings", () => {
     });
     const configs = { tcgplayer: {} } as unknown as MarketplaceConfigs;
 
-    const result = await assignSuggestedListings(
-      { access: ADMIN, transact, configs, input: { listingKeys: ["tcgplayer::4::normal::"] } },
-      async () => LISTINGS,
-    );
+    const result = await assign(configs, ["tcgplayer::4::normal::"]);
 
     expect(result).toEqual({
       assigned: 0,

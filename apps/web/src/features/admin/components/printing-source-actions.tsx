@@ -1,3 +1,7 @@
+import type {
+  CandidateCardResponse,
+  CandidatePrintingResponse,
+} from "@openrift/shared/types/api/admin";
 import { BanIcon, CopyCheckIcon, CopyIcon, MoveIcon, Trash2Icon, XIcon } from "lucide-react";
 
 import {
@@ -39,7 +43,7 @@ export function PrintingSourceActions({
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <MoveIcon className="size-3.5" />
-            Assign to…
+            Link to existing…
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             {targets.map((p) => (
@@ -74,7 +78,7 @@ export function PrintingSourceActions({
       {onUnassign && (
         <DropdownMenuItem onClick={onUnassign}>
           <XIcon className="size-3.5" />
-          Unassign
+          Unlink
         </DropdownMenuItem>
       )}
       {onIgnore && (
@@ -90,5 +94,46 @@ export function PrintingSourceActions({
         </DropdownMenuItem>
       )}
     </>
+  );
+}
+
+interface PrintingSourceColumnActionsProps {
+  row?: CandidateCardResponse | CandidatePrintingResponse;
+  targets: { id: string; label: string }[];
+  sourceLabels: Record<string, string>;
+  onAssign: (input: { candidatePrintingIds: string[]; printingId: string | null }) => void;
+  onCopy: (input: { id: string; printingId: string }) => void;
+  onIgnore: (input: { provider: string; externalId: string; finish: string | null }) => void;
+  onDelete: (id: string) => void;
+}
+
+export function PrintingSourceColumnActions({
+  row,
+  targets,
+  sourceLabels,
+  onAssign,
+  onCopy,
+  onIgnore,
+  onDelete,
+}: PrintingSourceColumnActionsProps) {
+  if (!row) {
+    return null;
+  }
+  const printingRow = row as CandidatePrintingResponse;
+  return (
+    <PrintingSourceActions
+      targets={targets.filter((target) => target.id !== printingRow.printingId)}
+      onAssign={(pid) => onAssign({ candidatePrintingIds: [row.id], printingId: pid })}
+      onCopy={(pid) => onCopy({ id: row.id, printingId: pid })}
+      onUnassign={() => onAssign({ candidatePrintingIds: [row.id], printingId: null })}
+      onIgnore={() =>
+        onIgnore({
+          provider: sourceLabels[printingRow.candidateCardId] ?? "",
+          externalId: row.externalId,
+          finish: printingRow.finish,
+        })
+      }
+      onDelete={() => onDelete(row.id)}
+    />
   );
 }

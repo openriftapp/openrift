@@ -1,7 +1,7 @@
 export type WorkspaceKeyAction =
   | "next"
   | "previous"
-  | "settle-and-next"
+  | "advance"
   | "accept-new"
   | "ignore"
   | "dismiss-all"
@@ -16,8 +16,8 @@ export interface WorkspaceKeyBinding {
 export const WORKSPACE_KEYS = [
   { key: "j", action: "next", label: "Next item" },
   { key: "k", action: "previous", label: "Previous item" },
-  { key: "Enter", action: "settle-and-next", label: "Discard remaining suggestions, then next" },
-  { key: "a", action: "accept-new", label: "Accept new record" },
+  { key: "Enter", action: "advance", label: "Next" },
+  { key: "a", action: "accept-new", label: "Create new record" },
   { key: "x", action: "ignore", label: "Ignore" },
   { key: "d", action: "dismiss-all", label: "Dismiss all suggestions" },
   { key: "z", action: "undo", label: "Undo" },

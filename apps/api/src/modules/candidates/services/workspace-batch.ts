@@ -18,8 +18,8 @@ import type { AdminAccess } from "../../../middleware/require-admin.js";
 import type { NewPrinting } from "../../catalog/services/printing-admin.js";
 import type { MarketplaceConfigs } from "../../marketplace/lib/marketplace-configs.js";
 import type { UnassignedListings } from "../../marketplace/lib/unassigned-listings.js";
-import { saveMappings } from "../../marketplace/services/marketplace-mapping.js";
-import { recordAdminEvent } from "../../system/services/record-admin-event.js";
+import { mappingEvents, saveMappings } from "../../marketplace/services/marketplace-mapping.js";
+import { recordAdminEvent, recordAdminEvents } from "../../system/services/record-admin-event.js";
 import { candidatePrintingLabel } from "../lib/candidate-printing-accept.js";
 import {
   goneReason,
@@ -32,12 +32,12 @@ import type {
   TrustedPrintingGroup,
 } from "../lib/workspace-batch.js";
 import { acceptCandidateGroup, finishPrintingAccepts } from "./accept-candidate-printings.js";
-import { acceptFavoriteNewCard } from "./accept-gallery.js";
+import { acceptFavoriteNewCard, favoriteAcceptEvents } from "./accept-gallery.js";
 import {
   loadPrintingRefs,
   markAcceptedCandidateCardsChecked,
   trustedCardEligibility,
-  trustedPrintingRefusal,
+  trustedPrintingRefusals,
 } from "./trusted-accept-checks.js";
 
 type BatchRepos = Pick<
@@ -70,12 +70,14 @@ function assertAdmin(access: AdminAccess | null): void {
   }
 }
 
-async function loadTrustedCards(
-  repos: BatchRepos,
-): Promise<{ eligible: TrustedCardDraft[]; ineligible: IneligibleTrustedCard[] }> {
-  const providers = [...(await repos.providerSettings.favoriteProviders())];
-  const drafts = await repos.workspaceBatch.trustedNewCardDrafts(providers);
-  return trustedCardEligibility(repos, drafts);
+async function loadTrustedCards(repos: BatchRepos): Promise<{
+  eligible: TrustedCardDraft[];
+  ineligible: IneligibleTrustedCard[];
+  favoriteProviders: ReadonlySet<string>;
+}> {
+  const favoriteProviders = await repos.providerSettings.favoriteProviders();
+  const drafts = await repos.workspaceBatch.trustedNewCardDrafts([...favoriteProviders]);
+  return { ...(await trustedCardEligibility(repos, drafts)), favoriteProviders };
 }
 
 export async function previewTrustedCards(
@@ -98,7 +100,7 @@ export async function acceptTrustedCards(
   const loaded = await loadTrustedCards(repos);
   const drafts = loaded.eligible.filter((draft) => wanted.has(draft.name));
   const ineligible = loaded.ineligible.filter((entry) => wanted.has(entry.name));
-  const favoriteProviders = await repos.providerSettings.favoriteProviders();
+  const { favoriteProviders } = loaded;
   let accepted = 0;
   const skipped: WorkspaceAcceptTrustedCardsResponse["skipped"] = [...ineligible];
   const created: NewPrinting[] = [];
@@ -113,18 +115,9 @@ export async function acceptTrustedCards(
         created,
       );
       accepted++;
-      await recordAdminEvent(repos, context.userId, {
-        action: "card.accept-favorites",
-        entityType: "card",
-        entityId: result.cardSlug,
-        entityLabel: draft.normName,
-        cardSlug: result.cardSlug,
-        newValues: {
-          cardSlug: result.cardSlug,
-          printingsCreated: result.printingsCreated,
-          skipped: result.skipped,
-        },
-      });
+      await recordAdminEvents(repos, context.userId, () =>
+        Promise.resolve(favoriteAcceptEvents(result, draft.normName)),
+      );
     } catch (error) {
       skipped.push({ name: draft.name, reason: errorMessage(error) });
     }
@@ -161,10 +154,11 @@ async function loadTrustedPrintings(repos: BatchRepos): Promise<{
     repos,
     groups.map((group) => group.first),
   );
+  const refusals = await trustedPrintingRefusals(repos, groups, known, probes);
   const eligible: TrustedPrintingGroup[] = [];
   const ineligible: IneligibleTrustedPrinting[] = [];
-  for (const group of groups) {
-    const reason = await trustedPrintingRefusal(repos, group, known, probes);
+  for (const [index, group] of groups.entries()) {
+    const reason = refusals[index] ?? null;
     if (reason === null) {
       eligible.push(group);
     } else {
@@ -313,9 +307,13 @@ export async function previewSuggestedListings(
   return { count: items.length, items };
 }
 
+/** Acts only on the listings named in the confirmed preview, one save per marketplace; a failed
+ *  save skips every listing of its marketplace. */
 export async function assignSuggestedListings(
   options: {
     access: AdminAccess | null;
+    userId: string;
+    repos: Pick<Repos, "adminEvents" | "marketplaceAdmin">;
     transact: Transact;
     configs: MarketplaceConfigs;
     input: WorkspaceAssignSuggestedListingsInput;
@@ -323,30 +321,43 @@ export async function assignSuggestedListings(
   loadListings: () => Promise<UnassignedListings>,
 ): Promise<WorkspaceAssignSuggestedListingsResponse> {
   assertAdmin(options.access);
-  const wanted = options.input.listingKeys ? new Set(options.input.listingKeys) : null;
-  const items = strongListings(await loadListings()).filter(
-    (item) => wanted === null || wanted.has(item.listingKey),
-  );
+  const wanted = new Set(options.input.listingKeys);
+  const items = strongListings(await loadListings()).filter((item) => wanted.has(item.listingKey));
   let assigned = 0;
   const skipped: WorkspaceAssignSuggestedListingsResponse["skipped"] = [];
-  for (const { label, listing } of items) {
+  for (const [marketplace, group] of Map.groupBy(items, (item) => item.listing.marketplace)) {
     try {
-      const { saved, skipped: refused } = await saveMappings(
+      const {
+        saved,
+        skipped: refused,
+        applied,
+      } = await saveMappings(
         options.transact,
-        options.configs[listing.marketplace],
-        [
-          {
-            printingId: listing.printingId,
-            externalId: listing.externalId,
-            finish: listing.finish,
-            language: listing.language,
-          },
-        ],
+        options.configs[marketplace],
+        group.map(({ listing }) => ({
+          printingId: listing.printingId,
+          externalId: listing.externalId,
+          finish: listing.finish,
+          language: listing.language,
+        })),
       );
       assigned += saved;
-      skipped.push(...refused.map(({ reason }) => ({ label, reason })));
+      const appliedKeys = new Set(
+        applied.map((mapping) =>
+          marketplaceSkuKey(marketplace, mapping.externalId, mapping.finish, mapping.language),
+        ),
+      );
+      const reasonOf = new Map(refused.map((entry) => [entry.externalId, entry.reason]));
+      for (const { label, listingKey, listing } of group) {
+        if (!appliedKeys.has(listingKey)) {
+          skipped.push({ label, reason: reasonOf.get(listing.externalId) ?? "not saved" });
+        }
+      }
+      await recordAdminEvents(options.repos, options.userId, () =>
+        mappingEvents(options.repos, marketplace, applied),
+      );
     } catch (error) {
-      skipped.push({ label, reason: errorMessage(error) });
+      skipped.push(...group.map(({ label }) => ({ label, reason: errorMessage(error) })));
     }
   }
   return { assigned, skipped };

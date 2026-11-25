@@ -69,6 +69,32 @@ const newPrintingsPerCard = sql<number>`(
     and ${notIgnoredPrinting("cp", "cc")}
 )`;
 
+/** A candidate card the card's detail lists: by name, by a linked printing or by a face's code. */
+function candidateCardOfCard(
+  eb: ExpressionBuilder<Database, "candidateCards">,
+  normNames: readonly string[],
+  cardId: string,
+) {
+  const linkedByPrintingId = eb
+    .selectFrom("candidatePrintings")
+    .innerJoin("printingSidesOrdered as s", "s.printingId", "candidatePrintings.printingId")
+    .select("candidatePrintings.candidateCardId")
+    .where("s.cardId", "=", cardId);
+  const printingShortCodes = eb
+    .selectFrom("faces")
+    .select("shortCode")
+    .where("cardId", "=", cardId);
+  const linkedByShortCode = eb
+    .selectFrom("candidatePrintings as ps_match")
+    .select("ps_match.candidateCardId")
+    .where("ps_match.shortCode", "in", printingShortCodes);
+  return eb.or([
+    ...(normNames.length > 0 ? [eb("candidateCards.normName", "in", [...normNames])] : []),
+    eb("candidateCards.id", "in", linkedByPrintingId),
+    eb("candidateCards.id", "in", linkedByShortCode),
+  ]);
+}
+
 export function candidateReviewRepo(db: Kysely<Database>) {
   return {
     candidateCardById(candidateCardId: string): Promise<
@@ -262,28 +288,6 @@ export function candidateReviewRepo(db: Kysely<Database>) {
         .executeTakeFirst();
     },
 
-    async checkCandidateCards(
-      candidateCardIds: readonly string[],
-    ): Promise<{ updated: number; candidateCardIds: string[] }> {
-      if (candidateCardIds.length === 0) {
-        return { updated: 0, candidateCardIds: [] };
-      }
-      const ids = [...candidateCardIds];
-      const rows = await db
-        .updateTable("candidateCards")
-        .set({ checkedAt: new Date() })
-        .where("id", "in", ids)
-        .where("checkedAt", "is", null)
-        .returning("id")
-        .execute();
-      const existing = await db
-        .selectFrom("candidateCards")
-        .select("id")
-        .where("id", "in", ids)
-        .execute();
-      return { updated: rows.length, candidateCardIds: existing.map((row) => row.id) };
-    },
-
     async listDismissedValues(): Promise<DismissedValueRow[]> {
       const result = await sql<DismissedValueRow>`
         select 'printing' as kind, cp.id as "candidateId", cc.provider, cc.name as "cardName",
@@ -352,40 +356,28 @@ export function candidateReviewRepo(db: Kysely<Database>) {
     },
 
     /**
-     * Marks all candidate cards with matching normalized names OR linked to the given card as checked.
-     * The returned ids are every matching candidate, not only the rows this call flipped.
+     * Checks the candidate cards that belong to the card, or only `onlyIds` among them. The returned
+     * ids are every belonging candidate in that set, not only the rows this call flipped.
      */
     async checkAllCandidateCards(
       normNames: string[],
       cardId: string,
+      onlyIds?: readonly string[],
     ): Promise<{ updated: number; candidateCardIds: string[] }> {
-      const now = new Date();
-      const linkedByPrintingId = db
-        .selectFrom("candidatePrintings")
-        .innerJoin("printingSidesOrdered as s", "s.printingId", "candidatePrintings.printingId")
-        .select("candidatePrintings.candidateCardId")
-        .where("s.cardId", "=", cardId);
-
-      // Short-code linking matches the display query's logic.
-      const printingShortCodes = db
-        .selectFrom("faces")
-        .select("shortCode")
-        .where("cardId", "=", cardId);
-      const linkedByShortCode = db
-        .selectFrom("candidatePrintings as ps_match")
-        .select("ps_match.candidateCardId")
-        .where("ps_match.shortCode", "in", printingShortCodes);
-
       const matches = (eb: ExpressionBuilder<Database, "candidateCards">) =>
-        eb.or([
-          ...(normNames.length > 0 ? [eb("candidateCards.normName", "in", normNames)] : []),
-          eb("candidateCards.id", "in", linkedByPrintingId),
-          eb("candidateCards.id", "in", linkedByShortCode),
-        ]);
+        onlyIds === undefined
+          ? candidateCardOfCard(eb, normNames, cardId)
+          : eb.and([
+              eb("candidateCards.id", "in", [...onlyIds]),
+              candidateCardOfCard(eb, normNames, cardId),
+            ]);
+      if (onlyIds?.length === 0) {
+        return { updated: 0, candidateCardIds: [] };
+      }
 
       const rows = await db
         .updateTable("candidateCards")
-        .set({ checkedAt: now })
+        .set({ checkedAt: new Date() })
         .where(matches)
         .where("checkedAt", "is", null)
         .returning("id")
@@ -398,6 +390,39 @@ export function candidateReviewRepo(db: Kysely<Database>) {
         .execute();
 
       return { updated: rows.length, candidateCardIds: allMatching.map((row) => row.id) };
+    },
+
+    async checkCandidatePrintingsOfCard(
+      normNames: string[],
+      cardId: string,
+      ids: readonly string[],
+    ): Promise<{ updated: number; matchedIds: string[]; candidateCardIds: string[] }> {
+      if (ids.length === 0) {
+        return { updated: 0, matchedIds: [], candidateCardIds: [] };
+      }
+      const ofCard = db
+        .selectFrom("candidateCards")
+        .select("candidateCards.id")
+        .where((eb) => candidateCardOfCard(eb, normNames, cardId));
+      const rows = await db
+        .updateTable("candidatePrintings")
+        .set({ checkedAt: new Date() })
+        .where("id", "in", [...ids])
+        .where("candidateCardId", "in", ofCard)
+        .where("checkedAt", "is", null)
+        .returning("id")
+        .execute();
+      const matched = await db
+        .selectFrom("candidatePrintings")
+        .select(["id", "candidateCardId"])
+        .where("id", "in", [...ids])
+        .where("candidateCardId", "in", ofCard)
+        .execute();
+      return {
+        updated: rows.length,
+        matchedIds: matched.map((row) => row.id),
+        candidateCardIds: [...new Set(matched.map((row) => row.candidateCardId))],
+      };
     },
 
     checkCandidatePrinting(id: string): Promise<{ candidateCardId: string } | undefined> {
@@ -430,9 +455,9 @@ export function candidateReviewRepo(db: Kysely<Database>) {
     async checkAllCandidatePrintings(
       printingId?: string,
       extraIds?: string[],
-    ): Promise<{ updated: number; candidateCardIds: string[] }> {
+    ): Promise<{ updated: number; ids: string[]; candidateCardIds: string[] }> {
       if (!printingId && !extraIds?.length) {
-        return { updated: 0, candidateCardIds: [] };
+        return { updated: 0, ids: [], candidateCardIds: [] };
       }
       const rows = await db
         .updateTable("candidatePrintings")
@@ -444,10 +469,11 @@ export function candidateReviewRepo(db: Kysely<Database>) {
           ]),
         )
         .where("checkedAt", "is", null)
-        .returning("candidateCardId")
+        .returning(["id", "candidateCardId"])
         .execute();
       return {
         updated: rows.length,
+        ids: rows.map((row) => row.id),
         candidateCardIds: [...new Set(rows.map((row) => row.candidateCardId))],
       };
     },

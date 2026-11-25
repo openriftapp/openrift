@@ -39,9 +39,15 @@ const printingLinkKey = z.object({
   finish: z.string(),
 });
 
-const cardInput = z.object({
+const cardSource = z.object({
   provider: z.string().min(1),
   externalId: z.string().min(1),
+});
+
+const MAX_IGNORE_SOURCES = 1000;
+
+const cardSourcesInput = z.object({
+  sources: z.array(cardSource).min(1).max(MAX_IGNORE_SOURCES),
 });
 
 const ignorePrintingInput = z.object({
@@ -69,12 +75,12 @@ export const adminIgnoredCandidatesContract = {
       printingLinks: z.array(printingLinkSchema),
     }),
   ),
-  ignoreCard: authedRoute
+  ignoreCards: authedRoute
     .route({ method: "POST", path: `${IC}/cards`, tags: [TAG], successStatus: 204 })
-    .input(cardInput),
-  unignoreCard: authedRoute
+    .input(cardSourcesInput),
+  unignoreCards: authedRoute
     .route({ method: "DELETE", path: `${IC}/cards`, tags: [TAG], successStatus: 204 })
-    .input(cardInput),
+    .input(cardSourcesInput),
   ignorePrinting: authedRoute
     .route({ method: "POST", path: `${IC}/printings`, tags: [TAG], successStatus: 204 })
     .input(ignorePrintingInput),

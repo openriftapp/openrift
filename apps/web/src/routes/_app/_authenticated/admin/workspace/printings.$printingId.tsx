@@ -7,7 +7,6 @@ import { adminSeoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_app/_authenticated/admin/workspace/printings/$printingId")({
   loader: async ({ context, params, preload }) => {
-    // The record shows its own loading and error states, so its printing is not awaited.
     if (!preload) {
       void Promise.allSettled([
         context.queryClient.query({

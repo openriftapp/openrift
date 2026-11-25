@@ -36,14 +36,6 @@ let imageFileId = "";
 let newCandidatePrintingId = "";
 const candidateCardIds: string[] = [];
 
-interface QueueItem {
-  id: string;
-  owner: string;
-  segment: string;
-  reason: string;
-  cardSlug: string | null;
-}
-
 if (adminCtx) {
   const { db } = adminCtx;
 
@@ -284,56 +276,61 @@ describe.skipIf(!adminCtx)("Admin catalog workspace routes (integration)", () =>
   const { app: deskApp } = deskCtx!;
   const { app: plainApp } = plainCtx!;
 
-  async function queueIds(app: typeof adminApp, query = ""): Promise<string[]> {
-    const res = await app.fetch(adminReq("GET", `/catalog/workspace/queue${query}`));
+  async function faceWork(app: typeof adminApp): Promise<Record<string, unknown>> {
+    const res = await app.fetch(
+      adminReq("GET", "/catalog/workspace/records?kind=face&filter=needs-review&q=WSQ"),
+    );
     expect(res.status).toBe(200);
     const json = await readJson(res);
-    return (json.items as QueueItem[])
-      .filter((item) => item.cardSlug === "wsq-poro-keeper" || item.id.includes("wsqbrandnew"))
-      .map((item) => item.id)
-      .toSorted();
+    return Object.fromEntries(
+      (json.rows as { id: string; pendingImages?: number; pendingFields?: number }[]).map((row) => [
+        row.id,
+        { pendingImages: row.pendingImages, pendingFields: row.pendingFields },
+      ]),
+    );
   }
 
-  describe("GET /catalog/workspace/queue", () => {
+  describe("GET /catalog/workspace/candidate-printings/:id/card", () => {
+    const lookup = (app: typeof adminApp, id: string) =>
+      app.fetch(
+        adminReq("GET", `/catalog/workspace/candidate-printings/${encodeURIComponent(id)}/card`),
+      );
+
     it("returns 403 without a grant", async () => {
-      const res = await plainApp.fetch(adminReq("GET", "/catalog/workspace/queue"));
+      const res = await lookup(plainApp, newCandidatePrintingId);
       expect(res.status).toBe(403);
     });
 
-    it("sorts every open input into its owner's queue for an admin", async () => {
-      expect(await queueIds(adminApp)).toEqual(
-        [
-          "card:new-card:wsqbrandnewcard",
-          "card:source-difference:wsq-poro-keeper:wsq-allowed",
-          `face:new-image:${promoFaceId}:${imageId}`,
-          `face:source-difference:${baseFaceId}:wsq-allowed`,
-          `face:source-difference:${baseFaceId}:wsq-denied`,
-          `printing:new-printing:${newCandidatePrintingId}`,
-          `printing:source-difference:${promoPrintingId}:wsq-allowed`,
-        ].toSorted(),
-      );
+    it("returns the card of an open new printing", async () => {
+      const res = await lookup(adminApp, newCandidatePrintingId);
+      expect(res.status).toBe(200);
+      expect(await readJson(res)).toEqual({ cardSlug: "wsq-poro-keeper" });
     });
 
-    it("narrows items to the requested owner", async () => {
-      const res = await adminApp.fetch(adminReq("GET", "/catalog/workspace/queue?owner=face"));
-      const json = await readJson(res);
-      expect((json.items as QueueItem[]).every((item) => item.owner === "face")).toBe(true);
+    it("returns null to a desk holder, for an unknown id and for a listing id", async () => {
+      for (const [app, id] of [
+        [deskApp, newCandidatePrintingId],
+        [adminApp, "0197a1b2-0000-7000-a000-000000000099"],
+        [adminApp, "listing:tcgplayer:7:normal"],
+      ] as const) {
+        const res = await lookup(app, id);
+        expect(res.status).toBe(200);
+        expect(await readJson(res)).toEqual({ cardSlug: null });
+      }
+    });
+  });
+
+  describe("GET /catalog/workspace/records?kind=face (open work)", () => {
+    it("counts every face source for an admin", async () => {
+      const work = await faceWork(adminApp);
+      expect(work[promoFaceId]).toMatchObject({ pendingImages: 1 });
+      expect(work[baseFaceId]).toMatchObject({ pendingImages: 0 });
+      expect((work[baseFaceId] as { pendingFields: number }).pendingFields).toBeGreaterThan(0);
     });
 
-    it("hides sources helpers cannot review from a card-review holder", async () => {
-      const ids = await queueIds(reviewApp);
-      expect(ids).toContain(`face:source-difference:${baseFaceId}:wsq-allowed`);
-      expect(ids).not.toContain(`face:source-difference:${baseFaceId}:wsq-denied`);
-      expect(ids).toContain("card:new-card:wsqbrandnewcard");
-    });
-
-    it("limits a desk holder to promo printings and uploads on their faces", async () => {
-      expect(await queueIds(deskApp)).toEqual(
-        [
-          `face:new-image:${promoFaceId}:${imageId}`,
-          `printing:source-difference:${promoPrintingId}:wsq-allowed`,
-        ].toSorted(),
-      );
+    it("limits a desk holder to uploads on promo faces", async () => {
+      const work = await faceWork(deskApp);
+      expect(Object.keys(work)).toEqual([promoFaceId]);
     });
   });
 
@@ -406,6 +403,28 @@ describe.skipIf(!adminCtx)("Admin catalog workspace routes (integration)", () =>
       expect(card?.pending.newImages).toBe(0);
 
       await restoreUpload();
+    });
+
+    it("puts a kept upload back up for review on unkeep", async () => {
+      await reviewApp.fetch(adminReq("POST", `/cards/printing-images/${imageId}/keep`));
+      const res = await reviewApp.fetch(
+        adminReq("POST", `/cards/printing-images/${imageId}/unkeep`),
+      );
+      expect(res.status).toBe(204);
+
+      const card = await reviewCard(reviewApp, "wsq-poro-keeper");
+      expect(card?.pending.newImages).toBe(1);
+
+      await adminCtx!.db
+        .deleteFrom("adminEvents")
+        .where("action", "in", ["image.keep", "image.unkeep"])
+        .where("entityId", "=", imageId)
+        .execute();
+    });
+
+    it("returns 403 to a desk holder on unkeep", async () => {
+      const res = await deskApp.fetch(adminReq("POST", `/cards/printing-images/${imageId}/unkeep`));
+      expect(res.status).toBe(403);
     });
   });
 
@@ -494,6 +513,10 @@ describe.skipIf(!adminCtx)("Admin catalog workspace routes (integration)", () =>
         adminReq("GET", `/catalog/workspace/history?printingId=${basePrintingId}`),
       );
       expect(base.status).toBe(403);
+      const baseFace = await deskApp.fetch(
+        adminReq("GET", `/catalog/workspace/history?faceId=${baseFaceId}`),
+      );
+      expect(baseFace.status).toBe(403);
     });
 
     it("returns 404 for an unknown printing", async () => {

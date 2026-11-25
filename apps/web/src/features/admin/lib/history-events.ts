@@ -31,16 +31,24 @@ const ACTION_SENTENCES: Record<string, string> = {
   "ban.add": "Added a ban",
   "ban.delete": "Removed a ban",
   "ban.update": "Edited a ban",
+  "candidate-card.check": "Marked sources as reviewed",
   "candidate-card.discard-same-difference":
     "Discarded a source suggestion on every card it was made on",
+  "candidate-card.dismiss-value": "Dismissed a source value",
   "candidate-card.ignore": "Ignored a source for this card",
+  "candidate-card.restore-value": "Restored a dismissed source value",
+  "candidate-card.uncheck": "Marked sources as not reviewed",
   "candidate-card.unignore": "Stopped ignoring a source for this card",
+  "candidate-printing.check": "Marked incoming rows as reviewed",
   "candidate-printing.copy": "Copied an incoming row onto a printing",
   "candidate-printing.delete": "Deleted an incoming row",
+  "candidate-printing.dismiss-value": "Dismissed an incoming row's value",
   "candidate-printing.ignore": "Ignored an incoming row",
   "candidate-printing.link": "Linked an incoming row to a printing",
   "candidate-printing.patch": "Edited an incoming row",
   "candidate-printing.relink": "Relinked incoming rows",
+  "candidate-printing.restore-value": "Restored an incoming row's dismissed value",
+  "candidate-printing.uncheck": "Marked incoming rows as not reviewed",
   "candidate-printing.unignore": "Stopped ignoring an incoming row",
   "candidate-printing.unpin": "Removed a pinned link to a printing",
   "candidates.upload": "Uploaded fresh data from a source",
@@ -65,6 +73,7 @@ const ACTION_SENTENCES: Record<string, string> = {
   "image.activate": "Made an image the one shown",
   "image.add-url": "Added an image by link",
   "image.keep": "Kept an image as an extra",
+  "image.unkeep": "Put an image back up for review",
   "image.credit": "Changed an image credit",
   "image.delete": "Deleted an image",
   "image.face": "Changed which face an image shows",
@@ -104,9 +113,6 @@ const ACTION_SENTENCES: Record<string, string> = {
 const FIELD_LABELS: Record<string, string> = {
   ...CARD_FIELD_LABELS,
   ...PRINTING_FIELD_LABELS,
-  comment: "Comment",
-  maxCopiesOverride: "Max copies override",
-  additionalLegendCount: "Additional legends",
 };
 
 function changedFields(event: AdminAuditEventResponse): string[] {

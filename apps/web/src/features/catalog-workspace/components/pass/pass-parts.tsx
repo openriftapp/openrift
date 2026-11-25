@@ -1,7 +1,8 @@
+import type { WorkspaceOwner } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { pluralize } from "@openrift/shared/strings";
-import { useLocation } from "@tanstack/react-router";
+import { useCanGoBack, useLocation, useRouter } from "@tanstack/react-router";
 import { EllipsisVerticalIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 
 import { PageTopBarBack } from "@/components/layout/page-top-bar";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AdminPageTopBar } from "@/features/admin/components/admin-page-top-bar";
+import type { useReviewNavigation } from "@/features/catalog-workspace/hooks/use-card-pass";
+import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
+import { useWorkspaceRole } from "@/features/catalog-workspace/hooks/use-workspace-records";
+import { OWNER_LABELS } from "@/features/catalog-workspace/lib/owner-items";
+import { stopNavigation } from "@/features/catalog-workspace/lib/review-stops";
 import { valueParts } from "@/features/catalog-workspace/lib/value-diff";
 
 export function SourceUse({
@@ -20,7 +27,7 @@ export function SourceUse({
   preview,
   source,
   label = "Use",
-  pending,
+  pending = false,
   onUse,
   onDismiss,
 }: {
@@ -29,7 +36,7 @@ export function SourceUse({
   preview?: ReactNode;
   source: string;
   label?: string;
-  pending: boolean;
+  pending?: boolean;
   onUse: () => void;
   onDismiss?: () => void;
 }) {
@@ -67,7 +74,7 @@ export function SourceUse({
             title={`Hide this value from ${source} until it reports another one`}
             onClick={onDismiss}
           >
-            Dismiss
+            Hide value
           </Button>
         )}
       </span>
@@ -172,6 +179,59 @@ export function ContributionBlock({
   );
 }
 
+export function WorkspaceBack({ owner, history }: { owner: WorkspaceOwner; history: boolean }) {
+  const trail = useLocation({ select: (location) => location.state.workspaceReview });
+  const fromPrintingId = useLocation({
+    select: (location) => location.state.workspaceFromPrintingId,
+  });
+  if (trail !== undefined) {
+    return (
+      <PageTopBarBack {...stopNavigation({ kind: "card" }, trail)} aria-label="Back to the card" />
+    );
+  }
+  if (fromPrintingId !== undefined) {
+    return (
+      <PageTopBarBack
+        to="/admin/workspace/printings/$printingId"
+        params={{ printingId: fromPrintingId }}
+        aria-label="Back to the printing"
+      />
+    );
+  }
+  return history ? (
+    <BackToTable owner={owner} />
+  ) : (
+    <PageTopBarBack to="/admin/workspace/cards" search aria-label="Back to cards" />
+  );
+}
+
+function BackToTable({ owner: recordOwner }: { owner: WorkspaceOwner }) {
+  const router = useRouter();
+  const canGoBack = useCanGoBack();
+  const role = useWorkspaceRole();
+  const owner = recordOwner === "face" && role === "desk" ? "printing" : recordOwner;
+  const label = canGoBack ? "Back" : `Back to ${OWNER_LABELS[owner].toLowerCase()}`;
+  const onClick = (event: MouseEvent) => {
+    if (canGoBack) {
+      event.preventDefault();
+      router.history.back();
+    }
+  };
+  if (owner === "card") {
+    return (
+      <PageTopBarBack to="/admin/workspace/cards" search aria-label={label} onClick={onClick} />
+    );
+  }
+  if (owner === "face") {
+    return (
+      <PageTopBarBack to="/admin/workspace/faces" search aria-label={label} onClick={onClick} />
+    );
+  }
+  return (
+    <PageTopBarBack to="/admin/workspace/printings" search aria-label={label} onClick={onClick} />
+  );
+}
+
 export function PassTopBar({
   position,
   inReview = true,
@@ -187,25 +247,47 @@ export function PassTopBar({
         ? "Review"
         : "Cards"
       : `Review · ${position.index + 1} of ${position.total}`;
-  const fromPrintingId = useLocation({
-    select: (location) => location.state.workspaceFromPrintingId,
-  });
   return (
     <AdminPageTopBar
-      back={
-        fromPrintingId === undefined ? (
-          <PageTopBarBack to="/admin/workspace/cards" search aria-label="Back to cards" />
-        ) : (
-          <PageTopBarBack
-            to="/admin/workspace/printings/$printingId"
-            params={{ printingId: fromPrintingId }}
-            aria-label="Back to the printing"
-          />
-        )
-      }
+      back={<WorkspaceBack owner="card" history={false} />}
       title={title}
       actions={actions}
     />
+  );
+}
+
+type PassNavigation = Pick<ReturnType<typeof useReviewNavigation>, "position" | "inReview">;
+
+export function PassPlaceholder({
+  navigation,
+  loading,
+}: {
+  navigation: PassNavigation;
+  loading: boolean;
+}) {
+  useRegisterRecordActions({ loading });
+  return (
+    <>
+      <PassTopBar position={navigation.position} inReview={navigation.inReview} />
+      <Skeleton className="h-16" />
+      <Skeleton className="h-64" />
+    </>
+  );
+}
+
+export function PassNotice({
+  navigation,
+  children,
+}: {
+  navigation: PassNavigation;
+  children: ReactNode;
+}) {
+  useRegisterRecordActions({});
+  return (
+    <>
+      <PassTopBar position={navigation.position} inReview={navigation.inReview} />
+      {children}
+    </>
   );
 }
 

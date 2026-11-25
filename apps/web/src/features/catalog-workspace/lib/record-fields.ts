@@ -15,11 +15,9 @@ export interface RecordFieldDef {
   comparable: boolean;
 }
 
-const EXTRA_CARD_FIELDS: readonly RecordFieldDef[] = [
-  { field: "maxCopiesOverride", label: "Max copies override", comparable: false },
-  { field: "additionalLegendCount", label: "Additional legends", comparable: false },
-  { field: "comment", label: "Comment", comparable: false },
-];
+const EXTRA_CARD_FIELDS: readonly RecordFieldDef[] = (
+  ["maxCopiesOverride", "additionalLegendCount", "comment"] as const
+).map((field) => ({ field, label: CARD_FIELD_LABELS[field], comparable: false }));
 
 export const CARD_RECORD_FIELDS: readonly RecordFieldDef[] = [
   ...COMPARABLE_CARD_FIELDS.map((field) => ({

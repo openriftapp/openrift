@@ -10,7 +10,7 @@ import {
   resetWorkspaceWriteQueue,
   workspaceWriteQueue,
 } from "@/features/catalog-workspace/lib/workspace-write-queue";
-import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
+import { useWorkspaceUndoStore } from "@/features/catalog-workspace/stores/workspace-undo-store";
 import { StaleServerFnError } from "@/lib/stale-server-fn-signal";
 import { createStoreResetter } from "@/test/store-helpers";
 
@@ -50,11 +50,11 @@ function entry(
 }
 
 function stack() {
-  return useWorkspaceSelectionStore.getState().undoStack;
+  return useWorkspaceUndoStore.getState().undoStack;
 }
 
 beforeEach(() => {
-  resetStore = createStoreResetter(useWorkspaceSelectionStore);
+  resetStore = createStoreResetter(useWorkspaceUndoStore);
   queryClient = new QueryClient();
   vi.spyOn(queryClient, "invalidateQueries");
   reported.mockClear();
@@ -70,7 +70,7 @@ afterEach(() => {
 describe("runWorkspaceUndo", () => {
   it("removes the entry once its undo lands, says what was undone and refreshes", async () => {
     const done = entry("Discarded 1 image on Teemo, Scout");
-    useWorkspaceSelectionStore.getState().pushUndo(done);
+    useWorkspaceUndoStore.getState().pushUndo(done);
 
     await runWorkspaceUndo(done, queryClient);
 
@@ -80,26 +80,26 @@ describe("runWorkspaceUndo", () => {
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
       queryKey: ["admin", "workspace"],
     });
-    expect(useWorkspaceSelectionStore.getState().undoing).toBe(false);
+    expect(useWorkspaceUndoStore.getState().undoing).toBe(false);
   });
 
   it("keeps the entry and reports the error when the undo fails", async () => {
     const failure = Object.assign(new Error("Network down"), { status: 503 });
     const failing = entry("Used Rarity from Provider A on Vi", () => Promise.reject(failure));
-    useWorkspaceSelectionStore.getState().pushUndo(failing);
+    useWorkspaceUndoStore.getState().pushUndo(failing);
 
     await runWorkspaceUndo(failing, queryClient);
 
     expect(stack()).toEqual([failing]);
     expect(reported).toHaveBeenCalledWith(failure, queryClient);
     expect(toast.success).not.toHaveBeenCalled();
-    expect(useWorkspaceSelectionStore.getState().undoing).toBe(false);
+    expect(useWorkspaceUndoStore.getState().undoing).toBe(false);
   });
 
   it("drops the entry with a notice when its record no longer exists", async () => {
     const gone = Object.assign(new Error("Candidate printing not found"), { status: 404 });
     const orphan = entry("Discarded 2 suggestions on Vi", () => Promise.reject(gone));
-    useWorkspaceSelectionStore.getState().pushUndo(orphan);
+    useWorkspaceUndoStore.getState().pushUndo(orphan);
 
     await runWorkspaceUndo(orphan, queryClient);
 
@@ -116,7 +116,7 @@ describe("runWorkspaceUndo", () => {
       code: "FIELD_CHANGED",
     });
     const stale = entry("Used Artist from scans on Vi", () => Promise.reject(changed));
-    useWorkspaceSelectionStore.getState().pushUndo(stale);
+    useWorkspaceUndoStore.getState().pushUndo(stale);
 
     await runWorkspaceUndo(stale, queryClient);
 
@@ -131,7 +131,7 @@ describe("runWorkspaceUndo", () => {
   it("keeps the entry when the 404 comes from a stale client bundle", async () => {
     const stale = new StaleServerFnError("/_serverFn/abc");
     const kept = entry("Ignored Ekko", () => Promise.reject(stale));
-    useWorkspaceSelectionStore.getState().pushUndo(kept);
+    useWorkspaceUndoStore.getState().pushUndo(kept);
 
     await runWorkspaceUndo(kept, queryClient);
 
@@ -150,8 +150,8 @@ describe("runWorkspaceUndo", () => {
         }),
     );
     const other = entry("Other");
-    useWorkspaceSelectionStore.getState().pushUndo(other);
-    useWorkspaceSelectionStore.getState().pushUndo(slow);
+    useWorkspaceUndoStore.getState().pushUndo(other);
+    useWorkspaceUndoStore.getState().pushUndo(slow);
 
     const first = runWorkspaceUndo(slow, queryClient);
     const second = runWorkspaceUndo(other, queryClient);
@@ -165,7 +165,7 @@ describe("runWorkspaceUndo", () => {
     expect(slow.undo).toHaveBeenCalledOnce();
     expect(other.undo).toHaveBeenCalledOnce();
     expect(stack()).toEqual([]);
-    expect(useWorkspaceSelectionStore.getState().undoing).toBe(false);
+    expect(useWorkspaceUndoStore.getState().undoing).toBe(false);
   });
 
   it("drops the queued undos when the running one fails", async () => {
@@ -178,8 +178,8 @@ describe("runWorkspaceUndo", () => {
         }),
     );
     const older = entry("Older");
-    useWorkspaceSelectionStore.getState().pushUndo(older);
-    useWorkspaceSelectionStore.getState().pushUndo(failing);
+    useWorkspaceUndoStore.getState().pushUndo(older);
+    useWorkspaceUndoStore.getState().pushUndo(failing);
 
     const first = runWorkspaceUndo(failing, queryClient);
     const second = runWorkspaceUndo(older, queryClient);
@@ -189,7 +189,7 @@ describe("runWorkspaceUndo", () => {
 
     expect(older.undo).not.toHaveBeenCalled();
     expect(stack()).toEqual([older, failing]);
-    expect(useWorkspaceSelectionStore.getState().undoQueue).toEqual([]);
+    expect(useWorkspaceUndoStore.getState().undoQueue).toEqual([]);
   });
 });
 
@@ -225,7 +225,7 @@ describe("useWorkspaceUndo", () => {
       () =>
         new Promise<void>((resolve) => {
           write.land = () => {
-            useWorkspaceSelectionStore.getState().pushUndo(landed);
+            useWorkspaceUndoStore.getState().pushUndo(landed);
             resolve();
           };
         }),
@@ -327,7 +327,7 @@ describe("useWorkspaceUndo", () => {
     });
     vi.mocked(queryClient.invalidateQueries).mockResolvedValue();
     const older = entry("Older");
-    useWorkspaceSelectionStore.getState().pushUndo(older);
+    useWorkspaceUndoStore.getState().pushUndo(older);
     void queue.enqueue(
       Symbol("record"),
       (signal) =>
@@ -367,13 +367,13 @@ describe("useWorkspaceUndo", () => {
           })
         : Promise.reject(changed);
     });
-    useWorkspaceSelectionStore.getState().pushUndo(retried);
+    useWorkspaceUndoStore.getState().pushUndo(retried);
 
     const first = runWorkspaceUndo(retried, queryClient, queue);
     await vi.waitFor(() => expect(controllers).toHaveLength(1));
     controllers[0]?.abort();
     await first;
-    await vi.waitFor(() => expect(useWorkspaceSelectionStore.getState().undoing).toBe(false));
+    await vi.waitFor(() => expect(useWorkspaceUndoStore.getState().undoing).toBe(false));
     expect(stack()).toEqual([retried]);
 
     await runWorkspaceUndo(retried, queryClient, queue);

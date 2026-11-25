@@ -46,9 +46,6 @@ export async function listWorkspaceHistory(
     deskOnly &&
     !(await repos.workspaceRecords.anyInDeskScope(target.printingIds, options.userId))
   ) {
-    if (options.input.faceId !== undefined) {
-      return { events: [] };
-    }
     throw forbidden("Forbidden");
   }
   const rows = await repos.workspaceRecords.eventsOnPrintings(

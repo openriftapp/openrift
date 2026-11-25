@@ -13,9 +13,11 @@ describe("CANDIDATE_REVIEW_SCOPE", () => {
 });
 
 describe("adminKeys", () => {
-  it("workspace prefixes the queue and the records lists", () => {
+  it("workspace prefixes the candidate printing lookup and the records lists", () => {
     const prefix = adminKeys.workspace;
-    expect(adminKeys.workspaceQueue.slice(0, prefix.length)).toEqual(prefix);
+    expect(adminKeys.workspaceCandidatePrintingCard("cp-1").slice(0, prefix.length)).toEqual(
+      prefix,
+    );
     expect(adminKeys.workspaceRecords({ kind: "printing" }).slice(0, prefix.length)).toEqual(
       prefix,
     );

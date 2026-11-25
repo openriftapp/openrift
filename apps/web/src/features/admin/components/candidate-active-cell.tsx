@@ -20,12 +20,12 @@ import {
   dropdownOptions,
   hasDropdown,
   candidateValueText,
+  parseFieldInput,
   isMultiSelect,
   resolveLabel,
 } from "@/features/admin/components/candidate-field-defs";
 import { CardTextExpandDialog } from "@/features/admin/components/card-text-expand-dialog";
 import { CardText } from "@/features/cards/components/card-text";
-import { parseIntegerInput } from "@/lib/integer-input";
 import { cn } from "@/lib/utils";
 
 export function CandidateActiveCell<TKey extends string>({
@@ -92,25 +92,10 @@ export function CandidateActiveCell<TKey extends string>({
     if (!onActiveChange) {
       return;
     }
-    const trimmed = raw.trim();
-    if (field.array) {
-      const items = trimmed
-        ? trimmed
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean)
-        : [];
-      changeActive(items.length > 0 ? items : null);
-      return;
+    const parsed = parseFieldInput(field, raw);
+    if (parsed.ok) {
+      changeActive(parsed.value);
     }
-    if (field.type === "number") {
-      const parsed = parseIntegerInput(trimmed);
-      if (parsed !== undefined) {
-        changeActive(parsed);
-      }
-      return;
-    }
-    changeActive(trimmed || null);
   }
 
   return (

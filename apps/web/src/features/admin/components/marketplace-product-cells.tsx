@@ -1,50 +1,42 @@
 import { enumLabel } from "@openrift/shared/enum-label";
 import { formatDayTime } from "@openrift/shared/format-date";
-import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions";
 import { formatPrintingLabel } from "@openrift/shared/printing-label";
-import type {
-  AssignableCardResponse,
-  UnifiedMappingPrintingResponse,
-} from "@openrift/shared/types/api/admin";
-import { marketplaceCarriesLanguage } from "@openrift/shared/types/pricing";
+import type { AssignableCardResponse } from "@openrift/shared/types/api/admin";
 import { AlertTriangleIcon, CheckIcon, WandSparklesIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChipRemoveButton } from "@/components/ui/chip-remove-button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Pressable } from "@/components/ui/pressable";
 import { textLinkVariants } from "@/components/ui/text-link";
 import type { AdminCellSlotProps } from "@/features/admin/components/admin-table";
+import type { MarketplaceHandlers } from "@/features/admin/lib/marketplace-product-entries";
+import { displayedProductLanguage } from "@/features/admin/lib/marketplace-product-entries";
 import {
   isStaleRecord,
   listingPriceCents,
   SOURCE_CONFIGS,
 } from "@/features/admin/lib/marketplace-sources";
 import { nameBeyondCardName } from "@/features/admin/lib/name-suffix";
-import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
-import { useAssignableCardSearch } from "@/features/cards/hooks/use-card-search";
+import { ReassignCardDialog } from "@/features/catalog-workspace/components/reassign-card-dialog";
+import type { CardListingRow } from "@/features/catalog-workspace/lib/card-listing-rows";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { formatCentsInLocale } from "@/lib/format";
 
 import { PrintingLabel } from "./marketplace-printing-label";
-import type { MarketplaceHandlers, MarketplaceTableRow } from "./marketplace-product-entries";
-import { displayedProductLanguage } from "./marketplace-product-entries";
 import { AssignToPrintingButton, RowActions } from "./marketplace-row-actions";
 import { ProductSuggestionChip } from "./marketplace-suggestion-chip";
 import { ProductLink } from "./price-mappings-utils";
 import { usePrintingPairNames } from "./printing-pair-names";
 
-type CellProps = AdminCellSlotProps<MarketplaceTableRow>;
-
-export type RowSuggestion = ProductSuggestion & { printing: UnifiedMappingPrintingResponse };
+type CellProps = AdminCellSlotProps<CardListingRow>;
 
 export function ProductCell({ row, cardName }: CellProps & { cardName: string }) {
   if (!row || !row.showProduct) {
     return null;
   }
-  const { marketplace, product, isAssigned } = row.entry;
+  const { marketplace, product, isAssigned } = row;
   const beyondCardName = nameBeyondCardName(product.productName, cardName);
 
   return (
@@ -82,7 +74,7 @@ export function VariantCell({ row }: CellProps) {
   if (!row) {
     return null;
   }
-  const { marketplace, product } = row.entry;
+  const { marketplace, product } = row;
   const parts = [
     displayedProductLanguage(marketplace, product.language),
     enumLabel(labels.finishes, product.finish),
@@ -118,27 +110,25 @@ export function PriceCell({ row }: CellProps) {
   if (!row) {
     return null;
   }
-  return <ListingPrice marketplace={row.entry.marketplace} product={row.entry.product} />;
+  return <ListingPrice marketplace={row.marketplace} product={row.product} />;
 }
 
 export function AssignedPrintingsCell({
   row,
   handlers,
-  suggestionsByKey,
   onOpenPrinting,
 }: CellProps & {
   handlers: MarketplaceHandlers;
-  suggestionsByKey: ReadonlyMap<string, RowSuggestion[]>;
   onOpenPrinting?: (printingId: string) => void;
 }) {
   const pairNames = usePrintingPairNames();
   if (!row) {
     return null;
   }
-  const { product, assignedPrintings, isAssigned } = row.entry;
+  const { product, assignedPrintings, isAssigned } = row;
   const highlightLanguage =
-    displayedProductLanguage(row.entry.marketplace, product.language) ?? undefined;
-  const suggestions = isAssigned ? [] : (suggestionsByKey.get(row.key) ?? []);
+    displayedProductLanguage(row.marketplace, product.language) ?? undefined;
+  const suggestions = isAssigned ? [] : row.suggestions;
 
   if (assignedPrintings.length > 0) {
     return (
@@ -172,8 +162,8 @@ export function AssignedPrintingsCell({
             )}
             {!pairNames.has(printing.printingId) && (
               <ChipRemoveButton
-                aria-label={`Unassign ${formatPrintingLabel(printing.shortCode, printing.markerSlugs, printing.finish, printing.language, printing.size)}`}
-                title="Unassign"
+                aria-label={`Unmap ${formatPrintingLabel(printing.shortCode, printing.markerSlugs, printing.finish, printing.language, printing.size)}`}
+                title="Unmap"
                 disabled={handlers.isUnmappingPrinting}
                 onClick={() =>
                   handlers.onUnmapPrinting(
@@ -241,34 +231,24 @@ export function AssignedPrintingsCell({
 export function MarketplaceActionsCell({
   row,
   handlers,
-  printings,
   allCards,
 }: CellProps & {
   handlers: MarketplaceHandlers;
-  printings: UnifiedMappingPrintingResponse[];
   allCards: AssignableCardResponse[];
 }) {
   const [reassigning, setReassigning] = useState(false);
-  const [cardQuery, setCardQuery] = useState("");
-  const cardResults = useAssignableCardSearch(allCards, cardQuery);
 
   if (!row) {
     return null;
   }
-  const { marketplace, product, isAssigned, assignedPrintingIds, otherAssignedPrintingIds } =
-    row.entry;
-  // A marketplace that does not stock a language drops its printings from the
-  // Assign dropdown, the same way the suggester drops them.
-  const assignablePrintings = printings.filter((printing) =>
-    marketplaceCarriesLanguage(marketplace, printing.language),
-  );
+  const { marketplace, product, isAssigned, assignedPrintingIds, otherAssignedPrintingIds } = row;
   const canReassign = !isAssigned && !product.isOverride;
 
   return (
     <>
       <span className="flex items-center justify-end gap-1">
         <AssignToPrintingButton
-          printings={assignablePrintings}
+          printings={row.assignablePrintings}
           product={product}
           assignedPrintingIds={assignedPrintingIds}
           otherAssignedPrintingIds={otherAssignedPrintingIds}
@@ -296,33 +276,17 @@ export function MarketplaceActionsCell({
         />
       </span>
 
-      <Dialog
+      <ReassignCardDialog
+        externalId={product.externalId}
         open={reassigning}
-        onOpenChange={(next) => {
-          if (!next) {
-            setReassigning(false);
-            setCardQuery("");
-          }
+        allCards={allCards}
+        pending={handlers.isAssigning}
+        onOpenChange={setReassigning}
+        onPick={(cardId) => {
+          handlers.onAssignToCard(product.externalId, product.finish, product.language, cardId);
+          setReassigning(false);
         }}
-      >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Move #{product.externalId} to another card</DialogTitle>
-          </DialogHeader>
-          <CardSearchDropdown
-            results={cardResults}
-            onSearch={setCardQuery}
-            onSelect={(cardId) => {
-              handlers.onAssignToCard(product.externalId, product.finish, product.language, cardId);
-              setReassigning(false);
-              setCardQuery("");
-            }}
-            disabled={handlers.isAssigning}
-            // oxlint-disable-next-line jsx-a11y/no-autofocus -- admin-only UI, autofocus is intentional
-            autoFocus
-          />
-        </DialogContent>
-      </Dialog>
+      />
     </>
   );
 }

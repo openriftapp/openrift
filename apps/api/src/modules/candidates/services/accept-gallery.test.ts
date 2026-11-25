@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Transact } from "../../../deps.js";
 import { candidatePrintingRow } from "../../../test/candidate-printing-row.js";
 import type { NewPrinting } from "../../catalog/services/printing-admin.js";
-import { acceptFavoriteNewCard } from "./accept-gallery.js";
+import { acceptFavoriteNewCard, favoriteAcceptEvents } from "./accept-gallery.js";
 
 vi.mock("./accept-candidate-printings.js", () => ({
   acceptCandidateGroups: vi.fn(),
@@ -16,6 +16,12 @@ import { acceptCandidateGroups } from "./accept-candidate-printings.js";
 import { relinkCandidatePrintings } from "./relink-candidates.js";
 
 const FAVORITE_PROVIDERS = new Set(["gallery", "tcgplayer"]);
+
+const ACCEPTED = {
+  printing: { printingId: "p-1", imageIds: [] },
+  fields: { shortCode: "OGN-001" } as never,
+  candidatePrintingIds: ["cp-1"],
+};
 
 function mockTransact(trxRepos: unknown): Transact {
   return (fn) => fn(trxRepos as any) as any;
@@ -52,7 +58,7 @@ function createMockRepos(
   const candidateCards = {
     candidateCardsByNormName: vi.fn(async () => candidates),
     acceptableCandidatePrintings: vi.fn(async () => printings),
-    checkCandidateCard: vi.fn(async () => {}),
+    checkCandidateCardsByIds: vi.fn(async () => 0),
   };
 
   const catalogMutations = {
@@ -61,7 +67,7 @@ function createMockRepos(
     createNameAliases: vi.fn(async () => {}),
   };
 
-  const repos = { candidateCards, catalogMutations, ingest: {} } as unknown as Parameters<
+  const repos = { candidateCards, catalogMutations } as unknown as Parameters<
     typeof acceptFavoriteNewCard
   >[1];
 
@@ -73,6 +79,7 @@ describe("acceptFavoriteNewCard", () => {
     vi.clearAllMocks();
     vi.mocked(acceptCandidateGroups).mockResolvedValue({
       created: [{ printingId: "p-1", imageIds: [] }],
+      accepted: [ACCEPTED],
       skipped: [{ shortCode: "OGN-002", reason: "missing: artist" }],
     });
   });
@@ -143,13 +150,14 @@ describe("acceptFavoriteNewCard", () => {
       cardSlug: "flame-striker",
       printingsCreated: 1,
       skipped: [{ shortCode: "OGN-002", reason: "missing: artist" }],
+      accepted: [ACCEPTED],
     });
     expect(created).toEqual([{ printingId: "p-1", imageIds: [] }]);
   });
 
   it("hands back the printings it created when a later step throws", async () => {
     const { repos, candidateCards } = createMockRepos();
-    candidateCards.checkCandidateCard.mockRejectedValue(new Error("connection reset"));
+    candidateCards.checkCandidateCardsByIds.mockRejectedValue(new Error("connection reset"));
     const created: NewPrinting[] = [];
 
     await expect(
@@ -164,7 +172,7 @@ describe("acceptFavoriteNewCard", () => {
     expect(created).toEqual([{ printingId: "p-1", imageIds: [] }]);
   });
 
-  it("on an existing card, links matching candidates before accepting the rest", async () => {
+  it("on an existing card, links only the name's candidates before accepting the rest", async () => {
     const { repos, catalogMutations, candidateCards } = createMockRepos({
       existingCard: { id: "card-uuid-1" },
     });
@@ -174,6 +182,7 @@ describe("acceptFavoriteNewCard", () => {
     expect(catalogMutations.createNameAliases).toHaveBeenCalledWith("flamestriker", "card-uuid-1");
     expect(catalogMutations.acceptNewCardFromSources).not.toHaveBeenCalled();
     expect(relinkCandidatePrintings).toHaveBeenCalledTimes(1);
+    expect(relinkCandidatePrintings).toHaveBeenCalledWith(repos, { normName: "flamestriker" });
     expect(vi.mocked(relinkCandidatePrintings).mock.invocationCallOrder[0]).toBeLessThan(
       candidateCards.acceptableCandidatePrintings.mock.invocationCallOrder[0]!,
     );
@@ -196,7 +205,7 @@ describe("acceptFavoriteNewCard", () => {
     expect(result.cardSlug).toBe("flame-striker");
   });
 
-  it("marks only favorite candidates as checked", async () => {
+  it("marks only favorite candidates as checked, in one write", async () => {
     const cands = [
       makeCandidate({ id: "cand-1", provider: "gallery" }),
       makeCandidate({ id: "cand-2", provider: "tcgplayer" }),
@@ -206,9 +215,11 @@ describe("acceptFavoriteNewCard", () => {
 
     await acceptFavoriteNewCard(mockTransact(repos), repos, "flamestriker", FAVORITE_PROVIDERS, []);
 
-    expect(candidateCards.checkCandidateCard).toHaveBeenCalledTimes(2);
-    expect(candidateCards.checkCandidateCard).toHaveBeenCalledWith("cand-1");
-    expect(candidateCards.checkCandidateCard).toHaveBeenCalledWith("cand-2");
+    expect(candidateCards.checkCandidateCardsByIds).toHaveBeenCalledOnce();
+    expect(candidateCards.checkCandidateCardsByIds).toHaveBeenCalledWith(
+      ["cand-1", "cand-2"],
+      expect.any(Date),
+    );
   });
 
   it("400s a source domain that is not a known slug, naming the field", async () => {
@@ -225,5 +236,31 @@ describe("acceptFavoriteNewCard", () => {
     await expect(
       acceptFavoriteNewCard(mockTransact(repos), repos, "flamestriker", FAVORITE_PROVIDERS, []),
     ).rejects.toMatchObject({ status: 400, message: "Invalid value for domains: Fury" });
+  });
+});
+
+describe("favoriteAcceptEvents", () => {
+  it("records the card and one printing accept per created printing", () => {
+    const events = favoriteAcceptEvents(
+      { cardSlug: "flame-striker", printingsCreated: 1, skipped: [], accepted: [ACCEPTED] },
+      "flamestriker",
+    );
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        action: "card.accept-favorites",
+        entityType: "card",
+        entityId: "flame-striker",
+        entityLabel: "flamestriker",
+      }),
+      {
+        action: "printing.accept",
+        entityType: "printing",
+        entityId: "p-1",
+        entityLabel: "OGN-001",
+        cardSlug: "flame-striker",
+        newValues: { printingFields: { shortCode: "OGN-001" }, candidatePrintingIds: ["cp-1"] },
+      },
+    ]);
   });
 });

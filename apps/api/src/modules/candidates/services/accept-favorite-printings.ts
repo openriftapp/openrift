@@ -6,7 +6,7 @@ import { acceptCandidateGroup } from "./accept-candidate-printings.js";
 import {
   loadPrintingRefs,
   markAcceptedCandidateCardsChecked,
-  trustedPrintingRefusal,
+  trustedPrintingRefusals,
 } from "./trusted-accept-checks.js";
 
 export async function acceptFavoritePrintingsForCard(
@@ -63,8 +63,9 @@ export async function acceptFavoritePrintingsForCard(
   const accepted: NewPrinting[] = [];
   const acceptedGroups: typeof groups = [];
   const skipped: { shortCode: string; reason: string }[] = [];
-  for (const group of groups) {
-    const refusal = await trustedPrintingRefusal(repos, group, known, probes);
+  const refusals = await trustedPrintingRefusals(repos, groups, known, probes);
+  for (const [index, group] of groups.entries()) {
+    const refusal = refusals[index] ?? null;
     const outcome =
       refusal === null
         ? await acceptCandidateGroup(transact, card.id, group.candidates)

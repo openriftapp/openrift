@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { CardListingRow } from "@/features/catalog-workspace/lib/card-listing-rows";
 
-import { ListingPrintingDialog } from "./listing-printing-dialog";
+import { ListingPrintingDialog, listingHighlight } from "./listing-printing-dialog";
 
 vi.mock("./listing-any-printing-combobox", () => ({
   ListingAnyPrintingCombobox: () => null,
@@ -22,6 +22,21 @@ function row(overrides: Partial<CardListingRow> = {}): CardListingRow {
     ...overrides,
   } as unknown as CardListingRow;
 }
+
+describe("listingHighlight", () => {
+  it("does not highlight the placeholder language of a Cardmarket listing", () => {
+    const listing = row({ marketplace: "cardmarket" } as Partial<CardListingRow>);
+    expect(listingHighlight(listing).language).toBeUndefined();
+  });
+
+  it("highlights a stocked language and the markers of a special listing", () => {
+    const listing = row({
+      marketplace: "tcgplayer",
+      product: { externalId: 1, finish: "foil", language: "EN", groupKind: "special" },
+    } as unknown as Partial<CardListingRow>);
+    expect(listingHighlight(listing)).toEqual({ finish: "foil", language: "EN", markers: true });
+  });
+});
 
 describe("ListingPrintingDialog", () => {
   it("picks a printing with the arrow keys", async () => {

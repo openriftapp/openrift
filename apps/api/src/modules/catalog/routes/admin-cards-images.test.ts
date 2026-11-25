@@ -65,6 +65,7 @@ const mockEnsureOriginalOnDisk = vi.mocked(ensureOriginalOnDisk);
 const mockPrintingImages = {
   faceIdOfImage: vi.fn(),
   candidateFace: vi.fn(),
+  faceImageState: vi.fn(),
   getCandidatePrintingById: vi.fn(),
   getIdAndRehostedUrl: vi.fn(),
   getImageFileId: vi.fn(),
@@ -88,6 +89,7 @@ const mockTrxPrintingImages = {
   setActive: vi.fn(),
   markPending: vi.fn(),
   clearPending: vi.fn(),
+  clearReviewed: vi.fn(),
   insertUploadedImage: vi.fn(),
   insertUnattachedImageFile: vi.fn(),
   setFallbackArt: vi.fn(),
@@ -145,9 +147,13 @@ describe("POST /candidate-printings/:id/set-image", () => {
     adminAccess = FULL_ADMIN;
     mockTransact.mockImplementation(async (cb) => cb({ printingImages: mockTrxPrintingImages }));
     mockPrintingImages.candidateFace.mockResolvedValue("back");
+    mockPrintingImages.faceImageState.mockResolvedValue({
+      activeImageId: "old-main",
+      hasPending: false,
+    });
   });
 
-  it("returns 204 and rehosts image on success", async () => {
+  it("rehosts the new main image and names the image it replaced", async () => {
     mockPrintingImages.getCandidatePrintingById.mockResolvedValue({
       printingId: "printing-1",
       imageUrl: "https://example.com/img.png",
@@ -155,13 +161,21 @@ describe("POST /candidate-printings/:id/set-image", () => {
     });
     mockTrxPrintingImages.insertImage.mockResolvedValue("image-id-1");
     mockRehostFaceImage.mockResolvedValue({ status: "rehosted" });
+    mockPrintingImages.faceImageState
+      .mockResolvedValueOnce({ activeImageId: "old-main", hasPending: false })
+      .mockResolvedValueOnce({ activeImageId: "image-id-1", hasPending: false });
 
     const res = await app.request(SET_IMAGE, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: "main" }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      imageId: "image-id-1",
+      replacedImageId: "old-main",
+      restorable: true,
+    });
     expect(mockTrxPrintingImages.insertImage).toHaveBeenCalledWith(
       "printing-1",
       "https://example.com/img.png",
@@ -185,7 +199,12 @@ describe("POST /candidate-printings/:id/set-image", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: "additional" }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      imageId: "image-id-1",
+      replacedImageId: null,
+      restorable: true,
+    });
     expect(mockTrxPrintingImages.insertImage).toHaveBeenCalledWith(
       "printing-1",
       "https://example.com/img.png",
@@ -208,8 +227,51 @@ describe("POST /candidate-printings/:id/set-image", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: "main" }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ imageId: null, replacedImageId: null, restorable: false });
     expect(mockRehostFaceImage).not.toHaveBeenCalled();
+  });
+
+  it("is not restorable when the new main image still waits to go live", async () => {
+    mockPrintingImages.getCandidatePrintingById.mockResolvedValue({
+      printingId: "printing-1",
+      imageUrl: "https://example.com/img.png",
+      candidateCardId: "cc-1",
+    });
+    mockTrxPrintingImages.insertImage.mockResolvedValue("image-id-1");
+    mockRehostFaceImage.mockResolvedValue({ status: "failed" });
+
+    const res = await app.request(SET_IMAGE, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "main" }),
+    });
+    expect(await res.json()).toEqual({
+      imageId: "image-id-1",
+      replacedImageId: null,
+      restorable: false,
+    });
+  });
+
+  it("is not restorable when another image was waiting to go live on the face", async () => {
+    mockPrintingImages.getCandidatePrintingById.mockResolvedValue({
+      printingId: "printing-1",
+      imageUrl: "https://example.com/img.png",
+      candidateCardId: "cc-1",
+    });
+    mockTrxPrintingImages.insertImage.mockResolvedValue("image-id-1");
+    mockPrintingImages.faceImageState.mockResolvedValue({
+      activeImageId: null,
+      hasPending: true,
+    });
+
+    const res = await app.request(SET_IMAGE, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "additional" }),
+    });
+    const body = (await res.json()) as { restorable: boolean };
+    expect(body.restorable).toBe(false);
   });
 });
 
@@ -353,6 +415,40 @@ describe("POST /printing-images/:imageId/activate", () => {
     );
     expect(mockTrxPrintingImages.setActive).not.toHaveBeenCalled();
     expect(mockTrxPrintingImages.deactivateActiveFace).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /printing-images/:imageId/unkeep", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    adminAccess = FULL_ADMIN;
+    mockTransact.mockImplementation(async (cb) => cb({ printingImages: mockTrxPrintingImages }));
+  });
+
+  it("clears the review mark and records the event", async () => {
+    mockPrintingImages.getForActivate.mockResolvedValue({
+      printingId: "printing-1",
+      face: "front",
+    });
+
+    const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/unkeep`, {
+      method: "POST",
+    });
+    expect(res.status).toBe(204);
+    expect(mockTrxPrintingImages.clearReviewed).toHaveBeenCalledWith(IMAGE_ID);
+    expect(mockAdminEvents.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "image.unkeep", entityId: IMAGE_ID }),
+    );
+  });
+
+  it("returns 404 when the image is gone", async () => {
+    mockPrintingImages.getForActivate.mockResolvedValue(undefined);
+
+    const res = await app.request(`/api/admin/v1/cards/printing-images/${IMAGE_ID}/unkeep`, {
+      method: "POST",
+    });
+    expect(res.status).toBe(404);
+    expect(mockTrxPrintingImages.clearReviewed).not.toHaveBeenCalled();
   });
 });
 
@@ -1001,13 +1097,14 @@ describe("audit events", () => {
     });
     mockTrxPrintingImages.insertImage.mockResolvedValue("image-id-1");
     mockRehostFaceImage.mockResolvedValue({ status: "rehosted" });
+    mockPrintingImages.faceImageState.mockResolvedValue({ activeImageId: null, hasPending: false });
 
     const res = await app.request(SET_IMAGE, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: "main" }),
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(200);
     expect(mockAdminEvents.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         action: "image.set-from-candidate",

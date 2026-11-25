@@ -7,7 +7,7 @@ import { acceptFieldWithUndo } from "@/features/admin/lib/accept-undo";
 import type { PrintingSuggestionModel } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
 import { buildPrintingSuggestions } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
 import { resetWorkspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
-import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
+import { useWorkspaceUndoStore } from "@/features/catalog-workspace/stores/workspace-undo-store";
 import {
   makeAdminCardDetail,
   makeAdminPrinting,
@@ -61,7 +61,7 @@ function setup() {
 }
 
 function latest() {
-  return useWorkspaceSelectionStore.getState().undoStack.at(-1);
+  return useWorkspaceUndoStore.getState().undoStack.at(-1);
 }
 
 function renderWrites(model: PrintingSuggestionModel) {
@@ -69,9 +69,10 @@ function renderWrites(model: PrintingSuggestionModel) {
   return renderHook(
     () =>
       usePrintingFieldWrites({
-        printingId: "p1",
+        cardSlugs: ["kaisa"],
         record: "Kai'Sa · OGN-001",
         printing: model.printing,
+        contributorName: () => "Renata",
       }),
     {
       wrapper: ({ children }: { children: ReactNode }) => (
@@ -90,7 +91,7 @@ afterEach(() => {
 
 beforeEach(() => {
   resetIdCounter();
-  resetStore = createStoreResetter(useWorkspaceSelectionStore);
+  resetStore = createStoreResetter(useWorkspaceUndoStore);
   mocks.acceptField.current = mutation();
   mocks.generic.current = mutation();
   mocks.acceptPrintingFieldFn.mockClear();
@@ -103,7 +104,7 @@ describe("usePrintingFieldWrites", () => {
     const model = setup();
     const { result } = renderWrites(model);
 
-    await act(() => result.current.applyField(signal, model.suggestions[0]!));
+    await act(() => result.current.apply(model.suggestions[0]!));
     const [options] = vi.mocked(acceptFieldWithUndo).mock.lastCall as unknown as [
       { onAccepted: (revert: unknown) => void },
     ];
@@ -135,7 +136,7 @@ describe("usePrintingFieldWrites", () => {
 
     let settled = false;
     const run = (async () => {
-      await result.current.applyField(signal, model.suggestions[0]!);
+      await result.current.apply(model.suggestions[0]!);
       settled = true;
     })();
     await Promise.resolve();
@@ -164,7 +165,7 @@ describe("usePrintingFieldWrites", () => {
     const { result } = renderWrites(model);
 
     const suggestion = model.suggestions.find((entry) => entry.field === "releasedAt");
-    await act(() => result.current.applyField(signal, suggestion!));
+    await act(() => result.current.apply(suggestion!));
     expect(vi.mocked(acceptFieldWithUndo).mock.lastCall?.[0].input).toEqual({
       printingId: "p1",
       field: "releasedAt",
@@ -181,7 +182,7 @@ describe("usePrintingFieldWrites", () => {
     const model = setup();
     const { result } = renderWrites(model);
 
-    await act(() => result.current.applyField(signal, model.suggestions[0]!));
+    await act(() => result.current.apply(model.suggestions[0]!));
     expect(vi.mocked(acceptFieldWithUndo).mock.lastCall?.[0]).toEqual(
       expect.objectContaining({
         accept: expect.any(Function),

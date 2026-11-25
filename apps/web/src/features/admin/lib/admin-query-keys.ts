@@ -17,8 +17,12 @@ export const adminKeys = {
   workspace: ["admin", "workspace"] as const,
   workspaceReview: ["admin", "workspace", "review"] as const,
   workspaceListings: ["admin", "workspace", "listings"] as const,
-  workspaceQueue: ["admin", "workspace", "queue"] as const,
-  workspaceHistory: (target: object) => ["admin", "workspace", "history", target] as const,
+  workspaceCandidatePrintingCard: (candidatePrintingId: string) =>
+    ["admin", "workspace", "candidate-printing-card", candidatePrintingId] as const,
+  workspaceHistory: Object.assign(
+    (target: object) => ["admin", "workspace", "history", target] as const,
+    { all: ["admin", "workspace", "history"] as const },
+  ),
   workspaceRecords: Object.assign(
     (params: { kind: string; q?: string; limit?: number; cursor?: string }) =>
       ["admin", "workspace", "records", params] as const,
@@ -55,6 +59,7 @@ export const adminKeys = {
       ["admin", "printing-desk", "printing", printingId, side] as const,
   },
   audit: {
+    allEvents: ["admin", "audit-events"] as const,
     events: (filters: { actorUserId?: string; action?: string; search?: string }) =>
       ["admin", "audit-events", filters] as const,
     actors: ["admin", "audit-actors"] as const,

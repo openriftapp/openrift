@@ -8,7 +8,7 @@ import type { PrintingValueLabels } from "@/features/admin/lib/field-value-text"
 import { formatCatalogFieldValue, formatReleaseValue } from "@/features/admin/lib/field-value-text";
 import { ErrataChangeText } from "@/features/cards/components/errata-diff-pane";
 import { diffCardText } from "@/features/cards/lib/errata-diff";
-import type { PrintingFieldSuggestion } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import type { PrintingFieldSuggestion } from "@/features/catalog-workspace/lib/suggestion-rows";
 
 const CARD_TEXT_FIELDS: ReadonlySet<string> = new Set([
   "printedRulesText",
@@ -42,7 +42,7 @@ export function proposedValue(
   labels: PrintingValueLabels,
 ): string {
   if (suggestion.field === "releasedAt") {
-    return formatReleaseValue(suggestion.proposed, suggestion.candidate.releasePrecision);
+    return formatReleaseValue(suggestion.proposed, suggestion.releasePrecision);
   }
   if (suggestion.field === "releasePrecision" && printing.releasedAt !== null) {
     return formatReleasePeriod({

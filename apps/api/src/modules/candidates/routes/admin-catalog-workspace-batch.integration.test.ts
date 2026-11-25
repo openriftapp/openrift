@@ -174,11 +174,18 @@ describe.skipIf(!adminCtx)("Admin catalog workspace batch routes (integration)",
     expect(await readJson(res)).toEqual({ assigned: 0, skipped: [] });
   });
 
+  it("refuses an assign without the confirmed listing keys", async () => {
+    const res = await adminApp.fetch(
+      adminReq("POST", "/catalog/workspace/batch/suggested-listings", {}),
+    );
+    expect(res.status).toBe(400);
+  });
+
   it("returns 403 for a card-review holder", async () => {
     const bodies = {
       "trusted-cards": { names: [] },
       "trusted-printings": { candidatePrintingIds: [] },
-      "suggested-listings": {},
+      "suggested-listings": { listingKeys: [] },
     };
     for (const [path, body] of Object.entries(bodies)) {
       const read = await reviewApp.fetch(adminReq("GET", `/catalog/workspace/batch/${path}`));

@@ -1,7 +1,6 @@
 import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
-import { enumLabel } from "@openrift/shared/enum-label";
 import { useQueryClient } from "@tanstack/react-query";
-import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
+import { getRouteApi, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Suspense, useState } from "react";
 
@@ -10,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TextLink } from "@/components/ui/text-link";
-import { useUploadPrintingImage } from "@/features/admin/hooks/use-admin-image-mutations";
 import {
   useCreateDeskPrinting,
   useDeskCardPrintings,
@@ -22,46 +20,34 @@ import {
   defaultCardLanguage,
 } from "@/features/admin/lib/printing-desk-base";
 import { CatalogCardSlugSearch } from "@/features/cards/components/catalog-card-slug-search";
-import { catalogKeys, cardsKeys, promosKeys } from "@/features/cards/lib/cards-query-keys";
-import { draftImageLabel } from "@/features/catalog-workspace/components/creation/creation-images";
 import { CreationPanel } from "@/features/catalog-workspace/components/creation/creation-panel";
+import type { ExistingPrinting } from "@/features/catalog-workspace/components/record/existing-printings-section";
+import { ExistingPrintingsSection } from "@/features/catalog-workspace/components/record/existing-printings-section";
 import {
   RecordHeader,
   RecordPane,
   RecordSection,
 } from "@/features/catalog-workspace/components/record/record-pane";
+import { useCreationFollowUps } from "@/features/catalog-workspace/hooks/use-printing-creation";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
-import type {
-  CreationDraft,
-  PlannedImageUpload,
-} from "@/features/catalog-workspace/lib/creation-draft";
+import type { CreationDraft } from "@/features/catalog-workspace/lib/creation-draft";
 import {
   draftFromBasePrinting,
   draftFromDeskPrinting,
   duplicateProbeFromDeskRow,
   duplicateSource,
   findDuplicateCandidates,
-  plannedImageUploads,
   toDeskCreateInput,
   validateDraft,
 } from "@/features/catalog-workspace/lib/creation-draft";
+import { stopNavigation } from "@/features/catalog-workspace/lib/review-stops";
 import type { PrintingPrefill } from "@/features/catalog-workspace/lib/workspace-search";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { useEnumOrders } from "@/hooks/use-enums";
-import { useSession } from "@/hooks/use-session";
 import { errorText } from "@/lib/error-text";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 const routeApi = getRouteApi("/_app/_authenticated/admin/workspace/printings/create");
-
-const IMAGE_SCOPE = [
-  adminKeys.printingDesk.all,
-  adminKeys.cards.all,
-  adminKeys.workspace,
-  catalogKeys.all,
-  cardsKeys.all,
-  promosKeys.all,
-] as const;
 
 function StepTitle({ step, children }: { step: number; children: ReactNode }) {
   return (
@@ -87,64 +73,35 @@ function HeaderActions({
   onCancel,
   onCreate,
   canCreate,
+  pending = false,
 }: {
   onCancel: () => void;
   onCreate?: () => void;
   canCreate: boolean;
+  pending?: boolean;
 }) {
   return (
     <>
       <Button variant="ghost" onClick={onCancel}>
         Cancel
       </Button>
-      <Button disabled={!canCreate} onClick={onCreate}>
+      <Button disabled={!canCreate} pending={pending} onClick={onCreate}>
         Create printing
       </Button>
     </>
   );
 }
 
-function rowSummary(row: DeskPrintingRow, finishLabel: string): string {
-  return [row.language, finishLabel, ...row.distributionChannelSlugs].join(" · ");
-}
-
-function ExistingPrintings({
-  cardName,
-  rows,
-  onPick,
-}: {
-  cardName: string;
-  rows: readonly DeskPrintingRow[];
-  onPick?: (row: DeskPrintingRow) => void;
-}) {
-  const { labels } = useEnumOrders();
-
-  return (
-    <RecordSection title={onPick ? "Which printing do you copy?" : `${cardName} already has`}>
-      {rows.length === 0 ? (
-        <p className="text-muted-foreground">No printings yet.</p>
-      ) : (
-        <ul className="flex flex-col gap-1.5">
-          {rows.map((row) => (
-            <li
-              key={`${row.printingId}:${row.side}`}
-              className="flex flex-wrap items-center gap-2.5"
-            >
-              <span className="w-36 font-mono text-sm">{deskPrintingCodes(row)}</span>
-              <span className="text-muted-foreground flex-1">
-                {rowSummary(row, enumLabel(labels.finishes, row.finish))}
-              </span>
-              {onPick && (
-                <Button variant="outline" size="sm" onClick={() => onPick(row)}>
-                  Copy
-                </Button>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </RecordSection>
-  );
+function existingFromDesk(
+  rows: readonly DeskPrintingRow[],
+  onPick?: (row: DeskPrintingRow) => void,
+): ExistingPrinting[] {
+  return rows.map((row) => ({
+    ...row,
+    key: `${row.printingId}:${row.side}`,
+    code: deskPrintingCodes(row),
+    handleCopy: onPick === undefined ? undefined : () => onPick(row),
+  }));
 }
 
 function DraftEditor({
@@ -162,10 +119,10 @@ function DraftEditor({
 }) {
   const queueWrite = useQueueWorkspaceWrite();
   const navigate = useNavigate();
+  const trail = useLocation({ select: (location) => location.state.workspaceReview });
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
   const createPrinting = useCreateDeskPrinting({ inlineError: true });
-  const uploadImage = useUploadPrintingImage(IMAGE_SCOPE);
+  const followUps = useCreationFollowUps();
   const [draft, setDraft] = useState(initialDraft);
   const [pending, setPending] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
@@ -177,25 +134,6 @@ function DraftEditor({
     rows.map((row) => duplicateProbeFromDeskRow(row)),
   );
   const canCreate = issues.length === 0 && !pending && createdId === null;
-  const credit = session?.user.name;
-
-  function uploadOne(
-    signal: AbortSignal,
-    printingId: string,
-    upload: PlannedImageUpload,
-    file: File,
-  ) {
-    return uploadImage.mutateAsync(
-      {
-        printingId,
-        file,
-        mode: upload.mode,
-        face: upload.face,
-        credit: credit !== undefined && credit.length > 0 ? credit : undefined,
-      },
-      { signal },
-    );
-  }
 
   async function create(signal: AbortSignal) {
     if (!canCreate) {
@@ -216,20 +154,18 @@ function DraftEditor({
     }
     const { printingId } = created;
     setCreatedId(printingId);
-    const failed: string[] = [];
-    for (const upload of plannedImageUploads(draft)) {
-      if (upload.image.kind !== "file") {
-        continue;
-      }
-      const file = upload.image.file;
-      if (!(await runReportedMutation(() => uploadOne(signal, printingId, upload, file)))) {
-        failed.push(draftImageLabel(upload.image));
-      }
-    }
+    const failure = await followUps.finish(signal, printingId, draft, {
+      fields: false,
+      urls: false,
+    });
     await queryClient.invalidateQueries({ queryKey: adminKeys.workspace });
     setPending(false);
-    if (failed.length > 0) {
-      setError(`The printing was created, but ${failed.join(", ")} did not upload.`);
+    if (failure !== null) {
+      setError(failure);
+      return;
+    }
+    if (trail !== undefined && trail.cardSlug === draft.card?.slug) {
+      void navigate(stopNavigation({ kind: "card" }, trail));
       return;
     }
     void navigate({ to: "/admin/workspace/printings/$printingId", params: { printingId } });
@@ -246,6 +182,7 @@ function DraftEditor({
               onCancel={onCancel}
               onCreate={() => void queueWrite(create, { limit: "upload" })}
               canCreate={canCreate}
+              pending={pending}
             />
           }
         />
@@ -288,7 +225,10 @@ function DraftEditor({
       >
         <p className="font-semibold">{cardName}</p>
       </RecordSection>
-      <ExistingPrintings cardName={cardName} rows={rows} />
+      <ExistingPrintingsSection
+        title={`${cardName} already has`}
+        printings={existingFromDesk(rows)}
+      />
       <CreationPanel
         draft={draft}
         onChange={setDraft}
@@ -352,7 +292,10 @@ function PickedCard({
             steps.
           </p>
         </RecordSection>
-        <ExistingPrintings cardName={card.name} rows={rows} onPick={setCopyFrom} />
+        <ExistingPrintingsSection
+          title="Which printing do you copy?"
+          printings={existingFromDesk(rows, setCopyFrom)}
+        />
       </RecordPane>
     );
   }
@@ -399,12 +342,17 @@ const PENDING_STEPS = [
 
 export function ManualPrintingRecord() {
   const navigate = useNavigate();
+  const trail = useLocation({ select: (location) => location.state.workspaceReview });
   const prefill = routeApi.useSearch();
   const [cardSlug, setCardSlug] = useState<string | null>(prefill.card ?? null);
   const [duplicate, setDuplicate] = useState(prefill.duplicateFrom !== undefined);
 
   function cancel() {
-    void navigate({ to: "/admin/workspace/printings" });
+    void navigate(
+      trail === undefined
+        ? { to: "/admin/workspace/printings" }
+        : stopNavigation({ kind: "card" }, trail),
+    );
   }
 
   if (cardSlug !== null) {

@@ -20,30 +20,34 @@ describe.skipIf(!ctx)("ignoredCandidatesRepo (integration)", () => {
       .execute();
   });
 
-  it("ignoreCard inserts without error", async () => {
-    await repo.ignoreCard({ provider: "test-prov-39", externalId: "ext-card-1" });
+  it("ignoreCards inserts without error", async () => {
+    await repo.ignoreCards([{ provider: "test-prov-39", externalId: "ext-card-1" }]);
   });
 
-  it("ignoreCard is a no-op on conflict", async () => {
-    await repo.ignoreCard({ provider: "test-prov-39", externalId: "ext-card-1" });
+  it("ignoreCards is a no-op on conflict", async () => {
+    await repo.ignoreCards([{ provider: "test-prov-39", externalId: "ext-card-1" }]);
   });
 
   it("listIgnoredCards returns all ignored cards", async () => {
-    await repo.ignoreCard({ provider: "test-prov-39", externalId: "ext-card-2" });
+    await repo.ignoreCards([
+      { provider: "test-prov-39", externalId: "ext-card-2" },
+      { provider: "test-prov-39", externalId: "ext-card-3" },
+    ]);
 
     const list = await repo.listIgnoredCards();
     const ours = list.filter((c) => c.provider === "test-prov-39");
-    expect(ours.length).toBeGreaterThanOrEqual(2);
+    expect(ours.length).toBeGreaterThanOrEqual(3);
   });
 
-  it("unignoreCard removes an ignored card", async () => {
-    const result = await repo.unignoreCard("test-prov-39", "ext-card-2");
-    expect(result.numDeletedRows).toBe(1n);
-  });
-
-  it("unignoreCard returns 0 for nonexistent entry", async () => {
-    const result = await repo.unignoreCard("test-prov-39", "nonexistent");
-    expect(result.numDeletedRows).toBe(0n);
+  it("unignoreCards removes only the listed cards", async () => {
+    await repo.unignoreCards([
+      { provider: "test-prov-39", externalId: "ext-card-2" },
+      { provider: "test-prov-39", externalId: "ext-card-3" },
+      { provider: "test-prov-39", externalId: "nonexistent" },
+    ]);
+    const list = await repo.listIgnoredCards();
+    const left = list.filter((c) => c.provider === "test-prov-39").map((c) => c.externalId);
+    expect(left).toEqual(["ext-card-1"]);
   });
 
   it("ignorePrinting inserts without error", async () => {

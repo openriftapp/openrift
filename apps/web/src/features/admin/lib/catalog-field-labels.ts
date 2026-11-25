@@ -1,9 +1,11 @@
 import type {
-  ComparableCardField,
-  ComparablePrintingField,
-} from "@openrift/shared/catalog-field-compare";
+  AcceptCardField,
+  AcceptPrintingField,
+} from "@openrift/shared/contracts/admin/card-mutations";
 
-export const CARD_FIELD_LABELS: Record<ComparableCardField, string> = {
+export const CARD_ID_LABEL = "Card ID";
+
+export const CARD_FIELD_LABELS: Record<AcceptCardField, string> = {
   name: "Name",
   types: "Types",
   superTypes: "Supertypes",
@@ -13,9 +15,17 @@ export const CARD_FIELD_LABELS: Record<ComparableCardField, string> = {
   power: "Power",
   mightBonus: "Might bonus",
   tags: "Tags",
+  maxCopiesOverride: "Max copies override",
+  additionalLegendCount: "Additional legends",
+  comment: "Comment",
 };
 
-export const PRINTING_FIELD_LABELS: Record<ComparablePrintingField, string> = {
+export const CARD_TEXT_FIELD_LABELS = {
+  rulesText: "Rules text",
+  effectText: "Effect text",
+} as const;
+
+export const PRINTING_FIELD_LABELS: Record<AcceptPrintingField, string> = {
   shortCode: "Short code",
   setId: "Set",
   rarity: "Rarity",
@@ -37,7 +47,14 @@ export const PRINTING_FIELD_LABELS: Record<ComparablePrintingField, string> = {
   releasedAt: "Available from",
   releasePrecision: "Release precision",
   announcedAt: "Announced on",
+  comment: "Comment",
 };
+
+export const SOURCE_COLUMN_LABELS = {
+  externalId: "External ID",
+  extraData: "Extra data",
+  imageUrl: "Image",
+} as const;
 
 export const DIFFED_FIELDS: ReadonlySet<string> = new Set([
   "rulesText",

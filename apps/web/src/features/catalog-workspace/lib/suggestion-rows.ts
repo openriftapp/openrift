@@ -1,47 +1,52 @@
-import type { ComparableCardField } from "@openrift/shared/catalog-field-compare";
-import {
-  COMPARABLE_CARD_FIELDS,
-  hasFieldValue,
-  isDismissedValue,
-  sameFieldValue,
+import type {
+  ComparableCardField,
+  ComparablePrintingField,
 } from "@openrift/shared/catalog-field-compare";
+import { COMPARABLE_CARD_FIELDS } from "@openrift/shared/catalog-field-compare";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import type {
   AdminCardDetailResponse,
-  ProviderSettingResponse,
+  AdminPrintingResponse,
+  CandidatePrintingResponse,
 } from "@openrift/shared/types/api/admin";
 
 import type { AttentionSubmission } from "@/features/admin/lib/attention-items";
-import { CARD_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
+import {
+  CARD_FIELD_LABELS,
+  PRINTING_FIELD_LABELS,
+} from "@/features/admin/lib/catalog-field-labels";
+import type { CompareContext } from "@/features/admin/lib/source-compare";
+import {
+  cardDifferences,
+  isContributorProvider,
+  printingDifferences,
+} from "@/features/admin/lib/source-compare";
 
-type SuggestionTone = "source" | "contributor";
-
-export interface FieldSuggestion {
+export interface FieldSuggestion<F extends string = ComparableCardField | ComparablePrintingField> {
   key: string;
-  field: ComparableCardField;
-  tone: SuggestionTone;
-  sourceKey: string;
+  field: F;
+  label: string;
+  current: unknown;
+  proposed: unknown;
+  provider: string;
   sourceLabel: string;
-  value: unknown;
-  candidateRowId: string;
-  rowDifferences: number;
+  isContributor: boolean;
+  candidateCardId: string;
   changeKey?: string;
-  otherChanges?: number;
+}
+
+export interface PrintingFieldSuggestion extends FieldSuggestion<ComparablePrintingField> {
+  candidatePrintingId: string;
+  printingId: string;
+  faceId: string;
+  releasePrecision: CandidatePrintingResponse["releasePrecision"];
 }
 
 interface SuggestionRow {
   field: ComparableCardField;
   label: string;
   currentValue: unknown;
-  suggestions: FieldSuggestion[];
-}
-
-interface SourceDifferences {
-  key: string;
-  label: string;
-  tone: SuggestionTone;
-  differences: number;
-  trusted: boolean;
+  suggestions: FieldSuggestion<ComparableCardField>[];
 }
 
 interface EnterTarget {
@@ -52,14 +57,7 @@ interface EnterTarget {
 
 export interface CardSuggestions {
   rows: SuggestionRow[];
-  suggestions: FieldSuggestion[];
-  sources: SourceDifferences[];
-  agreedLabels: string[];
   enterTargets: EnterTarget[];
-}
-
-function contributorSourceKey(candidateCardId: string): string {
-  return `contributor:${candidateCardId}`;
 }
 
 export function submissionChangeCount(submission: AttentionSubmission): number {
@@ -71,105 +69,95 @@ export function submissionChangeCount(submission: AttentionSubmission): number {
 
 export function buildCardSuggestions(
   detail: AdminCardDetailResponse,
-  providerSettings: readonly ProviderSettingResponse[],
   submissions: readonly AttentionSubmission[],
 ): CardSuggestions {
   const card = (detail.card ?? {}) as Record<string, unknown>;
-  const trusted = new Set(
-    providerSettings.filter((setting) => setting.isFavorite).map((setting) => setting.provider),
-  );
   const openSources = detail.sources.filter(
     (source) => source.provider !== USER_SUBMISSION_PROVIDER && source.checkedAt === null,
   );
 
-  const byField = new Map<ComparableCardField, FieldSuggestion[]>(
+  const byField = new Map<ComparableCardField, FieldSuggestion<ComparableCardField>[]>(
     COMPARABLE_CARD_FIELDS.map((field) => [field, []]),
   );
   const enterTargets: EnterTarget[] = [];
 
   for (const source of openSources) {
-    const proposed = source;
-    const differing = COMPARABLE_CARD_FIELDS.filter(
-      (field) =>
-        hasFieldValue(proposed[field]) &&
-        !sameFieldValue(card[field] ?? null, proposed[field], field) &&
-        !isDismissedValue(source.dismissedValues, field, proposed[field]),
-    );
+    const differences = cardDifferences(detail.card, source);
     enterTargets.push({
       candidateRowId: source.id,
       provider: source.provider,
-      differences: differing.length,
+      differences: differences.length,
     });
-    for (const field of differing) {
+    for (const { field, current, proposed } of differences) {
       byField.get(field)?.push({
         key: `${source.id}:${field}`,
         field,
-        tone: "source",
-        sourceKey: source.provider,
+        label: CARD_FIELD_LABELS[field],
+        current,
+        proposed,
+        provider: source.provider,
         sourceLabel: source.provider,
-        value: proposed[field],
-        candidateRowId: source.id,
-        rowDifferences: differing.length,
+        isContributor: false,
+        candidateCardId: source.id,
       });
     }
   }
 
-  const contributorSources: SourceDifferences[] = [];
   for (const submission of submissions) {
-    const cardChanges = submission.groups
+    const label = submission.submitterName ?? "Contributor";
+    const changes = submission.groups
       .filter((group) => group.kind === "card")
       .flatMap((group) => group.changes);
-    if (cardChanges.length === 0) {
-      continue;
-    }
-    const label = submission.submitterName ?? "Contributor";
-    const total = submissionChangeCount(submission);
-    contributorSources.push({
-      key: contributorSourceKey(submission.candidateCardId),
-      label,
-      tone: "contributor",
-      differences: cardChanges.length,
-      trusted: false,
-    });
-    for (const change of cardChanges) {
+    for (const change of changes) {
       const field = change.field as ComparableCardField;
       byField.get(field)?.push({
         key: change.key,
         field,
-        tone: "contributor",
-        sourceKey: contributorSourceKey(submission.candidateCardId),
+        label: CARD_FIELD_LABELS[field],
+        current: card[field] ?? null,
+        proposed: change.proposed,
+        provider: submission.provider,
         sourceLabel: label,
-        value: change.proposed,
-        candidateRowId: submission.candidateCardId,
-        rowDifferences: cardChanges.length,
+        isContributor: true,
+        candidateCardId: submission.candidateCardId,
         changeKey: change.key,
-        otherChanges: total - 1,
       });
     }
   }
 
-  const rows: SuggestionRow[] = COMPARABLE_CARD_FIELDS.map((field) => ({
-    field,
-    label: CARD_FIELD_LABELS[field],
-    currentValue: card[field] ?? null,
-    suggestions: byField.get(field) ?? [],
-  }));
-
-  const providerSources = [...Map.groupBy(enterTargets, (target) => target.provider)].map(
-    ([provider, targets]): SourceDifferences => ({
-      key: provider,
-      label: provider,
-      tone: "source",
-      differences: targets.reduce((total, target) => total + target.differences, 0),
-      trusted: trusted.has(provider),
-    }),
-  );
-
   return {
-    rows,
-    suggestions: rows.flatMap((row) => row.suggestions),
-    sources: [...providerSources, ...contributorSources],
-    agreedLabels: rows.filter((row) => row.suggestions.length === 0).map((row) => row.label),
+    rows: COMPARABLE_CARD_FIELDS.map((field) => ({
+      field,
+      label: CARD_FIELD_LABELS[field],
+      currentValue: card[field] ?? null,
+      suggestions: byField.get(field) ?? [],
+    })),
     enterTargets,
   };
+}
+
+export function printingFieldSuggestions(
+  candidate: CandidatePrintingResponse,
+  row: AdminPrintingResponse,
+  fields: readonly ComparablePrintingField[],
+  context: CompareContext,
+  provider: string,
+): PrintingFieldSuggestion[] {
+  return printingDifferences(candidate, row, fields, context).map(
+    ({ field, current, proposed }) => ({
+      key: `${candidate.id}:${field}`,
+      field,
+      label: PRINTING_FIELD_LABELS[field],
+      current,
+      proposed,
+      provider,
+      sourceLabel: provider,
+      isContributor: isContributorProvider(provider),
+      candidateCardId: candidate.candidateCardId,
+      candidatePrintingId: candidate.id,
+      printingId: row.id,
+      faceId: row.faceId,
+      releasePrecision: candidate.releasePrecision,
+    }),
+  );
 }

@@ -159,7 +159,7 @@ describe("image file edits", () => {
         adminKeys.cards.detail("other-card-sharing-the-face"),
         adminKeys.cards.list,
         adminKeys.printingDesk.printing("printing-1"),
-        adminKeys.workspaceQueue,
+        adminKeys.workspaceCandidatePrintingCard("candidate-1"),
         adminKeys.workspaceRecords.infinite({ kind: "face" }),
         catalogKeys.all,
         cardsKeys.detail("jinx-loose-cannon"),

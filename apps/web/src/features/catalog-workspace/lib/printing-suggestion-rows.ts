@@ -1,33 +1,31 @@
 import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
-import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import type {
   AdminCardDetailResponse,
   AdminPrintingResponse,
   CandidatePrintingResponse,
 } from "@openrift/shared/types/api/admin";
 
-import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
-import type {
-  CompareContext,
-  PrintingFieldSuggestion,
-  SuggestionSource,
-} from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import type { CompareContext } from "@/features/admin/lib/source-compare";
 import {
+  candidateFaceRow,
   candidateBelongsToFace,
   candidateHasNewImage,
-  compareCandidate,
-  describeElsewhere,
   FACE_FIELDS,
+  isContributorProvider,
+  ownImageUrls,
   PRINTING_FIELDS,
+  printingDifferences,
   providerOf,
-} from "@/features/catalog-workspace/lib/face-suggestion-rows";
+} from "@/features/admin/lib/source-compare";
+import type { SuggestionSource } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import { describeElsewhere } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import type { PrintingFieldSuggestion } from "@/features/catalog-workspace/lib/suggestion-rows";
+import { printingFieldSuggestions } from "@/features/catalog-workspace/lib/suggestion-rows";
 
 export interface PrintingSuggestionModel {
   printing: AdminPrintingResponse | null;
   suggestions: PrintingFieldSuggestion[];
   sources: SuggestionSource[];
-  agreeingFields: number;
-  enterCandidateIds: string[];
 }
 
 export function buildPrintingSuggestions(
@@ -38,15 +36,13 @@ export function buildPrintingSuggestions(
   const printing =
     details.flatMap((detail) => detail.printings).find((row) => row.id === printingId) ?? null;
   if (printing === null) {
-    return { printing, suggestions: [], sources: [], agreeingFields: 0, enterCandidateIds: [] };
+    return { printing, suggestions: [], sources: [] };
   }
 
   const hidden = context.hiddenProviders ?? new Set<string>();
   const seen = new Set<string>();
   const suggestions: PrintingFieldSuggestion[] = [];
   const sources: SuggestionSource[] = [];
-  const enterCandidateIds: string[] = [];
-  let agreeingFields = 0;
 
   for (const detail of details) {
     for (const candidate of detail.candidatePrintings) {
@@ -62,40 +58,40 @@ export function buildPrintingSuggestions(
         continue;
       }
       seen.add(candidate.id);
-      const compared = compareCandidate(candidate, printing, PRINTING_FIELDS, context, provider);
-      agreeingFields = Math.max(agreeingFields, compared.agreeing);
-      const isContributor = provider === USER_SUBMISSION_PROVIDER;
-      const onFace = detail.printings.find(
-        (row) =>
-          row.id === printingId && candidateBelongsToFace(candidate, row.faceId, detail.printings),
+      const compared = printingFieldSuggestions(
+        candidate,
+        printing,
+        PRINTING_FIELDS,
+        context,
+        provider,
       );
+      const onFace = candidateFaceRow(candidate, detail.printings);
       const faceFields =
         onFace === undefined
           ? 0
-          : compareCandidate(candidate, onFace, FACE_FIELDS, context, provider).suggestions.length;
-      const ownUrls = new Set(
-        onFace === undefined
-          ? []
-          : imagesOnSide(detail.printingImages, onFace).map((image) => image.originalUrl),
-      );
+          : printingDifferences(candidate, onFace, FACE_FIELDS, context).length;
       const images =
-        onFace !== undefined && candidateHasNewImage(candidate, ownUrls, isContributor) ? 1 : 0;
+        onFace !== undefined &&
+        candidateHasNewImage(
+          candidate,
+          ownImageUrls(detail.printingImages, onFace),
+          isContributorProvider(provider),
+        )
+          ? 1
+          : 0;
       sources.push({
         candidatePrintingId: candidate.id,
         candidateCardId: candidate.candidateCardId,
         provider,
-        isContributor,
-        differences: compared.suggestions.length,
+        isContributor: isContributorProvider(provider),
+        differences: compared.length,
         elsewhere: describeElsewhere({ faceFields, images }),
       });
-      suggestions.push(...compared.suggestions);
-      if (!isContributor && compared.suggestions.length > 0 && faceFields === 0 && images === 0) {
-        enterCandidateIds.push(candidate.id);
-      }
+      suggestions.push(...compared);
     }
   }
 
-  return { printing, suggestions, sources, agreeingFields, enterCandidateIds };
+  return { printing, suggestions, sources };
 }
 
 export interface PrintingCompareGroup {

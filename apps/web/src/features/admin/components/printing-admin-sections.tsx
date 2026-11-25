@@ -3,6 +3,7 @@ import {
   REQUIRED_PRINTING_FIELD_KEYS,
 } from "@openrift/shared/contracts/admin/card-mutations";
 import { marketplaceLabel } from "@openrift/shared/marketplace";
+import { marketplaceSkuKey } from "@openrift/shared/marketplace-sku-key";
 import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
 import type {
   AdminCardDetailResponse,
@@ -151,7 +152,12 @@ export function PrintingMarketplaceCard({
           <CardList>
             {mappings.map((mapping) => (
               <li
-                key={`${mapping.marketplace}:${mapping.externalId}:${mapping.finish}:${mapping.variantLanguage ?? ""}`}
+                key={marketplaceSkuKey(
+                  mapping.marketplace,
+                  mapping.externalId,
+                  mapping.finish,
+                  mapping.variantLanguage,
+                )}
                 className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm"
               >
                 <span className="w-28 shrink-0 font-medium">

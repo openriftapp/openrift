@@ -4,9 +4,7 @@ import type { WorkspaceRecordActions } from "@/features/catalog-workspace/stores
 import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
 import { useConstant } from "@/lib/use-constant";
 
-export type RecordActions = WorkspaceRecordActions;
-
-export function useRegisterRecordActions(actions: RecordActions): void {
+export function useRegisterRecordActions(actions: WorkspaceRecordActions): void {
   const owner = useConstant(() => Symbol("record-actions"));
 
   useEffect(() => {

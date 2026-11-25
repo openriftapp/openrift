@@ -7,10 +7,17 @@ import { enumLabel } from "@openrift/shared/enum-label";
 import type { LabelMap } from "@openrift/shared/enum-label";
 import type { EnumOrders } from "@openrift/shared/types/enums";
 
+import {
+  CARD_FIELD_LABELS,
+  CARD_TEXT_FIELD_LABELS,
+  PRINTING_FIELD_LABELS,
+  SOURCE_COLUMN_LABELS,
+} from "@/features/admin/lib/catalog-field-labels";
 import { formatFieldValue } from "@/features/admin/lib/field-value-text";
 import type { CardTextVariant } from "@/features/contribute/components/card-text-input";
 import type { EnumLabels } from "@/lib/enum-labels";
 import type { FilterCategory } from "@/lib/icons";
+import { parseIntegerInput } from "@/lib/integer-input";
 
 function toLabeledOptions(
   slugs: readonly string[],
@@ -45,43 +52,52 @@ export function candidateCardFieldDefs(
   labels: EnumLabels,
 ): FieldDef<CandidateCardFieldKey>[] {
   return [
-    { key: "externalId", label: "External ID", readOnly: true, collapsible: true },
-    { key: "energy", label: "Energy", type: "number" },
-    { key: "power", label: "Power", type: "number" },
-    { key: "might", label: "Might", type: "number" },
+    {
+      key: "externalId",
+      label: SOURCE_COLUMN_LABELS.externalId,
+      readOnly: true,
+      collapsible: true,
+    },
+    { key: "energy", label: CARD_FIELD_LABELS.energy, type: "number" },
+    { key: "power", label: CARD_FIELD_LABELS.power, type: "number" },
+    { key: "might", label: CARD_FIELD_LABELS.might, type: "number" },
     {
       key: "superTypes",
-      label: "Supertypes",
+      label: CARD_FIELD_LABELS.superTypes,
       labeledOptions: toLabeledOptions(orders.superTypes, labels.superTypes),
       array: true,
     },
     {
       key: "types",
-      label: "Types",
+      label: CARD_FIELD_LABELS.types,
       labeledOptions: toLabeledOptions(orders.cardTypes, labels.cardTypes),
       array: true,
     },
-    { key: "name", label: "Name" },
+    { key: "name", label: CARD_FIELD_LABELS.name },
     {
       key: "domains",
-      label: "Domains",
+      label: CARD_FIELD_LABELS.domains,
       labeledOptions: toLabeledOptions(orders.domains, labels.domains),
       array: true,
     },
-    { key: "mightBonus", label: "Might Bonus", type: "number" },
-    { key: "tags", label: "Tags", array: true },
-    { key: "maxCopiesOverride", label: "Max Copies Override", type: "number" },
-    { key: "additionalLegendCount", label: "Additional Legends", type: "number" },
-    { key: "comment", label: "Comment" },
-    { key: "extraData", label: "Extra Data", readOnly: true, collapsible: true },
+    { key: "mightBonus", label: CARD_FIELD_LABELS.mightBonus, type: "number" },
+    { key: "tags", label: CARD_FIELD_LABELS.tags, array: true },
+    { key: "maxCopiesOverride", label: CARD_FIELD_LABELS.maxCopiesOverride, type: "number" },
+    {
+      key: "additionalLegendCount",
+      label: CARD_FIELD_LABELS.additionalLegendCount,
+      type: "number",
+    },
+    { key: "comment", label: CARD_FIELD_LABELS.comment },
+    { key: "extraData", label: SOURCE_COLUMN_LABELS.extraData, readOnly: true, collapsible: true },
   ];
 }
 
 // Not columns on `cards` (text lives on printedRulesText + errata); the accept
 // endpoints reject them, so they appear only on the new-card page.
 const NEW_CARD_TEXT_FIELDS: FieldDef<"rulesText" | "effectText">[] = [
-  { key: "rulesText", label: "Rules Text", multiline: true, richText: true },
-  { key: "effectText", label: "Effect Text", multiline: true, richText: true },
+  { key: "rulesText", label: CARD_TEXT_FIELD_LABELS.rulesText, multiline: true, richText: true },
+  { key: "effectText", label: CARD_TEXT_FIELD_LABELS.effectText, multiline: true, richText: true },
 ];
 
 export type NewCardFieldKey = CandidateCardFieldKey | "rulesText" | "effectText";
@@ -112,78 +128,108 @@ export function candidatePrintingFieldDefs(
   languages?: readonly { value: string; label: string }[],
 ): FieldDef<CandidatePrintingFieldKey>[] {
   return [
-    { key: "externalId", label: "External ID", readOnly: true, collapsible: true },
-    { key: "publicCode", label: "Public Code", alwaysVisible: true },
+    {
+      key: "externalId",
+      label: SOURCE_COLUMN_LABELS.externalId,
+      readOnly: true,
+      collapsible: true,
+    },
+    { key: "publicCode", label: PRINTING_FIELD_LABELS.publicCode, alwaysVisible: true },
 
     {
       key: "rarity",
-      label: "Rarity",
+      label: PRINTING_FIELD_LABELS.rarity,
       labeledOptions: toLabeledOptions(orders.rarities, labels.rarities),
       iconCategory: "rarities",
       alwaysVisible: true,
     },
     {
       key: "finish",
-      label: "Finish",
+      label: PRINTING_FIELD_LABELS.finish,
       labeledOptions: toLabeledOptions(orders.finishes, labels.finishes),
       alwaysVisible: true,
     },
     {
       key: "artVariant",
-      label: "Art Variant",
+      label: PRINTING_FIELD_LABELS.artVariant,
       labeledOptions: toLabeledOptions(orders.artVariants, labels.artVariants),
     },
     {
       key: "size",
-      label: "Size",
+      label: PRINTING_FIELD_LABELS.size,
       labeledOptions: toLabeledOptions(orders.cardSizes, labels.cardSizes),
     },
-    { key: "isSigned", label: "Signed", type: "boolean" },
-    { key: "isOvernumbered", label: "Overnumbered", type: "boolean" },
+    { key: "isSigned", label: PRINTING_FIELD_LABELS.isSigned, type: "boolean" },
+    { key: "isOvernumbered", label: PRINTING_FIELD_LABELS.isOvernumbered, type: "boolean" },
     {
       key: "markerSlugs",
-      label: "Markers",
+      label: PRINTING_FIELD_LABELS.markerSlugs,
       labeledOptions: markers.length > 0 ? markers : undefined,
       array: true,
     },
     {
       key: "distributionChannelSlugs",
-      label: "Distribution",
+      label: PRINTING_FIELD_LABELS.distributionChannelSlugs,
       labeledOptions: distributionChannels.length > 0 ? distributionChannels : undefined,
       array: true,
     },
     {
       key: "artist",
-      label: "Artist",
+      label: PRINTING_FIELD_LABELS.artist,
       suggestions: artistSuggestions?.length ? artistSuggestions : undefined,
     },
     {
       key: "language",
-      label: "Language",
+      label: PRINTING_FIELD_LABELS.language,
       labeledOptions: languages && languages.length > 0 ? languages : undefined,
     },
-    { key: "printedName", label: "Printed Name" },
-    { key: "printedYear", label: "Printed Year", type: "number" },
+    { key: "printedName", label: PRINTING_FIELD_LABELS.printedName },
+    { key: "printedYear", label: PRINTING_FIELD_LABELS.printedYear, type: "number" },
     {
       key: "printedRulesText",
-      label: "Printed Rules",
+      label: PRINTING_FIELD_LABELS.printedRulesText,
       multiline: true,
       richText: true,
       alwaysVisible: true,
     },
-    { key: "printedEffectText", label: "Printed Effect", multiline: true, richText: true },
+    {
+      key: "printedEffectText",
+      label: PRINTING_FIELD_LABELS.printedEffectText,
+      multiline: true,
+      richText: true,
+    },
     {
       key: "flavorText",
-      label: "Flavor Text",
+      label: PRINTING_FIELD_LABELS.flavorText,
       multiline: true,
       richText: true,
       richTextVariant: "flavor",
       alwaysVisible: true,
     },
-    { key: "comment", label: "Comment" },
-    { key: "extraData", label: "Extra Data", readOnly: true, collapsible: true },
-    { key: "imageUrl", label: "Image", readOnly: true, alwaysVisible: true },
+    { key: "comment", label: PRINTING_FIELD_LABELS.comment },
+    { key: "extraData", label: SOURCE_COLUMN_LABELS.extraData, readOnly: true, collapsible: true },
+    { key: "imageUrl", label: SOURCE_COLUMN_LABELS.imageUrl, readOnly: true, alwaysVisible: true },
   ];
+}
+
+/** `ok` is false only for a number that does not parse; a blank input is `null`. */
+export function parseFieldInput(
+  field: Pick<FieldDef, "array" | "type">,
+  raw: string,
+): { ok: boolean; value: unknown } {
+  const trimmed = raw.trim();
+  if (field.array === true) {
+    const items = trimmed
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+    return { ok: true, value: items.length > 0 ? items : null };
+  }
+  if (field.type === "number") {
+    const parsed = parseIntegerInput(trimmed);
+    return { ok: parsed !== undefined, value: parsed ?? null };
+  }
+  return { ok: true, value: trimmed.length > 0 ? trimmed : null };
 }
 
 export function hasDropdown(field: FieldDef): boolean {

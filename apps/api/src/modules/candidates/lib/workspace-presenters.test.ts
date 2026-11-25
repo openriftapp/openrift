@@ -717,18 +717,6 @@ describe("toWorkspaceQueueResponse", () => {
     ...over,
   });
 
-  it("narrows items to the requested owner", () => {
-    const response = toWorkspaceQueueResponse(
-      [
-        item({ id: "a" }),
-        item({ id: "b", segment: "new", createdAt: T1.toISOString() }),
-        item({ id: "c", owner: "face" }),
-      ],
-      "face",
-    );
-    expect(response.items.map((row) => row.id)).toEqual(["c"]);
-  });
-
   it("orders items oldest first", () => {
     const response = toWorkspaceQueueResponse([
       item({ id: "late" }),

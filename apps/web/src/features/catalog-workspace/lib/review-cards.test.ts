@@ -4,7 +4,9 @@ import { describe, expect, it } from "vitest";
 import {
   pendingSummary,
   reviewCardsByKey,
+  reviewNeighbor,
   reviewSources,
+  reviewSteps,
   selectReviewCards,
   selectReviewQueue,
   summaryReviewKey,
@@ -115,7 +117,75 @@ describe("selectReviewQueue", () => {
 
   it("walks every card when no segment is open", () => {
     expect(selectReviewQueue(all, undefined)).toEqual(all);
-    expect(selectReviewQueue(all, "ready")).toEqual(all);
+  });
+});
+
+describe("reviewSteps", () => {
+  const reviewCards = [card({ key: "vi", cardSlug: "vi" }, { faces: 1 })];
+
+  it("walks the listing cards in the Listings segment", () => {
+    const listingCards = [{ cardSlug: "jinx" }, { cardSlug: "ahri" }];
+    expect(reviewSteps("listings", { reviewCards, listingCards })).toEqual([
+      { key: "jinx", cardSlug: "jinx" },
+      { key: "ahri", cardSlug: "ahri" },
+    ]);
+  });
+
+  it("walks each ready card once in the Ready segment and skips rows with no page", () => {
+    const readyRows = [
+      { cardSlug: null, reviewKey: "new:teemo" },
+      { cardSlug: "jinx", reviewKey: null },
+      { cardSlug: "jinx", reviewKey: null },
+      { cardSlug: null, reviewKey: null },
+    ];
+    expect(reviewSteps("ready", { reviewCards, readyRows })).toEqual([
+      { key: "new:teemo", cardSlug: null },
+      { key: "jinx", cardSlug: "jinx" },
+    ]);
+  });
+
+  it("walks the review cards in the other segments", () => {
+    expect(reviewSteps("review", { reviewCards })).toEqual(reviewCards);
+    expect(reviewSteps(undefined, { reviewCards })).toEqual(reviewCards);
+  });
+
+  it("walks nothing while a segment's list has not loaded", () => {
+    expect(reviewSteps("ready", { reviewCards })).toEqual([]);
+    expect(reviewSteps("listings", { reviewCards })).toEqual([]);
+  });
+});
+
+describe("reviewNeighbor", () => {
+  const step = (key: string) => ({ key });
+  const steps = [step("ahri"), step("new:jinx"), step("vi")];
+
+  it("steps forward and back through the list", () => {
+    expect(reviewNeighbor(steps, "new:jinx", 1, 1)?.key).toBe("vi");
+    expect(reviewNeighbor(steps, "new:jinx", -1, 1)?.key).toBe("ahri");
+  });
+
+  it("is null past either end", () => {
+    expect(reviewNeighbor(steps, "vi", 1, 2)).toBeNull();
+    expect(reviewNeighbor(steps, "ahri", -1, 0)).toBeNull();
+  });
+
+  it("steps from the slot a resolved card left behind", () => {
+    const rest = [step("ahri"), step("vi")];
+    expect(reviewNeighbor(rest, "new:jinx", 1, 1)?.key).toBe("vi");
+    expect(reviewNeighbor(rest, "new:jinx", -1, 1)?.key).toBe("ahri");
+    expect(reviewNeighbor(rest, "new:jinx", 1, 2)).toBeNull();
+    expect(reviewNeighbor(rest, "new:jinx", -1, 0)).toBeNull();
+  });
+
+  it("skips the card a new card turned into", () => {
+    const rest = [step("ahri"), step("jinx"), step("vi")];
+    expect(reviewNeighbor(rest, "new:jinx", 1, 1, "jinx")?.key).toBe("vi");
+    expect(reviewNeighbor([step("jinx")], "new:jinx", 1, 0, "jinx")).toBeNull();
+  });
+
+  it("opens the first card when the position was never known", () => {
+    expect(reviewNeighbor(steps, "lux", 1, -1)?.key).toBe("ahri");
+    expect(reviewNeighbor(steps, "lux", -1, -1)).toBeNull();
   });
 });
 

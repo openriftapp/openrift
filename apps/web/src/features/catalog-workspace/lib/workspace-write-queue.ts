@@ -34,19 +34,15 @@ interface EnqueueOptions {
   limit?: WriteLimit;
 }
 
-/** Runs workspace writes one at a time, in the order they were asked for. */
+/**
+ * Runs workspace writes one at a time, in the order they were asked for. `enqueue` resolves
+ * `false` when the task threw (already reported) or outran its limit, which frees the queue.
+ */
 export interface WorkspaceWriteQueue {
   idle: () => boolean;
-  /** True while a write for this record runs or waits. */
   holds: (record: symbol | null) => boolean;
-  /** True when every write that runs or waits belongs to this record, or none does. */
   holdsOnly: (record: symbol | null) => boolean;
-  /** True when the task that ran before the running one timed out. */
   previousTimedOut: () => boolean;
-  /**
-   * Resolves `false` when the task threw or got no answer within its limit; the error is already
-   * reported. A task past its limit frees the queue, which reloads before the next task runs.
-   */
   enqueue: (
     record: symbol | null,
     task: WorkspaceWriteTask,

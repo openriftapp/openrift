@@ -8,21 +8,21 @@ import { pluralize } from "@openrift/shared/strings";
 import type { UnmatchedCardDetailResponse } from "@openrift/shared/types/api/admin";
 import type { CardType } from "@openrift/shared/types/enums";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getRouteApi, useNavigate } from "@tanstack/react-router";
+import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Suspense, useRef, useState } from "react";
-import { toast } from "sonner";
 
 import { RouteErrorFallback } from "@/components/error-message";
 import { Heading } from "@/components/heading";
 import { PageTopBarButton, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
+import { TextLink } from "@/components/ui/text-link";
 import { hasDropdown, isValidOption } from "@/features/admin/components/candidate-field-defs";
 import {
   buildPreseededActiveCard,
@@ -32,11 +32,7 @@ import {
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import { RejectSubmissionDialog } from "@/features/admin/components/reject-submission-dialog";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
-import {
-  useAcceptNewCard,
-  useAcceptPrintingGroup,
-  useLinkCard,
-} from "@/features/admin/hooks/use-admin-card-mutations";
+import { useAcceptNewCard, useLinkCard } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAllCards, useUnmatchedCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
 import {
   useIgnoreNewCardDrafts,
@@ -59,6 +55,8 @@ import { CreationPanel } from "@/features/catalog-workspace/components/creation/
 import { NewCardFieldEditor } from "@/features/catalog-workspace/components/pass/new-card-pass-field-editor";
 import {
   ContributorNote,
+  PassNotice,
+  PassPlaceholder,
   PassTopBar,
   SourceUse,
 } from "@/features/catalog-workspace/components/pass/pass-parts";
@@ -69,18 +67,17 @@ import { WorkspaceUndoButton } from "@/features/catalog-workspace/components/wor
 import { ignoredCardsUndo } from "@/features/catalog-workspace/hooks/candidate-undo";
 import { useReviewNavigation } from "@/features/catalog-workspace/hooks/use-card-pass";
 import { useClearUndoOnLeave } from "@/features/catalog-workspace/hooks/use-clear-undo-on-leave";
-import { useValueLabels } from "@/features/catalog-workspace/hooks/use-face-record-actions";
+import { useAcceptPrintingDrafts } from "@/features/catalog-workspace/hooks/use-printing-creation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
+import { useValueLabels } from "@/features/catalog-workspace/hooks/use-value-labels";
 import { useWorkspaceKeyboard } from "@/features/catalog-workspace/hooks/use-workspace-keyboard";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import type { CreationDraft, DraftCard } from "@/features/catalog-workspace/lib/creation-draft";
-import { toAcceptInput } from "@/features/catalog-workspace/lib/creation-draft";
 import type { NewCardGroup } from "@/features/catalog-workspace/lib/new-card-groups";
 import {
   checkedGroupKeys,
   isDraftComplete,
-  runInSequence,
   seedNewCardGroups,
 } from "@/features/catalog-workspace/lib/new-card-groups";
 import {
@@ -93,8 +90,8 @@ import {
 } from "@/features/catalog-workspace/lib/new-card-pass";
 import { useWorkspaceRecordPaneStore } from "@/features/catalog-workspace/stores/workspace-record-pane-store";
 import { useEnumOrders } from "@/hooks/use-enums";
+import { errorText } from "@/lib/error-text";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
-import { PERSISTENT_ERROR_TOAST } from "@/lib/toast";
 
 const routeApi = getRouteApi("/_app/_authenticated/admin/workspace/cards/new/$name");
 
@@ -117,30 +114,9 @@ export function NewCardPassPage() {
   return <NewCardPass key={normName} normName={normName} />;
 }
 
-function PassPlaceholder({ navigation }: { navigation: Navigation }) {
-  useRegisterRecordActions({ loading: true });
-  return (
-    <>
-      <PassTopBar position={navigation.position} />
-      <Skeleton className="h-16" />
-      <Skeleton className="h-64" />
-    </>
-  );
-}
-
-function PassNotice({ navigation, children }: { navigation: Navigation; children: ReactNode }) {
-  useRegisterRecordActions({});
-  return (
-    <>
-      <PassTopBar position={navigation.position} />
-      {children}
-    </>
-  );
-}
-
 function NewCardPass({ normName }: { normName: string }) {
   useClearUndoOnLeave();
-  const navigation = useReviewNavigation({ reviewKey: newCardReviewKey(normName) });
+  const navigation = useReviewNavigation(newCardReviewKey(normName));
   useWorkspaceKeyboard(navigation);
   const setPane = useWorkspaceRecordPaneStore((state) => state.setPane);
   const { data: access } = useAdminAccess();
@@ -157,7 +133,7 @@ function NewCardPass({ normName }: { normName: string }) {
       </PassNotice>
     );
   } else if (detail === undefined || setsData === undefined || (ignoring && !leaving)) {
-    body = <PassPlaceholder navigation={navigation} />;
+    body = <PassPlaceholder navigation={navigation} loading />;
   } else if (detail.sources.length === 0 && !leaving) {
     body = (
       <PassNotice navigation={navigation}>
@@ -168,7 +144,7 @@ function NewCardPass({ normName }: { normName: string }) {
     );
   } else {
     body = (
-      <Suspense fallback={<PassPlaceholder navigation={navigation} />}>
+      <Suspense fallback={<PassPlaceholder navigation={navigation} loading />}>
         <NewCardPassBody
           normName={normName}
           detail={detail}
@@ -221,8 +197,8 @@ function NewCardPassBody({
     adminKeys.workspace,
   ];
   const { providerSettings, newCardFields } = useCardDetailData(scope);
-  const acceptNewCard = useAcceptNewCard();
-  const acceptPrintingGroup = useAcceptPrintingGroup(scope);
+  const acceptNewCard = useAcceptNewCard({ inlineError: true });
+  const printingCreator = useAcceptPrintingDrafts(scope);
   const linkCard = useLinkCard();
   const ignoreDrafts = useIgnoreNewCardDrafts(scope);
   const { announce } = useWorkspaceUndo();
@@ -240,6 +216,8 @@ function NewCardPassBody({
   const [pickerSearch, setPickerSearch] = useState("");
   const [pickerTarget, setPickerTarget] = useState("");
   const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [failures, setFailures] = useState<readonly string[]>([]);
+  const [createdSlug, setCreatedSlug] = useState<string | null>(null);
   const accepting = useRef(false);
 
   const { displayName, sources } = detail;
@@ -268,8 +246,7 @@ function NewCardPassBody({
   const checked = new Set(checkedGroupKeys(groups, picks));
   const contributors = sources.filter((source) => source.provider === USER_SUBMISSION_PROVIDER);
   const canIgnore = isAdmin && contributors.length === 0 && ignorableSources(sources).length > 0;
-  const busy =
-    leaving || acceptNewCard.isPending || acceptPrintingGroup.isPending || linkCard.isPending;
+  const busy = leaving || acceptNewCard.isPending || printingCreator.pending || linkCard.isPending;
   const canAccept = hasRequiredActiveFields(activeCard) && cardId.length > 0;
   const types = Array.isArray(activeCard.types) ? (activeCard.types as CardType[]) : [];
   const landscape = getOrientation(types) === "landscape";
@@ -296,27 +273,21 @@ function NewCardPassBody({
     signal: AbortSignal,
     cardSlug: string,
     chosen: readonly NewCardGroup[],
-  ): Promise<boolean> {
+  ): Promise<string[]> {
     const created = await readCreatedCardId(queryClient, cardSlug);
     if (!created.ok) {
-      toast.error(
+      return [
         `The card was created, but its printings were not: ${created.reason}. They stay on the card as new printings.`,
-        PERSISTENT_ERROR_TOAST,
-      );
-      return false;
+      ];
     }
-    const cardUuid = created.id;
-    const failures = await runInSequence(chosen, (group) =>
-      acceptPrintingGroup.mutateAsync(toAcceptInput(group.draft, cardUuid), { signal }),
-    );
-    if (failures.length > 0) {
-      toast.error(
-        `Not created: ${failures.map((failure) => failure.item.label).join(", ")}. ${failures.length === 1 ? "It stays" : "They stay"} on the card as a new printing.`,
-        PERSISTENT_ERROR_TOAST,
-      );
-      return false;
-    }
-    return true;
+    const { notCreated, partial } = await printingCreator.acceptAll(signal, chosen, created.id);
+    const failed =
+      notCreated.length > 0
+        ? [
+            `Not created: ${notCreated.join(", ")}. ${notCreated.length === 1 ? "It stays" : "They stay"} on the card as a new printing.`,
+          ]
+        : [];
+    return [...failed, ...partial];
   }
 
   async function createCard(signal: AbortSignal) {
@@ -326,14 +297,16 @@ function NewCardPassBody({
     const cardFields = { id: cardId, ...activeCard } as AcceptNewCardBody["cardFields"];
     const issues = describeAcceptCardFieldIssues(cardFields);
     if (issues.length > 0) {
-      toast.error(`Can't create this card:\n${issues.join("\n")}`, PERSISTENT_ERROR_TOAST);
+      setFailures([`Can't create this card: ${issues.join(" ")}`]);
       return;
     }
     accepting.current = true;
+    setFailures([]);
     onLeavingChange(true);
     if (
-      !(await runReportedMutation(() =>
-        acceptNewCard.mutateAsync({ name: normName, cardFields }, { signal }),
+      !(await runReportedMutation(
+        () => acceptNewCard.mutateAsync({ name: normName, cardFields }, { signal }),
+        (error) => setFailures([errorText(error, "Could not create the card.")]),
       ))
     ) {
       accepting.current = false;
@@ -341,12 +314,14 @@ function NewCardPassBody({
       return;
     }
     const chosen = groups.filter((group) => checked.has(group.key));
-    const printingsCreated = chosen.length === 0 || (await acceptPrintings(signal, cardId, chosen));
-    if (printingsCreated) {
+    const printingFailures =
+      chosen.length === 0 ? [] : await acceptPrintings(signal, cardId, chosen);
+    if (printingFailures.length === 0) {
       navigation.goNext(cardId);
-    } else {
-      openCard(cardId);
+      return;
     }
+    setCreatedSlug(cardId);
+    setFailures(printingFailures);
   }
 
   async function ignoreCard(signal: AbortSignal) {
@@ -382,6 +357,7 @@ function NewCardPassBody({
   useRegisterRecordActions({
     accept: canAccept && !busy ? createCard : undefined,
     acceptLimit: "long",
+    ignore: canIgnore && !busy ? ignoreCard : undefined,
   });
 
   const pickAnother = isAdmin && (
@@ -405,6 +381,7 @@ function NewCardPassBody({
                 onClick={() => void queueWrite(ignoreCard)}
               >
                 Ignore
+                <Kbd>X</Kbd>
               </PageTopBarButton>
             )}
             {contributors[0] !== undefined && (
@@ -417,7 +394,7 @@ function NewCardPassBody({
             )}
             <PageTopBarPrimaryButton
               disabled={!canAccept || busy}
-              pending={acceptNewCard.isPending || acceptPrintingGroup.isPending}
+              pending={acceptNewCard.isPending || printingCreator.pending}
               onClick={() => void queueWrite(createCard, { limit: "long" })}
             >
               {newCardCreateLabel(checked.size)}
@@ -426,6 +403,25 @@ function NewCardPassBody({
           </>
         }
       />
+
+      {failures.length > 0 && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            {failures.map((failure) => (
+              <p key={failure}>{failure}</p>
+            ))}
+            {createdSlug !== null && (
+              <TextLink
+                render={
+                  <Link to="/admin/workspace/cards/$cardSlug" params={{ cardSlug: createdSlug }} />
+                }
+              >
+                Open the card
+              </TextLink>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="flex items-center gap-3">
         <PrintingImageBox
@@ -475,13 +471,13 @@ function NewCardPassBody({
 
       <RecordSection title="Card">
         <RecordFieldRow
-          label="Card ID"
+          label="Slug"
           value={<span className="font-mono">{cardId}</span>}
           onEdit={busy ? undefined : () => setEditingField(CARD_ID_FIELD)}
           editing={
             editingField === CARD_ID_FIELD ? (
               <Input
-                aria-label="Card ID"
+                aria-label="Slug"
                 value={cardIdEdit ?? detail.defaultCardId}
                 onChange={(event) => setCardIdEdit(event.target.value)}
                 onBlur={() => setEditingField(null)}

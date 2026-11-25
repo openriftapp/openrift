@@ -13,11 +13,11 @@ import {
 import { DialogForm } from "@/components/ui/dialog-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PRINTING_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
 import type {
   PrintingFieldOverrides,
   RequiredPrintingField,
 } from "@/features/admin/lib/printing-fields";
-import { REQUIRED_PRINTING_FIELD_LABELS } from "@/features/admin/lib/printing-fields";
 
 export function MissingFieldsDialog({
   open,
@@ -68,9 +68,7 @@ export function MissingFieldsDialog({
           <div className="flex flex-col gap-4 py-2">
             {missing.map((field) => (
               <div key={field} className="flex flex-col gap-1.5">
-                <Label htmlFor={`${fieldId}-${field}`}>
-                  {REQUIRED_PRINTING_FIELD_LABELS[field]}
-                </Label>
+                <Label htmlFor={`${fieldId}-${field}`}>{PRINTING_FIELD_LABELS[field]}</Label>
                 <Input
                   id={`${fieldId}-${field}`}
                   value={values[field] ?? ""}

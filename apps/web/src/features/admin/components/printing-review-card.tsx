@@ -9,7 +9,6 @@ import type {
   AdminPrintingCitation,
   AdminPrintingImageResponse,
   AdminPrintingResponse,
-  CandidateCardResponse,
   CandidatePrintingResponse,
   ProviderSettingResponse,
 } from "@openrift/shared/types/api/admin";
@@ -47,7 +46,7 @@ import { PrintingCitationsEditorView } from "@/features/admin/components/printin
 import { PrintingIdLabel } from "@/features/admin/components/printing-id-label";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import { PrintingImageSwitcher } from "@/features/admin/components/printing-image-switcher";
-import { PrintingSourceActions } from "@/features/admin/components/printing-source-actions";
+import { PrintingSourceColumnActions } from "@/features/admin/components/printing-source-actions";
 import { PrintingSourceImageCell } from "@/features/admin/components/printing-source-image-cell";
 import {
   useAcceptPrintingField,
@@ -79,47 +78,6 @@ import {
 import { RarityIcon } from "@/features/cards/components/rarity-icon";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
-
-interface PrintingSourceColumnActionsProps {
-  row?: CandidateCardResponse | CandidatePrintingResponse;
-  targets: { id: string; label: string }[];
-  sourceLabels: Record<string, string>;
-  onAssign: (input: { candidatePrintingIds: string[]; printingId: string | null }) => void;
-  onCopy: (input: { id: string; printingId: string }) => void;
-  onIgnore: (input: { provider: string; externalId: string; finish: string | null }) => void;
-  onDelete: (id: string) => void;
-}
-
-function PrintingSourceColumnActions({
-  row,
-  targets,
-  sourceLabels,
-  onAssign,
-  onCopy,
-  onIgnore,
-  onDelete,
-}: PrintingSourceColumnActionsProps) {
-  if (!row) {
-    return null;
-  }
-  const printingRow = row as CandidatePrintingResponse;
-  return (
-    <PrintingSourceActions
-      targets={targets.filter((target) => target.id !== printingRow.printingId)}
-      onAssign={(pid) => onAssign({ candidatePrintingIds: [row.id], printingId: pid })}
-      onCopy={(pid) => onCopy({ id: row.id, printingId: pid })}
-      onUnassign={() => onAssign({ candidatePrintingIds: [row.id], printingId: null })}
-      onIgnore={() =>
-        onIgnore({
-          provider: sourceLabels[printingRow.candidateCardId] ?? "",
-          externalId: row.externalId,
-          finish: printingRow.finish,
-        })
-      }
-      onDelete={() => onDelete(row.id)}
-    />
-  );
-}
 
 interface PrintingReviewCardProps {
   face: FaceRow;

@@ -15,10 +15,13 @@ import {
   reviewableProviderScope,
 } from "../../candidates/lib/card-review-scope.js";
 import { finishPrintingAccepts } from "../../candidates/services/accept-candidate-printings.js";
-import { acceptFavoriteNewCard } from "../../candidates/services/accept-gallery.js";
+import {
+  acceptFavoriteNewCard,
+  favoriteAcceptEvents,
+} from "../../candidates/services/accept-gallery.js";
 import { relinkCandidatePrintings } from "../../candidates/services/relink-candidates.js";
 import { assertFavoriteNewCardEligible } from "../../candidates/services/trusted-accept-checks.js";
-import { recordAdminEvent } from "../../system/services/record-admin-event.js";
+import { recordAdminEvent, recordAdminEvents } from "../../system/services/record-admin-event.js";
 import { deleteCard } from "../services/card-admin.js";
 import {
   acceptCardFieldValue,
@@ -194,20 +197,15 @@ export const adminCardMutationsCardsRouter = {
       await finishPrintingAccepts(context.repos, context.io, created, { catalogChanged: true });
     }
 
-    await recordAdminEvent(context.repos, context.userId, {
-      action: "card.accept-favorites",
-      entityType: "card",
-      entityId: result.cardSlug,
-      entityLabel: input.name,
-      cardSlug: result.cardSlug,
-      newValues: {
-        cardSlug: result.cardSlug,
-        printingsCreated: result.printingsCreated,
-        skipped: result.skipped,
-      },
-    });
+    await recordAdminEvents(context.repos, context.userId, () =>
+      Promise.resolve(favoriteAcceptEvents(result, input.name)),
+    );
 
-    return result;
+    return {
+      cardSlug: result.cardSlug,
+      printingsCreated: result.printingsCreated,
+      skipped: result.skipped,
+    };
   }),
 
   linkUnmatched: os.linkUnmatched.handler(async ({ input, context }): Promise<void> => {

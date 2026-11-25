@@ -81,8 +81,9 @@ const setDeskSecondSideFn = createServerFn({ method: "POST" })
     await apiOrpcClient(adminPrintingDeskContract, context.cookie).setSecondSide(data);
   });
 
-export function useSetDeskSecondSide() {
+export function useSetDeskSecondSide(meta?: MutationMeta) {
   return useMutationWithInvalidation<void, DeskSetSecondSideInput>({
+    meta,
     mutationFn: (vars, signal) => setDeskSecondSideFn({ data: vars, signal }),
     invalidates: [adminKeys.printingDesk.all, ...PUBLIC_CATALOG_KEYS],
   });

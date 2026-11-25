@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { AdminAccess } from "../../../middleware/require-admin.js";
 import type { WorkspaceRepos } from "./workspace-queue.js";
-import { faceWorkCounts, listWorkspaceRecords } from "./workspace-records.js";
+import { faceWorkCounts, listWorkspaceRecords, offsetCursor } from "./workspace-records.js";
 
 const ADMIN: AdminAccess = { isAdmin: true, sections: [] };
 const DESK: AdminAccess = { isAdmin: false, sections: ["printing-desk"] };
@@ -40,8 +40,8 @@ function makeRepos() {
         total: 7,
       }),
       listFaceRecords: vi.fn().mockResolvedValue({ rows: [], total: 0 }),
+      deskScope: vi.fn().mockResolvedValue({ promoIds: ["promo"], createdIds: ["own"] }),
     },
-    printingDesk: { listDeskPrintings: vi.fn().mockResolvedValue([{ printingId: "promo" }]) },
     adminEvents: { printingIdsCreatedBy: vi.fn().mockResolvedValue(["own"]) },
   };
 }
@@ -66,6 +66,15 @@ describe("listWorkspaceRecords", () => {
     expect(response.total).toBe(7);
   });
 
+  it("passes the cursor down as a row offset and the next cursor past this page", async () => {
+    const repos = makeRepos();
+    const response = await list(repos, ADMIN, { kind: "printing", limit: 2, cursor: "4" });
+    expect(repos.workspaceRecords.listPrintingRecords).toHaveBeenCalledWith(
+      expect.objectContaining({ offset: 4, limit: 2 }),
+    );
+    expect(response.nextCursor).toBe("6");
+  });
+
   it("passes the filter and the caller's created printings for mine", async () => {
     const repos = makeRepos();
     await list(repos, ADMIN, { kind: "printing", filter: "mine" });
@@ -81,6 +90,23 @@ describe("listWorkspaceRecords", () => {
     expect(repos.workspaceRecords.listPrintingRecords).toHaveBeenCalledWith(
       expect.objectContaining({ mineIds: ["own"], printingIds: ["promo", "own"] }),
     );
+    expect(repos.adminEvents.printingIdsCreatedBy).not.toHaveBeenCalled();
+  });
+
+  it("reads a desk holder's scope once and hands it to the face work", async () => {
+    const repos = makeRepos();
+    const loadFaceItems = vi.fn().mockResolvedValue([]);
+    await listWorkspaceRecords(repos as unknown as WorkspaceRepos, {
+      access: DESK,
+      userId: "user-1",
+      input: { kind: "face" },
+      loadFaceItems,
+    });
+    expect(repos.workspaceRecords.deskScope).toHaveBeenCalledTimes(1);
+    expect(loadFaceItems).toHaveBeenCalledWith({
+      promoIds: new Set(["promo"]),
+      createdIds: new Set(["own"]),
+    });
   });
 
   it("passes a face filter and drops one that belongs to printings", async () => {
@@ -114,6 +140,13 @@ function item(overrides: Partial<WorkspaceQueueItem>): WorkspaceQueueItem {
     ...overrides,
   };
 }
+
+describe("offsetCursor", () => {
+  it("reads a missing cursor as the first row", () => {
+    expect(offsetCursor(undefined)).toBe(0);
+    expect(offsetCursor("200")).toBe(200);
+  });
+});
 
 describe("faceWorkCounts", () => {
   it("adds up images and field differences per face and skips other owners", () => {

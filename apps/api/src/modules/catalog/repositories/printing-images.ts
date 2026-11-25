@@ -437,6 +437,24 @@ export function printingImagesRepo(db: Kysely<Database>) {
       await deactivateFace(db, await requireFaceId(printingId, face));
     },
 
+    /** The face's active image and whether another image waits to go live on it. */
+    async faceImageState(
+      printingId: string,
+      face: CardFace,
+    ): Promise<{ activeImageId: string | null; hasPending: boolean }> {
+      const faceId = await requireFaceId(printingId, face);
+      const rows = await db
+        .selectFrom("faceImages")
+        .select(["id", "isActive", "isActivationPending"])
+        .where("faceId", "=", faceId)
+        .where((eb) => eb.or([eb("isActive", "=", true), eb("isActivationPending", "=", true)]))
+        .execute();
+      return {
+        activeImageId: rows.find((row) => row.isActive)?.id ?? null,
+        hasPending: rows.some((row) => row.isActivationPending),
+      };
+    },
+
     /** The side of the linked printing whose card the candidate names; front when neither does. */
     async candidateFace(candidatePrintingId: string): Promise<CardFace> {
       const { rows } = await sql<{ face: CardFace }>`
@@ -522,6 +540,15 @@ export function printingImagesRepo(db: Kysely<Database>) {
         .set({ reviewedAt: sql<Date>`now()` })
         .where("id", "=", imageId)
         .where("reviewedAt", "is", null)
+        .execute();
+    },
+
+    async clearReviewed(imageId: string): Promise<void> {
+      await db
+        .updateTable("faceImages")
+        .set({ reviewedAt: null })
+        .where("id", "=", imageId)
+        .where("isActive", "=", false)
         .execute();
     },
 

@@ -11,6 +11,7 @@ import { TextLink } from "@/components/ui/text-link";
 import { InstantCell } from "@/features/admin/components/admin-crud-shared";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
+import { ListState } from "@/features/catalog-workspace/components/list-state";
 import { CardThumb } from "@/features/catalog-workspace/components/record/record-thumb";
 import type { BatchReason } from "@/features/catalog-workspace/hooks/use-workspace-batch";
 import {
@@ -183,7 +184,8 @@ export function ReadyTable({
   toolbarStart: ReactNode;
 }) {
   const queueWrite = useQueueWorkspaceWrite();
-  const { data: preview } = useQuery(readyPreviewQueryOptions());
+  const previewQuery = useQuery(readyPreviewQueryOptions());
+  const preview = previewQuery.data;
   const acceptCards = useBatchRun("trusted-cards");
   const acceptPrintings = useBatchRun("trusted-printings");
   const [result, setResult] = useState<{ done: number; skipped: BatchReason[] } | null>(null);
@@ -212,54 +214,56 @@ export function ReadyTable({
   }
 
   return (
-    <AdminTable
-      columns={readyColumns}
-      data={rows}
-      getRowKey={(row) => row.key}
-      stacked
-      rowClassName={() => "relative"}
-      emptyText={
-        all.length === 0
-          ? "No trusted source has a new card or printing to accept."
-          : "Nothing matches this search."
-      }
-      minWidth="min-w-[820px]"
-      toolbar={
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-3">
-            {toolbarStart}
-            <span className="text-muted-foreground flex-1 text-sm">
-              {heldBack > 0 && `${heldBack} held back`}
-            </span>
-            <Button
-              disabled={count === 0}
-              pending={pending}
-              onClick={() => void queueWrite(accept, { limit: "long" })}
-            >
-              Accept {count === 1 ? "this 1" : `these ${count}`}
-            </Button>
-          </div>
-          {result !== null && (
-            <div className="text-sm">
-              <p>
-                Created {result.done}.
-                {result.skipped.length > 0 &&
-                  ` ${countNoun(result.skipped.length, "row")} skipped:`}
-              </p>
-              {result.skipped.length > 0 && (
-                <ul className="text-muted-foreground">
-                  {result.skipped.map((entry) => (
-                    <li key={entry.key}>
-                      {entry.label}: {entry.reason}
-                    </li>
-                  ))}
-                </ul>
-              )}
+    <ListState isPending={previewQuery.isPending} error={previewQuery.error} toolbar={toolbarStart}>
+      <AdminTable
+        columns={readyColumns}
+        data={rows}
+        getRowKey={(row) => row.key}
+        stacked
+        rowClassName={() => "relative"}
+        emptyText={
+          all.length === 0
+            ? "No trusted source has a new card or printing to create."
+            : "Nothing matches this search."
+        }
+        minWidth="min-w-[820px]"
+        toolbar={
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-3">
+              {toolbarStart}
+              <span className="text-muted-foreground flex-1 text-sm">
+                {heldBack > 0 && `${heldBack} held back`}
+              </span>
+              <Button
+                disabled={count === 0}
+                pending={pending}
+                onClick={() => void queueWrite(accept, { limit: "long" })}
+              >
+                Create {count === 1 ? "this 1" : `these ${count}`}
+              </Button>
             </div>
-          )}
-        </div>
-      }
-    />
+            {result !== null && (
+              <div className="text-sm">
+                <p>
+                  Created {result.done}.
+                  {result.skipped.length > 0 &&
+                    ` ${countNoun(result.skipped.length, "row")} skipped:`}
+                </p>
+                {result.skipped.length > 0 && (
+                  <ul className="text-muted-foreground">
+                    {result.skipped.map((entry) => (
+                      <li key={entry.key}>
+                        {entry.label}: {entry.reason}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+        }
+      />
+    </ListState>
   );
 }
 

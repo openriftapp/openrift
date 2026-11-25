@@ -6,6 +6,8 @@ const TAG = "Admin - Catalog Workspace";
 
 const BATCH = "/api/admin/v1/catalog/workspace/batch";
 
+const MAX_BATCH_ITEMS = 10_000;
+
 export const workspaceTrustedCardsPreviewSchema = z.object({
   count: z.number().int().min(0),
   names: z.array(z.string()),
@@ -56,15 +58,15 @@ export const workspaceSuggestedListingsPreviewSchema = z.object({
 });
 
 export const workspaceAcceptTrustedCardsInputSchema = z.object({
-  names: z.array(z.string().min(1)),
+  names: z.array(z.string().min(1)).max(MAX_BATCH_ITEMS),
 });
 
 export const workspaceAcceptTrustedPrintingsInputSchema = z.object({
-  candidatePrintingIds: z.array(z.uuid()),
+  candidatePrintingIds: z.array(z.uuid()).max(MAX_BATCH_ITEMS),
 });
 
 export const workspaceAssignSuggestedListingsInputSchema = z.object({
-  listingKeys: z.array(z.string().min(1)).optional(),
+  listingKeys: z.array(z.string().min(1)).max(MAX_BATCH_ITEMS),
 });
 
 export const workspaceAssignSuggestedListingsResponseSchema = z.object({

@@ -3,7 +3,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
-import { toast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -12,16 +11,18 @@ const mocks = vi.hoisted(() => ({
   createPrinting: vi.fn(),
 }));
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
-vi.mock("@tanstack/react-router", () => ({ useNavigate: () => mocks.navigate }));
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => mocks.navigate,
+  Link: ({ children }: { children: ReactNode }) => <a href="/card">{children}</a>,
+}));
 vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
   useCreateCard: () => ({ mutateAsync: mocks.createCard, isPending: false }),
 }));
 vi.mock("@/features/admin/hooks/use-printing-desk", () => ({
   useCreateDeskPrinting: () => ({ mutateAsync: mocks.createPrinting, isPending: false }),
 }));
-vi.mock("@/features/admin/hooks/use-admin-image-mutations", () => ({
-  useUploadPrintingImage: () => ({ mutateAsync: vi.fn(), isPending: false }),
+vi.mock("@/features/catalog-workspace/hooks/use-printing-creation", () => ({
+  useCreationFollowUps: () => ({ finish: () => Promise.resolve(null), pending: false }),
 }));
 vi.mock("@/features/admin/lib/admin-card-queries", () => ({
   adminCardDetailQueryOptions: (cardSlug: string) => ({
@@ -80,10 +81,9 @@ describe("NewManualCardRecord", () => {
     mocks.navigate.mockReset();
     mocks.createCard.mockReset();
     mocks.createPrinting.mockReset();
-    vi.mocked(toast.error).mockClear();
   });
 
-  it("tells the admin why the first printing failed even though it moves on to the card", async () => {
+  it("stays on the record and says why the first printing failed", async () => {
     const user = userEvent.setup();
     mocks.createCard.mockResolvedValue({ cardSlug: "jinx-rebel" });
     mocks.createPrinting.mockRejectedValue(new Error("Short code already taken"));
@@ -94,11 +94,13 @@ describe("NewManualCardRecord", () => {
     await user.click(screen.getByRole("button", { name: "Fury" }));
     await user.click(screen.getByRole("button", { name: "Create card" }));
 
-    await waitFor(() => expect(mocks.navigate).toHaveBeenCalled());
-    expect(toast.error).toHaveBeenCalledWith(
-      "The card was created, but its printing was not: Short code already taken",
-      expect.anything(),
-    );
+    expect(
+      await screen.findByText(
+        "The card was created, but its printing was not: Short code already taken",
+      ),
+    ).toBeVisible();
+    expect(screen.getByText("Open the card")).toBeVisible();
+    expect(mocks.navigate).not.toHaveBeenCalled();
   });
 
   it("names a lost connection as the reason, not the browser's fetch error", async () => {
@@ -112,11 +114,13 @@ describe("NewManualCardRecord", () => {
     await user.click(screen.getByRole("button", { name: "Fury" }));
     await user.click(screen.getByRole("button", { name: "Create card" }));
 
-    await waitFor(() => expect(mocks.navigate).toHaveBeenCalled());
-    expect(toast.error).toHaveBeenCalledWith(
-      "The card was created, but its printing was not: Can't reach the server. Check your connection.",
-      expect.anything(),
-    );
+    expect(
+      await screen.findByText(
+        "The card was created, but its printing was not: Can't reach the server. Check your connection.",
+      ),
+    ).toBeVisible();
+    expect(screen.getByText("Open the card")).toBeVisible();
+    expect(mocks.navigate).not.toHaveBeenCalled();
   });
 
   it("marks a stat that is not a whole number and holds Create", async () => {

@@ -9,7 +9,8 @@ import {
   loadKnownPrintingRefs,
   unknownPrintingRefs,
 } from "../../catalog/lib/printing-refs.js";
-import { facePrintedFieldConflict } from "../../catalog/services/printing-admin.js";
+import { facePrintedFieldConflicts } from "../../catalog/services/printing-admin.js";
+import type { CandidateAcceptFields } from "../lib/candidate-printing-accept.js";
 import { acceptFieldsFromCandidate } from "../lib/candidate-printing-accept.js";
 import type {
   IneligibleTrustedCard,
@@ -70,25 +71,34 @@ export async function assertFavoriteNewCardEligible(
   }
 }
 
-export function trustedPrintingRefusal(
+export async function trustedPrintingRefusals(
   repos: Pick<Repos, "catalogMutations" | "sets" | "keywords">,
-  group: TrustedPrintingGroup,
+  groups: readonly TrustedPrintingGroup[],
   known: KnownPrintingRefs,
   probes: readonly PrintingProbeRow[],
-): Promise<string | null> {
-  const accepted = acceptFieldsFromCandidate(group.first);
-  if (accepted.missing) {
-    return Promise.resolve(`missing: ${accepted.missing.join(", ")}`);
+): Promise<(string | null)[]> {
+  const refusals: (string | null)[] = [];
+  const faceChecks: { index: number; cardId: string; printingFields: CandidateAcceptFields }[] = [];
+  for (const [index, group] of groups.entries()) {
+    const accepted = acceptFieldsFromCandidate(group.first);
+    const unknown = accepted.missing ? [] : unknownPrintingRefs(accepted.fields, known);
+    const duplicate = findDuplicatePrinting(group, probes);
+    if (accepted.missing) {
+      refusals.push(`missing: ${accepted.missing.join(", ")}`);
+    } else if (unknown.length > 0) {
+      refusals.push(describeUnknownRefs(unknown));
+    } else if (duplicate) {
+      refusals.push(`possible duplicate of ${duplicate.shortCode}`);
+    } else {
+      refusals.push(null);
+      faceChecks.push({ index, cardId: group.cardId, printingFields: accepted.fields });
+    }
   }
-  const unknown = unknownPrintingRefs(accepted.fields, known);
-  if (unknown.length > 0) {
-    return Promise.resolve(describeUnknownRefs(unknown));
+  const conflicts = await facePrintedFieldConflicts(repos, faceChecks);
+  for (const [position, check] of faceChecks.entries()) {
+    refusals[check.index] = conflicts[position] ?? null;
   }
-  const duplicate = findDuplicatePrinting(group, probes);
-  if (duplicate) {
-    return Promise.resolve(`possible duplicate of ${duplicate.shortCode}`);
-  }
-  return facePrintedFieldConflict(repos, group.cardId, accepted.fields);
+  return refusals;
 }
 
 export async function markAcceptedCandidateCardsChecked(

@@ -1,4 +1,3 @@
-import type { ReviewCard } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import type {
   AdminCardDetailResponse,
@@ -11,6 +10,10 @@ import type {
 import type { AttentionSubmission } from "@/features/admin/lib/attention-items";
 import { unlinkedGroupCandidates } from "@/features/admin/lib/candidate-groups";
 import type { SetReleaseYears } from "@/features/admin/lib/set-release-years";
+import {
+  hiddenProviders as hiddenProvidersFor,
+  providerOf,
+} from "@/features/admin/lib/source-compare";
 import type { CreationDraft } from "@/features/catalog-workspace/lib/creation-draft";
 import {
   draftFromCandidatePrinting,
@@ -22,10 +25,7 @@ import type {
   FaceSuggestionModel,
   SuggestionSource,
 } from "@/features/catalog-workspace/lib/face-suggestion-rows";
-import {
-  buildFaceSuggestions,
-  providerOf,
-} from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import { buildFaceSuggestions } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import { closestPrintings } from "@/features/catalog-workspace/lib/printing-matches";
 import type { PrintingSuggestionModel } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
 import { buildPrintingSuggestions } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
@@ -70,17 +70,6 @@ export interface CardPassModel {
   dismiss: PassDismiss;
 }
 
-function passHiddenProviders(
-  providerSettings: readonly ProviderSettingResponse[],
-  isAdmin: boolean,
-): Set<string> {
-  return new Set(
-    providerSettings
-      .filter((setting) => setting.isHidden || (!isAdmin && !setting.helperReviewable))
-      .map((setting) => setting.provider),
-  );
-}
-
 export function faceImageWork(model: FaceSuggestionModel): {
   uploads: AdminPrintingImageResponse[];
   failedRehosts: AdminPrintingImageResponse[];
@@ -119,6 +108,12 @@ function firstBy<T>(items: readonly T[], key: (item: T) => string): T[] {
   });
 }
 
+export function uniquePrintingsByRank(
+  printings: readonly AdminPrintingResponse[],
+): AdminPrintingResponse[] {
+  return firstBy(byRank(printings), (row) => row.id);
+}
+
 export function buildCardPass(
   detail: AdminCardDetailResponse,
   options: {
@@ -128,18 +123,14 @@ export function buildCardPass(
     isAdmin: boolean;
   },
 ): CardPassModel {
-  const hiddenProviders = passHiddenProviders(options.providerSettings, options.isAdmin);
+  const hiddenProviders = hiddenProvidersFor(options.providerSettings, options.isAdmin);
   const context = {
     costKeywords: options.costKeywords,
     setTotals: detail.setTotals,
     hiddenProviders,
   };
   const visibleSources = detail.sources.filter((source) => !hiddenProviders.has(source.provider));
-  const card = buildCardSuggestions(
-    { ...detail, sources: visibleSources },
-    options.providerSettings,
-    options.submissions,
-  );
+  const card = buildCardSuggestions({ ...detail, sources: visibleSources }, options.submissions);
   const ranked = byRank(detail.printings);
 
   const faces = firstBy(ranked, (row) => row.faceId).map((face): PassFace => {
@@ -147,7 +138,7 @@ export function buildCardPass(
     return { face, model, ...faceImageWork(model) };
   });
 
-  const printings = firstBy(ranked, (row) => row.id).map((printing): PassPrinting => {
+  const printings = uniquePrintingsByRank(ranked).map((printing): PassPrinting => {
     const model = buildPrintingSuggestions([detail], printing.id, context);
     return { printing, model, pending: model.suggestions.length > 0 };
   });
@@ -223,10 +214,6 @@ export function showsFaceOnStop(
   return model.face !== null && (reviewedCardSlug === faceCardSlug || faceImageWork(model).pending);
 }
 
-export function existingPrintings(detail: AdminCardDetailResponse): AdminPrintingResponse[] {
-  return firstBy(byRank(detail.printings), (row) => row.id);
-}
-
 export interface PlacedNewPrintings<T> {
   after: Map<string | null, T[]>;
   ordered: T[];
@@ -238,7 +225,7 @@ export function placeNewPrintings<T extends { group: NewPrintingGroup }>(
   newRows: readonly T[],
 ): PlacedNewPrintings<T> {
   const shownIds = new Set(shownRows.map((row) => row.entry.printing.id));
-  const existing = existingPrintings(detail);
+  const existing = uniquePrintingsByRank(detail.printings);
   const after = Map.groupBy(newRows, (row): string | null => {
     const [lead] = row.group.candidates;
     if (lead === undefined) {
@@ -355,22 +342,6 @@ export function imageOrigin(
 
 export function isWebUrl(url: string): boolean {
   return url.startsWith("http://") || url.startsWith("https://");
-}
-
-export function reviewNeighbor(
-  cards: readonly ReviewCard[],
-  cardSlug: string,
-  delta: 1 | -1,
-  lastIndex: number,
-): ReviewCard | null {
-  const index = cards.findIndex((card) => card.cardSlug === cardSlug);
-  if (index !== -1) {
-    return cards[index + delta] ?? null;
-  }
-  if (lastIndex === -1) {
-    return delta === 1 ? (cards[0] ?? null) : null;
-  }
-  return cards[delta === 1 ? lastIndex : lastIndex - 1] ?? null;
 }
 
 interface PassContributor {

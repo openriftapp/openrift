@@ -22,8 +22,7 @@ describe.skipIf(!adminCtx)("Admin ignored-candidates routes (integration)", () =
     it("POST /admin/ignored-candidates/cards returns 403 for non-admin", async () => {
       const res = await nonAdminApp.fetch(
         adminReq("POST", "/ignored-candidates/cards", {
-          provider: "tcgplayer",
-          externalId: "iic-blocked",
+          sources: [{ provider: "tcgplayer", externalId: "iic-blocked" }],
         }),
       );
       expect(res.status).toBe(403);
@@ -54,8 +53,7 @@ describe.skipIf(!adminCtx)("Admin ignored-candidates routes (integration)", () =
     it("ignores a card", async () => {
       const res = await app.fetch(
         adminReq("POST", "/ignored-candidates/cards", {
-          provider: "tcgplayer",
-          externalId: "iic-card-001",
+          sources: [{ provider: "tcgplayer", externalId: "iic-card-001" }],
         }),
       );
       expect(res.status).toBe(204);
@@ -64,8 +62,7 @@ describe.skipIf(!adminCtx)("Admin ignored-candidates routes (integration)", () =
     it("ignores a second card (different provider)", async () => {
       const res = await app.fetch(
         adminReq("POST", "/ignored-candidates/cards", {
-          provider: "cardmarket",
-          externalId: "iic-card-002",
+          sources: [{ provider: "cardmarket", externalId: "iic-card-002" }],
         }),
       );
       expect(res.status).toBe(204);
@@ -74,8 +71,7 @@ describe.skipIf(!adminCtx)("Admin ignored-candidates routes (integration)", () =
     it("is idempotent (ignoring same card again succeeds)", async () => {
       const res = await app.fetch(
         adminReq("POST", "/ignored-candidates/cards", {
-          provider: "tcgplayer",
-          externalId: "iic-card-001",
+          sources: [{ provider: "tcgplayer", externalId: "iic-card-001" }],
         }),
       );
       expect(res.status).toBe(204);
@@ -83,14 +79,14 @@ describe.skipIf(!adminCtx)("Admin ignored-candidates routes (integration)", () =
 
     it("returns 400 for missing provider", async () => {
       const res = await app.fetch(
-        adminReq("POST", "/ignored-candidates/cards", { externalId: "iic-bad" }),
+        adminReq("POST", "/ignored-candidates/cards", { sources: [{ externalId: "iic-bad" }] }),
       );
       expect(res.status).toBe(400);
     });
 
     it("returns 400 for missing externalId", async () => {
       const res = await app.fetch(
-        adminReq("POST", "/ignored-candidates/cards", { provider: "tcgplayer" }),
+        adminReq("POST", "/ignored-candidates/cards", { sources: [{ provider: "tcgplayer" }] }),
       );
       expect(res.status).toBe(400);
     });
@@ -193,8 +189,7 @@ describe.skipIf(!adminCtx)("Admin ignored-candidates routes (integration)", () =
     it("unignores a card", async () => {
       const res = await app.fetch(
         adminReq("DELETE", "/ignored-candidates/cards", {
-          provider: "tcgplayer",
-          externalId: "iic-card-001",
+          sources: [{ provider: "tcgplayer", externalId: "iic-card-001" }],
         }),
       );
       expect(res.status).toBe(204);
@@ -203,8 +198,7 @@ describe.skipIf(!adminCtx)("Admin ignored-candidates routes (integration)", () =
     it("is idempotent (unignoring same card again succeeds)", async () => {
       const res = await app.fetch(
         adminReq("DELETE", "/ignored-candidates/cards", {
-          provider: "tcgplayer",
-          externalId: "iic-card-001",
+          sources: [{ provider: "tcgplayer", externalId: "iic-card-001" }],
         }),
       );
       expect(res.status).toBe(204);
@@ -213,8 +207,7 @@ describe.skipIf(!adminCtx)("Admin ignored-candidates routes (integration)", () =
     it("unignores second card", async () => {
       const res = await app.fetch(
         adminReq("DELETE", "/ignored-candidates/cards", {
-          provider: "cardmarket",
-          externalId: "iic-card-002",
+          sources: [{ provider: "cardmarket", externalId: "iic-card-002" }],
         }),
       );
       expect(res.status).toBe(204);

@@ -91,7 +91,7 @@ vi.mock("@/features/catalog-workspace/lib/workspace-queries", () => ({
 }));
 
 const { filterDeskTable, recordFilterFor, useWorkspaceRecords } =
-  await import("./use-workspace-queue");
+  await import("./use-workspace-records");
 
 function wrapper({ children }: { children: ReactNode }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -161,7 +161,6 @@ describe("useWorkspaceRecords", () => {
     expect(result.current.kind).toBe("card");
     expect(result.current.rows.map((row) => row.cardSlug)).toEqual(["ahri-alluring"]);
     expect(result.current.total).toBe(2);
-    expect(result.current.loadedRows).toHaveLength(2);
   });
 
   it("uses the desk list for desk holders", async () => {

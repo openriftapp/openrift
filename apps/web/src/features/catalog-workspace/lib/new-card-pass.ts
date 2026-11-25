@@ -1,6 +1,5 @@
 import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
 import { cardFieldsSchema } from "@openrift/shared/contracts/admin/card-mutations";
-import type { ReviewCard } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { pluralize } from "@openrift/shared/strings";
@@ -20,28 +19,6 @@ const NEW_CARD_FIELD_KEYS: ReadonlySet<string> = new Set(
 
 export function newCardReviewKey(normName: string): string {
   return `${NEW_CARD_KEY_PREFIX}${normName}`;
-}
-
-export function reviewNeighborByKey(
-  cards: readonly ReviewCard[],
-  key: string,
-  delta: 1 | -1,
-  lastIndex: number,
-  skipKey?: string,
-): ReviewCard | null {
-  const index = cards.findIndex((card) => card.key === key);
-  let targetIndex: number;
-  if (index !== -1) {
-    targetIndex = index + delta;
-  } else if (lastIndex === -1) {
-    targetIndex = delta === 1 ? 0 : -1;
-  } else {
-    targetIndex = delta === 1 ? lastIndex : lastIndex - 1;
-  }
-  if (skipKey !== undefined && cards[targetIndex]?.key === skipKey) {
-    targetIndex += delta;
-  }
-  return targetIndex < 0 ? null : (cards[targetIndex] ?? null);
 }
 
 export function newCardCreateLabel(printings: number): string {

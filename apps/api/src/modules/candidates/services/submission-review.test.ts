@@ -59,7 +59,7 @@ function createRepos(overrides: Record<string, unknown> = {}) {
     },
     cardTokens: { recomputeForPrintingCard: vi.fn() },
     catalog: { refreshCatalogViews: vi.fn(), refreshCardAggregates: vi.fn() },
-    ignoredCandidates: { ignoreCard: vi.fn() },
+    ignoredCandidates: { ignoreCards: vi.fn() },
     printingImages: {
       originalUrlsInUse: vi.fn().mockResolvedValue(new Set()),
       getCandidatePrintingById: vi
@@ -865,10 +865,9 @@ describe("rejectSubmission", () => {
       note: "No source for this printing",
       resolvedByUserId: ADMIN_ID,
     });
-    expect(repos.ignoredCandidates.ignoreCard).toHaveBeenCalledWith({
-      provider: "usersubmission",
-      externalId: "jinx--20260901--u1",
-    });
+    expect(repos.ignoredCandidates.ignoreCards).toHaveBeenCalledWith([
+      { provider: "usersubmission", externalId: "jinx--20260901--u1" },
+    ]);
     expect(repos.cardSubmissions.resolve).toHaveBeenCalledWith("sub-1", {
       status: "rejected",
       resolvedAt: NOW,
@@ -906,6 +905,6 @@ describe("rejectSubmission", () => {
         note: null,
       }),
     ).rejects.toBeInstanceOf(AppError);
-    expect(repos.ignoredCandidates.ignoreCard).not.toHaveBeenCalled();
+    expect(repos.ignoredCandidates.ignoreCards).not.toHaveBeenCalled();
   });
 });

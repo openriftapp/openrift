@@ -7,12 +7,12 @@ import type {
   DeskUpdateInput,
 } from "@openrift/shared/contracts/admin/printing-desk";
 import { extractCardIdFromShortCode, isTbaCode } from "@openrift/shared/printing-code";
-import { normalizeToPeriodStart } from "@openrift/shared/set-release";
 import type {
   AdminPrintingResponse,
   CandidatePrintingResponse,
 } from "@openrift/shared/types/api/admin";
 
+import { deskCreateFields, normalizedRelease } from "@/features/admin/lib/desk-printing-fields";
 import { buildPrintingFieldsFromCandidate } from "@/features/admin/lib/printing-fields";
 import type { SetReleaseYears } from "@/features/admin/lib/set-release-years";
 import { setReleaseYear } from "@/features/admin/lib/set-release-years";
@@ -535,12 +535,7 @@ export function findDuplicateCandidates(
 }
 
 function releaseFields(printing: DraftPrintingFields) {
-  return printing.releasedAt
-    ? normalizeToPeriodStart({
-        releasedAt: printing.releasedAt,
-        precision: printing.releasePrecision,
-      })
-    : { releasedAt: null, precision: null };
+  return normalizedRelease(printing.releasedAt, printing.releasePrecision);
 }
 
 function trimmedOrNull(value: string): string | null {
@@ -567,24 +562,18 @@ export function toDeskCreateInput(draft: CreationDraft): DeskCreateInput {
   }
   const face = requireFirstFace(draft);
   const { fields } = face;
-  const release = releaseFields(draft.printing);
-  const artist = fields.artist.trim();
   const basePrintingId = face.mode === "existing" ? face.printingId : draft.basePrintingId;
   return {
     cardId: draft.card.id,
-    setId: fields.setId,
-    distributionChannelSlugs: [...draft.printing.distributionChannelSlugs],
-    markerSlugs: [...fields.markerSlugs],
-    codeTba: fields.codeTba,
-    shortCode: fields.codeTba ? undefined : fields.shortCode.trim(),
-    finish: fields.finish,
-    language: fields.language,
-    size: draft.printing.size,
-    artist: artist.length > 0 ? artist : undefined,
-    announcedAt: draft.printing.announcedAt,
-    releasedAt: release.releasedAt,
-    releasePrecision: release.precision as DeskReleasePrecision | null,
-    comment: trimmedOrNull(draft.printing.comment),
+    ...deskCreateFields({
+      ...fields,
+      distributionChannelSlugs: draft.printing.distributionChannelSlugs,
+      size: draft.printing.size,
+      announcedAt: draft.printing.announcedAt,
+      releasedAt: draft.printing.releasedAt,
+      precision: draft.printing.releasePrecision,
+      comment: draft.printing.comment,
+    }),
     basePrintingId,
     duplicateFrom: draft.duplicateFrom,
     secondSideFaceId: secondSideFaceId(draft),

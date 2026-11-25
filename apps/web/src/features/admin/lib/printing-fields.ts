@@ -11,15 +11,6 @@ export type RequiredPrintingField = RequiredAcceptPrintingField;
 
 export type PrintingFieldOverrides = Partial<Record<RequiredPrintingField, string>>;
 
-export const REQUIRED_PRINTING_FIELD_LABELS: Record<RequiredPrintingField, string> = {
-  shortCode: "Short code",
-  setId: "Set",
-  rarity: "Rarity",
-  finish: "Finish",
-  artist: "Artist",
-  publicCode: "Public code",
-};
-
 export function buildPrintingFieldsFromCandidate(
   candidate: CandidatePrintingResponse,
   overrides: Partial<Record<RequiredPrintingField, string>> = {},

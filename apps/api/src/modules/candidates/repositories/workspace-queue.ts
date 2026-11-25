@@ -92,6 +92,18 @@ const reviewableProvider = sql<boolean>`(
 
 const cardForCandidate = liveCardForNorm(sql.ref("cc.norm_name"));
 
+const newPrintingVisible = sql<boolean>`(
+  cp.printing_id is null
+  and ${reviewableProvider}
+  and ${visibleCandidatePrinting("cp", "cc")}
+)`;
+
+const printingsOfFace = sql`
+  select fp.id, false as is_back from printings fp where fp.face1_id = f.id
+  union all
+  select bp.id, true as is_back from printings bp where bp.face2_id = f.id
+`;
+
 export function workspaceQueueRepo(db: Kysely<Database>) {
   return {
     async uncheckedCardDifferences(): Promise<WorkspaceCardDifferenceRow[]> {
@@ -165,6 +177,20 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
       return rows.rows;
     },
 
+    async newCandidatePrintingCard(
+      candidatePrintingId: string,
+    ): Promise<{ provider: string; cardSlug: string } | undefined> {
+      const rows = await sql<{ provider: string; cardSlug: string }>`
+        select cc.provider, live_card.slug as "cardSlug"
+        from candidate_printings cp
+        join candidate_cards cc on cc.id = cp.candidate_card_id
+        join lateral (${cardForCandidate}) live_card on true
+        where cp.id = ${candidatePrintingId}
+          and ${newPrintingVisible}
+      `.execute(db);
+      return rows.rows[0];
+    },
+
     async newCandidatePrintings(): Promise<WorkspaceNewPrintingRow[]> {
       const rows = await sql<WorkspaceNewPrintingRow>`
         select
@@ -183,9 +209,7 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
         from candidate_printings cp
         join candidate_cards cc on cc.id = cp.candidate_card_id
         join lateral (${cardForCandidate}) live_card on true
-        where cp.printing_id is null
-          and ${reviewableProvider}
-          and ${visibleCandidatePrinting("cp", "cc")}
+        where ${newPrintingVisible}
       `.execute(db);
       return rows.rows;
     },
@@ -201,12 +225,12 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
           c.name as "cardName",
           f.short_code as "shortCode",
           array_agg(pr.id order by pr.id) as "printingIds",
-          coalesce(bool_and(pr.face2_id = f.id), false) as "isBack",
+          coalesce(bool_and(pr.is_back), false) as "isBack",
           fi.is_activation_pending as "rehostFailed"
         from face_images fi
         join faces f on f.id = fi.face_id
         join cards c on c.id = f.card_id
-        join printings pr on f.id in (pr.face1_id, pr.face2_id)
+        join lateral (${printingsOfFace}) pr on true
         where not fi.is_active
           and fi.reviewed_at is null
           and (
@@ -226,12 +250,12 @@ export function workspaceQueueRepo(db: Kysely<Database>) {
           c.name as "cardName",
           f.short_code as "shortCode",
           array_agg(pr.id order by pr.id) as "printingIds",
-          coalesce(bool_and(pr.face2_id = f.id), false) as "isBack",
+          coalesce(bool_and(pr.is_back), false) as "isBack",
           true as "rehostFailed"
         from faces f
         join image_rehost_failures rf on rf.image_file_id = f.fallback_image_file_id
         join cards c on c.id = f.card_id
-        join printings pr on f.id in (pr.face1_id, pr.face2_id)
+        join lateral (${printingsOfFace}) pr on true
         where not exists (select 1 from public_image_files pif where pif.id = rf.image_file_id)
         group by rf.image_file_id, rf.last_attempt_at, f.id, c.slug, c.name
       `.execute(db);

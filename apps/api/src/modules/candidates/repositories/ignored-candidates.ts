@@ -17,20 +17,33 @@ export function ignoredCandidatesRepo(db: Kysely<Database>) {
         .execute();
     },
 
-    async ignoreCard(values: { provider: string; externalId: string }): Promise<void> {
+    async ignoreCards(sources: readonly { provider: string; externalId: string }[]): Promise<void> {
+      if (sources.length === 0) {
+        return;
+      }
       await db
         .insertInto("ignoredCandidateCards")
-        .values(values)
+        .values(sources.map(({ provider, externalId }) => ({ provider, externalId })))
         .onConflict((oc) => oc.columns(["provider", "externalId"]).doNothing())
         .execute();
     },
 
-    unignoreCard(provider: string, externalId: string): Promise<DeleteResult> {
-      return db
+    async unignoreCards(
+      sources: readonly { provider: string; externalId: string }[],
+    ): Promise<void> {
+      if (sources.length === 0) {
+        return;
+      }
+      await db
         .deleteFrom("ignoredCandidateCards")
-        .where("provider", "=", provider)
-        .where("externalId", "=", externalId)
-        .executeTakeFirst();
+        .where((eb) =>
+          eb.or(
+            sources.map(({ provider, externalId }) =>
+              eb.and([eb("provider", "=", provider), eb("externalId", "=", externalId)]),
+            ),
+          ),
+        )
+        .execute();
     },
 
     listIgnoredPrintings(): Promise<Selectable<IgnoredCandidatePrintingsTable>[]> {

@@ -20,13 +20,13 @@ function fakeMutation(): FakeMutation {
   return { isPending: false, mutateAsync: vi.fn(() => Promise.resolve()) };
 }
 
-const QUEUE_KEY = ["admin", "workspace", "queue", "all"];
+const OPEN_KEY = ["admin", "workspace", "candidate-printing-card", "candidate"];
 
 const RECORD_PATH = "/admin/workspace/printings/new/candidate";
 
 const state = vi.hoisted(() => ({
   detail: undefined as object | undefined,
-  queue: { items: [] } as object,
+  open: { cardSlug: null } as object,
   accept: null as unknown as FakeMutation,
   ignore: null as unknown as FakeMutation,
   desk: null as unknown as FakeMutation,
@@ -35,15 +35,20 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock("@/features/catalog-workspace/lib/workspace-queries", () => ({
-  workspaceQueueQueryOptions: () => ({
-    queryKey: ["admin", "workspace", "queue", "all"],
-    queryFn: () => state.queue,
+  candidatePrintingCardQueryOptions: () => ({
+    queryKey: ["admin", "workspace", "candidate-printing-card", "candidate"],
+    queryFn: () => state.open,
   }),
 }));
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children }: { children: unknown }) => children,
   useNavigate: () => state.navigate,
-  useRouter: () => ({ latestLocation: { pathname: RECORD_PATH } }),
+  useRouter: () => ({
+    latestLocation: {
+      pathname: RECORD_PATH,
+      state: { workspaceReview: { cardSlug: "trail-card", queue: "review", cardIndex: 0 } },
+    },
+  }),
   useRouterState: () => RECORD_PATH,
 }));
 vi.mock("@/features/admin/hooks/use-admin", () => ({
@@ -51,6 +56,7 @@ vi.mock("@/features/admin/hooks/use-admin", () => ({
 }));
 vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
   useAcceptPrintingGroup: () => state.accept,
+  useAcceptPrintingGroups: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useLinkCandidatePrintings: () => fakeMutation(),
 }));
 vi.mock("@/features/admin/hooks/use-admin-card-queries", () => ({
@@ -79,7 +85,7 @@ vi.mock("@/features/admin/hooks/use-provider-settings", () => ({
   useProviderSettings: () => ({ data: { providerSettings: [] } }),
 }));
 vi.mock("@/features/cards/hooks/use-sets", () => ({ useSets: () => ({ data: { sets: [] } }) }));
-vi.mock("@/features/catalog-workspace/hooks/use-face-record-actions", () => ({
+vi.mock("@/features/catalog-workspace/hooks/use-value-labels", () => ({
   useValueLabels: () => ({}),
 }));
 vi.mock("@/features/catalog-workspace/hooks/use-workspace-undo", () => ({
@@ -113,16 +119,14 @@ const card = makeAdminCard({ slug: "ekko", name: "Ekko, Recurrent" });
 const source = makeCandidateCard({ provider: "gallery", name: card.name });
 const candidate = makeCandidatePrinting({ candidateCardId: source.id });
 
-function queueWith(ids: readonly string[]) {
-  return {
-    items: ids.map((id) => ({ owner: "printing", ownerId: id, cardSlug: card.slug })),
-  };
+function openOn(cardSlug: string | null) {
+  return { cardSlug };
 }
 
 function renderRecord() {
   const client = new QueryClient();
-  state.queue = queueWith([candidate.id]);
-  client.setQueryData(QUEUE_KEY, state.queue);
+  state.open = openOn(card.slug);
+  client.setQueryData(OPEN_KEY, state.open);
   render(
     <QueryClientProvider client={client}>
       <NewPrintingRecord candidatePrintingId={candidate.id} />
@@ -152,12 +156,39 @@ afterEach(() => {
 });
 
 describe("NewPrintingRecord", () => {
+  it("ignores every source row of the group, as the card pass does", async () => {
+    const other = makeCandidateCard({ provider: "scans", name: card.name });
+    const sibling = makeCandidatePrinting({ candidateCardId: other.id });
+    state.detail = makeAdminCardDetail({
+      card,
+      sources: [source, other],
+      candidatePrintings: [candidate, sibling],
+      candidatePrintingGroups: [
+        {
+          mostCommonShortCode: candidate.shortCode,
+          shortCodes: [candidate.id, sibling.id],
+          expectedPrintingId: candidate.shortCode,
+          language: "EN",
+          suggestedPrintingId: null,
+        },
+      ],
+    });
+    renderRecord();
+
+    await waitFor(() => expect(useWorkspaceActionsStore.getState().actions?.ignore).toBeDefined());
+    await act(() =>
+      useWorkspaceActionsStore.getState().actions?.ignore?.(new AbortController().signal),
+    );
+
+    expect(state.ignore.mutateAsync).toHaveBeenCalledTimes(2);
+  });
+
   it("shows its loading state, not the accept form, while its own ignore runs", async () => {
     state.ignore.isPending = true;
     renderRecord();
 
     await waitFor(() => expect(useWorkspaceActionsStore.getState().actions?.loading).toBe(true));
-    expect(screen.queryByRole("button", { name: /^Accept/u })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Create/u })).toBeNull();
     expect(useWorkspaceActionsStore.getState().actions?.accept).toBeUndefined();
   });
 
@@ -172,13 +203,13 @@ describe("NewPrintingRecord", () => {
     );
     state.desk.mutateAsync.mockRejectedValue(new Error("Network down"));
 
-    const acceptButton = await screen.findByRole("button", { name: /^Accept/u });
+    const acceptButton = await screen.findByRole("button", { name: /^Create/u });
     act(() => acceptButton.click());
     await waitFor(() => expect(state.accept.mutateAsync).toHaveBeenCalledOnce());
     state.detail = makeAdminCardDetail({ card, sources: [source], candidatePrintings: [] });
-    state.queue = queueWith([]);
+    state.open = openOn(null);
     act(() => {
-      client.setQueryData(QUEUE_KEY, state.queue);
+      client.setQueryData(OPEN_KEY, state.open);
     });
     await act(async () => gate.created());
 
@@ -194,7 +225,7 @@ describe("NewPrintingRecord", () => {
 
   it("reports failed follow-up writes inline only, not as a toast", async () => {
     renderRecord();
-    await screen.findByRole("button", { name: /^Accept/u });
+    await screen.findByRole("button", { name: /^Create/u });
 
     expect(state.followUpMeta.length).toBeGreaterThan(0);
     for (const meta of state.followUpMeta) {
@@ -207,7 +238,7 @@ describe("NewPrintingRecord", () => {
     state.accept.mutateAsync.mockResolvedValue({ printingId: "printing-1" });
     state.desk.mutateAsync.mockRejectedValue(new Error("Network down"));
 
-    const acceptButton = await screen.findByRole("button", { name: /^Accept/u });
+    const acceptButton = await screen.findByRole("button", { name: /^Create/u });
     await act(async () => acceptButton.click());
 
     expect(
@@ -215,7 +246,7 @@ describe("NewPrintingRecord", () => {
         "The printing was created, but the dates and note did not save: Network down.",
       ),
     ).toBeVisible();
-    expect(screen.queryByRole("button", { name: /^Accept/u })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Create/u })).toBeNull();
     expect(useWorkspaceActionsStore.getState().actions?.accept).toBeUndefined();
     expect(useWorkspaceActionsStore.getState().actions?.ignore).toBeUndefined();
     expect(state.accept.mutateAsync).toHaveBeenCalledOnce();
@@ -225,13 +256,14 @@ describe("NewPrintingRecord", () => {
     renderRecord();
     state.accept.mutateAsync.mockResolvedValue({ printingId: "printing-1" });
 
-    const acceptButton = await screen.findByRole("button", { name: /^Accept/u });
+    const acceptButton = await screen.findByRole("button", { name: /^Create/u });
     await act(async () => acceptButton.click());
 
     await waitFor(() =>
       expect(state.navigate).toHaveBeenCalledExactlyOnceWith({
         to: "/admin/workspace/cards/$cardSlug",
         params: { cardSlug: card.slug },
+        search: { queue: "review" },
       }),
     );
   });
@@ -247,6 +279,7 @@ describe("NewPrintingRecord", () => {
       expect(state.navigate).toHaveBeenCalledExactlyOnceWith({
         to: "/admin/workspace/cards/$cardSlug",
         params: { cardSlug: card.slug },
+        search: { queue: "review" },
       }),
     );
   });
@@ -261,6 +294,7 @@ describe("NewPrintingRecord", () => {
       expect(state.navigate).toHaveBeenCalledExactlyOnceWith({
         to: "/admin/workspace/cards/$cardSlug",
         params: { cardSlug: card.slug },
+        search: { queue: "review" },
       }),
     );
   });

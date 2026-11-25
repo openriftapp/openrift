@@ -6,8 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PrintingLabel } from "@/features/admin/components/marketplace-printing-label";
+import { displayedProductLanguage } from "@/features/admin/lib/marketplace-product-entries";
 import { ListingAnyPrintingCombobox } from "@/features/catalog-workspace/components/listing-any-printing-combobox";
 import type { CardListingRow } from "@/features/catalog-workspace/lib/card-listing-rows";
+
+export function listingHighlight(row: Pick<CardListingRow, "marketplace" | "product">): {
+  finish: string;
+  language: string | undefined;
+  markers: boolean;
+} {
+  return {
+    finish: row.product.finish,
+    language: displayedProductLanguage(row.marketplace, row.product.language) ?? undefined,
+    markers: row.product.groupKind === "special",
+  };
+}
 
 export function ListingPrintingDialog({
   row,
@@ -29,6 +42,7 @@ export function ListingPrintingDialog({
   };
   const assignedIds = new Set(row.assignedPrintings.map((printing) => printing.printingId));
   const byId = new Map(row.assignablePrintings.map((printing) => [printing.printingId, printing]));
+  const highlight = listingHighlight(row);
   return (
     <Dialog
       open={open}
@@ -41,7 +55,7 @@ export function ListingPrintingDialog({
     >
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Assign #{row.product.externalId} to a printing</DialogTitle>
+          <DialogTitle>Map #{row.product.externalId} to a printing</DialogTitle>
         </DialogHeader>
         {anyCard ? (
           <Suspense fallback={<Skeleton className="h-9" />}>
@@ -79,8 +93,9 @@ export function ListingPrintingDialog({
                 <span className="font-mono">
                   <PrintingLabel
                     printing={printing}
-                    highlightFinish={row.product.finish}
-                    highlightLanguage={row.product.language ?? undefined}
+                    highlightFinish={highlight.finish}
+                    highlightLanguage={highlight.language}
+                    highlightMarkers={highlight.markers}
                   />
                 </span>
               ) : (

@@ -73,7 +73,7 @@ describe("batch outcomes", () => {
 
 describe("listingsBatchLabel", () => {
   it("counts the listings the batch assigns", () => {
-    expect(listingsBatchLabel(1)).toBe("Assign 1 listing by suggestion");
-    expect(listingsBatchLabel(4)).toBe("Assign 4 listings by suggestion");
+    expect(listingsBatchLabel(1)).toBe("Map 1 listing by suggestion");
+    expect(listingsBatchLabel(4)).toBe("Map 4 listings by suggestion");
   });
 });

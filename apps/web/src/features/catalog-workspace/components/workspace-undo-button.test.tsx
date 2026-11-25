@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { WorkspaceUndoEntry } from "@/features/catalog-workspace/lib/workspace-undo";
-import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
+import { useWorkspaceUndoStore } from "@/features/catalog-workspace/stores/workspace-undo-store";
 import { createStoreResetter } from "@/test/store-helpers";
 
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn() }) }));
@@ -14,7 +14,7 @@ const { WorkspaceUndoButton } = await import("./workspace-undo-button");
 let resetStore: () => void;
 
 beforeEach(() => {
-  resetStore = createStoreResetter(useWorkspaceSelectionStore);
+  resetStore = createStoreResetter(useWorkspaceUndoStore);
 });
 
 afterEach(() => {
@@ -48,8 +48,8 @@ describe("WorkspaceUndoButton", () => {
     const older = entry("Used Rarity from Provider A on Vi");
     const newer = entry("Discarded 1 image on Teemo, Scout");
     act(() => {
-      useWorkspaceSelectionStore.getState().pushUndo(older);
-      useWorkspaceSelectionStore.getState().pushUndo(newer);
+      useWorkspaceUndoStore.getState().pushUndo(older);
+      useWorkspaceUndoStore.getState().pushUndo(newer);
     });
     renderButton();
 
@@ -67,8 +67,8 @@ describe("WorkspaceUndoButton", () => {
 
   it("is disabled while an undo is running", () => {
     act(() => {
-      useWorkspaceSelectionStore.getState().pushUndo(entry("Ignored Ekko"));
-      useWorkspaceSelectionStore.getState().setUndoing(true);
+      useWorkspaceUndoStore.getState().pushUndo(entry("Ignored Ekko"));
+      useWorkspaceUndoStore.getState().setUndoing(true);
     });
     renderButton();
     expect(screen.getByRole("button", { name: "Undo: Ignored Ekko Z" })).toHaveProperty(

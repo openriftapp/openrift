@@ -21,27 +21,26 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
-import { useLinkCandidatePrintings } from "@/features/admin/hooks/use-admin-card-mutations";
-import { useIgnoreCandidatePrinting } from "@/features/admin/hooks/use-ignored-candidates";
 import type { AttentionSubmission } from "@/features/admin/lib/attention-items";
 import { PRINTING_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
 import type { PrintingValueLabels } from "@/features/admin/lib/field-value-text";
 import { EMPTY_VALUE_TEXT, formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
+import { providerOf } from "@/features/admin/lib/source-compare";
 import { ContributionActions } from "@/features/catalog-workspace/components/pass/pass-parts";
-import { ignoredPrintingUndo } from "@/features/catalog-workspace/hooks/candidate-undo";
-import { cardRecordScope } from "@/features/catalog-workspace/hooks/use-card-record-actions";
-import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
+import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
+import { useIgnorePrintingGroup } from "@/features/catalog-workspace/hooks/use-ignore-printing-group";
+import { useLinkToExisting } from "@/features/catalog-workspace/hooks/use-link-to-existing";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import type { NewPrintingGroup } from "@/features/catalog-workspace/lib/card-pass";
-import { existingPrintings, passContributor } from "@/features/catalog-workspace/lib/card-pass";
+import { passContributor, uniquePrintingsByRank } from "@/features/catalog-workspace/lib/card-pass";
 import type { CreationDraft } from "@/features/catalog-workspace/lib/creation-draft";
-import { providerOf } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import type { PrintingMatches } from "@/features/catalog-workspace/lib/printing-matches";
 import { closestPrintings } from "@/features/catalog-workspace/lib/printing-matches";
+import { cardRecordScope } from "@/features/catalog-workspace/lib/record-scopes";
 import { providerName } from "@/features/catalog-workspace/lib/review-cards";
-import { combinedUndo, ignoredUndoText } from "@/features/catalog-workspace/lib/workspace-undo";
+import type { ReviewTrail } from "@/features/catalog-workspace/lib/review-stops";
 import { cn } from "@/lib/utils";
 
 export interface NewPrintingRow {
@@ -98,7 +97,7 @@ function ClosestPrintings({
   labels: PrintingValueLabels;
   landscape: boolean;
   pending: boolean;
-  onLink?: (printingId: string) => void;
+  onLink?: (printing: AdminPrintingResponse) => void;
 }) {
   const code = formatPrintingCode(lead.shortCode);
   const language = lead.language ?? "";
@@ -164,9 +163,9 @@ function ClosestPrintings({
                 variant="outline"
                 size="sm"
                 disabled={pending}
-                onClick={() => onLink(printing.id)}
+                onClick={() => onLink(printing)}
               >
-                It is this one
+                Link to existing
               </Button>
             )}
           </div>
@@ -187,6 +186,8 @@ export function NewPrintingItem({
   cardSlug,
   detail,
   row,
+  acceptKey,
+  trail,
   isAdmin,
   landscape,
   labels,
@@ -200,6 +201,8 @@ export function NewPrintingItem({
   cardSlug: string;
   detail: AdminCardDetailResponse;
   row: NewPrintingRow;
+  acceptKey?: string;
+  trail: ReviewTrail;
   isAdmin: boolean;
   landscape: boolean;
   labels: PrintingValueLabels;
@@ -212,29 +215,22 @@ export function NewPrintingItem({
 }) {
   const queueWrite = useQueueWorkspaceWrite();
   const scope = cardRecordScope(cardSlug);
-  const link = useLinkCandidatePrintings(scope);
-  const ignore = useIgnoreCandidatePrinting(scope);
-  const { announce } = useWorkspaceUndo();
+  const link = useLinkToExisting(scope, detail.displayName);
+  const ignore = useIgnorePrintingGroup(scope);
 
-  const existing = existingPrintings(detail);
-  const pending = creating || link.isPending || ignore.isPending;
-
-  async function ignoreGroup(signal: AbortSignal, group: NewPrintingGroup) {
-    const ignored = group.candidates.map((candidate) => ({
-      provider: providerOf(detail, candidate.candidateCardId),
-      externalId: candidate.externalId,
-      finish: candidate.finish,
-    }));
-    for (const entry of ignored) {
-      await ignore.mutateAsync(entry, { signal });
-    }
-    const code = formatPrintingCode(group.candidates[0]?.shortCode ?? "");
-    announce(
-      combinedUndo(
-        ignoredUndoText({ what: code, record: detail.displayName }),
-        ignored.map((entry) => ignoredPrintingUndo(entry, detail.displayName)),
+  const existing = uniquePrintingsByRank(detail.printings);
+  const pending = creating || link.pending || ignore.pending;
+  const linkGroup = (group: NewPrintingGroup, printing: AdminPrintingResponse) =>
+    void queueWrite((signal) =>
+      link.run(
+        signal,
+        group.candidates.map((candidate) => candidate.id),
+        { id: printing.id, label: printing.expectedPrintingId },
       ),
     );
+
+  async function ignoreGroup(signal: AbortSignal, group: NewPrintingGroup) {
+    await ignore.run(signal, detail, group.candidates);
   }
 
   const { group, draft, ready: creatable } = row;
@@ -302,24 +298,12 @@ export function NewPrintingItem({
             <DropdownMenuContent align="end">
               {existing.length > 0 && (
                 <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>It is an existing printing…</DropdownMenuSubTrigger>
+                  <DropdownMenuSubTrigger>Link to existing…</DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
                     {existing.map((printing) => (
                       <DropdownMenuItem
                         key={printing.id}
-                        onClick={() =>
-                          void queueWrite((signal) =>
-                            link.mutateAsync(
-                              {
-                                candidatePrintingIds: group.candidates.map(
-                                  (candidate) => candidate.id,
-                                ),
-                                printingId: printing.id,
-                              },
-                              { signal },
-                            ),
-                          )
-                        }
+                        onClick={() => linkGroup(group, printing)}
                       >
                         {printing.expectedPrintingId}
                       </DropdownMenuItem>
@@ -338,16 +322,18 @@ export function NewPrintingItem({
           </DropdownMenu>
         )}
         {creatable && draft !== null ? (
-          <Button size="sm" disabled={pending} onClick={() => onCreate([draft])}>
+          <Button size="sm" disabled={pending} pending={creating} onClick={() => onCreate([draft])}>
             Create
+            {group.key === acceptKey && <Kbd>A</Kbd>}
           </Button>
         ) : (
           <Link
             to="/admin/workspace/printings/new/$candidatePrintingId"
             params={{ candidatePrintingId: lead.id }}
+            state={{ workspaceReview: trail }}
             className={buttonVariants({ size: "sm" })}
           >
-            Review and create
+            Open
           </Link>
         )}
       </div>
@@ -358,20 +344,7 @@ export function NewPrintingItem({
         labels={labels}
         landscape={landscape}
         pending={pending}
-        onLink={
-          isAdmin
-            ? (printingId) =>
-                void queueWrite((signal) =>
-                  link.mutateAsync(
-                    {
-                      candidatePrintingIds: group.candidates.map((candidate) => candidate.id),
-                      printingId,
-                    },
-                    { signal },
-                  ),
-                )
-            : undefined
-        }
+        onLink={isAdmin ? (printing) => linkGroup(group, printing) : undefined}
       />
     </div>
   );

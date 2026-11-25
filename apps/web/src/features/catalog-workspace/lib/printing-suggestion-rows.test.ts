@@ -49,10 +49,9 @@ describe("buildPrintingSuggestions", () => {
         elsewhere: "1 face field",
       }),
     ]);
-    expect(model.enterCandidateIds).toEqual([]);
   });
 
-  it("checks a source on Enter only when it differs on printing fields alone", () => {
+  it("names the image a source still differs on elsewhere", () => {
     const source = makeCandidateCard({ provider: "provider-a" });
     const sizeOnly = makeCandidatePrinting({
       candidateCardId: source.id,
@@ -77,7 +76,6 @@ describe("buildPrintingSuggestions", () => {
       [sizeOnly.id, null],
       [withImage.id, "1 image"],
     ]);
-    expect(model.enterCandidateIds).toEqual([sizeOnly.id]);
   });
 
   it("counts a candidate once when both faces' cards carry it", () => {
@@ -103,7 +101,7 @@ describe("buildPrintingSuggestions", () => {
     expect(model.suggestions).toHaveLength(1);
   });
 
-  it("leaves matching rows and contributor rows out of Enter", () => {
+  it("marks contributor rows and counts a matching row as no difference", () => {
     const provider = makeCandidateCard({ provider: "provider-a" });
     const contributor = makeCandidateCard({ provider: "usersubmission" });
     const matching = makeCandidatePrinting({ candidateCardId: provider.id, printingId: "p1" });
@@ -125,7 +123,6 @@ describe("buildPrintingSuggestions", () => {
       [proposal.id, 1],
     ]);
     expect(model.suggestions[0]?.isContributor).toBe(true);
-    expect(model.enterCandidateIds).toEqual([]);
   });
 });
 

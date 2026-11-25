@@ -25,6 +25,7 @@ export function CardAttentionSection({
   onOpenPrinting,
   printingFields,
   providerLabels,
+  isAdmin,
 }: {
   detail: AdminCardDetailResponse;
   cardSlug: string;
@@ -32,6 +33,7 @@ export function CardAttentionSection({
   onOpenPrinting: (printingId: string) => void;
   printingFields: FieldDef<CandidatePrintingFieldKey>[];
   providerLabels: Record<string, string>;
+  isAdmin: boolean;
 }) {
   const { data: providerSettingsData } = useProviderSettings();
   const costKeywords = useCostKeywords();
@@ -40,6 +42,7 @@ export function CardAttentionSection({
     detail,
     providerSettingsData.providerSettings,
     costKeywords,
+    isAdmin,
   );
   const { data: queue } = useReviewQueueWhen(submissions.length > 0);
 

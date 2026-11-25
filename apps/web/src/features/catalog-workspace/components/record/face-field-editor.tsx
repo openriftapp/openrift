@@ -1,5 +1,6 @@
 import { hasFieldValue } from "@openrift/shared/catalog-field-compare";
 import type { ComparablePrintingField } from "@openrift/shared/catalog-field-compare";
+import { REQUIRED_PRINTING_FIELD_KEYS } from "@openrift/shared/contracts/admin/card-mutations";
 import { fixTypography } from "@openrift/shared/fix-typography";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -14,6 +15,7 @@ import {
   dropdownOptions,
   hasDropdown,
   isMultiSelect,
+  parseFieldInput,
 } from "@/features/admin/components/candidate-field-defs";
 import { PRINTING_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
 import type { PrintingValueLabels } from "@/features/admin/lib/field-value-text";
@@ -23,18 +25,9 @@ import { RarityIcon } from "@/features/cards/components/rarity-icon";
 import { useSets } from "@/features/cards/hooks/use-sets";
 import { CardTextInput } from "@/features/contribute/components/card-text-input";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
-import { parseIntegerInput } from "@/lib/integer-input";
 
 const RULES_FIELDS: ReadonlySet<string> = new Set(["printedRulesText", "printedEffectText"]);
-const REQUIRED_FIELDS: ReadonlySet<string> = new Set([
-  "shortCode",
-  "setId",
-  "rarity",
-  "artVariant",
-  "finish",
-  "language",
-  "artist",
-]);
+const REQUIRED_FIELDS: ReadonlySet<string> = new Set(REQUIRED_PRINTING_FIELD_KEYS);
 const YES = "yes";
 const NO = "no";
 
@@ -115,9 +108,10 @@ export function FaceFieldEditor({
                 ? "number"
                 : "line";
 
-  const parsedNumber = text.trim() === "" ? null : parseIntegerInput(text.trim());
+  const parsed = parseFieldInput({ type: kind === "number" ? "number" : undefined }, text);
   const invalid =
-    (kind === "number" && parsedNumber === undefined) ||
+    !parsed.ok ||
+    (required && kind === "multi" && list.length === 0) ||
     (required && kind !== "multi" && text.trim() === "");
 
   function save() {
@@ -125,10 +119,8 @@ export function FaceFieldEditor({
       onSave(list.length > 0 ? list : null);
     } else if (kind === "boolean") {
       onSave(text === "true");
-    } else if (kind === "number") {
-      onSave(parsedNumber ?? null);
     } else {
-      onSave(text.trim() === "" ? null : text.trim());
+      onSave(parsed.value);
     }
   }
 

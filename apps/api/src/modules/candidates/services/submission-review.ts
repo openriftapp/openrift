@@ -419,10 +419,9 @@ export async function rejectSubmission(
       note,
       resolvedByUserId: adminUserId,
     });
-    await trx.ignoredCandidates.ignoreCard({
-      provider: candidate.provider,
-      externalId: candidate.externalId,
-    });
+    await trx.ignoredCandidates.ignoreCards([
+      { provider: candidate.provider, externalId: candidate.externalId },
+    ]);
     await trx.cardSubmissions.resolve(submission.id, {
       status: "rejected",
       resolvedAt: now,

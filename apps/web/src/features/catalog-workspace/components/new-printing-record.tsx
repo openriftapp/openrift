@@ -1,5 +1,4 @@
 import { formatPrintingCode } from "@openrift/shared/printing-code";
-import type { AdminPrintingResponse } from "@openrift/shared/types/api/admin";
 import { isListingOwnerId, parseListingCardOwnerId } from "@openrift/shared/workspace-listing-key";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
@@ -18,56 +17,40 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { TextLink } from "@/components/ui/text-link";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
-import {
-  useAcceptPrintingGroup,
-  useLinkCandidatePrintings,
-} from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAdminCardDetail } from "@/features/admin/hooks/use-admin-card-queries";
-import {
-  useAddImageFromUrl,
-  useUploadPrintingImage,
-} from "@/features/admin/hooks/use-admin-image-mutations";
-import { useIgnoreCandidatePrinting } from "@/features/admin/hooks/use-ignored-candidates";
-import { useUpdateDeskPrinting } from "@/features/admin/hooks/use-printing-desk";
 import { useProviderSettings } from "@/features/admin/hooks/use-provider-settings";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { unlinkedGroupCandidates } from "@/features/admin/lib/candidate-groups";
 import { favoriteProviderSet } from "@/features/admin/lib/candidate-rows";
-import { formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
 import { buildSetReleaseYears } from "@/features/admin/lib/set-release-years";
+import { providerOf } from "@/features/admin/lib/source-compare";
 import { useSets } from "@/features/cards/hooks/use-sets";
 import { CreationPanel } from "@/features/catalog-workspace/components/creation/creation-panel";
+import { ExistingPrintingsSection } from "@/features/catalog-workspace/components/record/existing-printings-section";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
+import { RecordError } from "@/features/catalog-workspace/components/record/record-error";
 import {
   RecordHeader,
   RecordNotice,
   RecordPane,
-  RecordSection,
 } from "@/features/catalog-workspace/components/record/record-pane";
-import { ignoredPrintingUndo } from "@/features/catalog-workspace/hooks/candidate-undo";
-import { useValueLabels } from "@/features/catalog-workspace/hooks/use-face-record-actions";
+import { useIgnorePrintingGroup } from "@/features/catalog-workspace/hooks/use-ignore-printing-group";
+import { useLinkToExisting } from "@/features/catalog-workspace/hooks/use-link-to-existing";
+import { useAcceptPrintingDrafts } from "@/features/catalog-workspace/hooks/use-printing-creation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
-import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
-import type {
-  CreationDraft,
-  PlannedImageUpload,
-} from "@/features/catalog-workspace/lib/creation-draft";
+import { uniquePrintingsByRank } from "@/features/catalog-workspace/lib/card-pass";
+import type { CreationDraft } from "@/features/catalog-workspace/lib/creation-draft";
 import {
   draftFromCandidatePrinting,
   duplicateProbeFromAdminPrinting,
   findDuplicateCandidates,
-  plannedImageUploads,
-  printingFollowUpFields,
-  toAcceptInput,
   validateDraft,
 } from "@/features/catalog-workspace/lib/creation-draft";
-import { providerOf } from "@/features/catalog-workspace/lib/face-suggestion-rows";
-import { workspaceQueueQueryOptions } from "@/features/catalog-workspace/lib/workspace-queries";
+import { cardRecordScope } from "@/features/catalog-workspace/lib/record-scopes";
+import { candidatePrintingCardQueryOptions } from "@/features/catalog-workspace/lib/workspace-queries";
 import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
 import { focusRecordPane } from "@/features/catalog-workspace/stores/workspace-record-pane-store";
-import { errorText } from "@/lib/error-text";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export function NewPrintingRecord({ candidatePrintingId }: { candidatePrintingId: string }) {
   if (
@@ -88,13 +71,12 @@ export function NewPrintingRecord({ candidatePrintingId }: { candidatePrintingId
 }
 
 function NewCandidatePrintingRecord({ candidatePrintingId }: { candidatePrintingId: string }) {
-  const { data: queue, isPending } = useQuery(workspaceQueueQueryOptions());
-  const [acceptedOn, setAcceptedOn] = useState<string | null>(null);
-  const item = queue?.items.find(
-    (entry) => entry.owner === "printing" && entry.ownerId === candidatePrintingId,
+  const { data: open, isPending } = useQuery(
+    candidatePrintingCardQueryOptions(candidatePrintingId),
   );
+  const [acceptedOn, setAcceptedOn] = useState<string | null>(null);
   // An accept drops the candidate from the queue before its follow-up writes finish.
-  const cardSlug = acceptedOn ?? item?.cardSlug ?? null;
+  const cardSlug = acceptedOn ?? open?.cardSlug ?? null;
 
   if (isPending) {
     return <Skeleton className="m-4 h-96" />;
@@ -118,12 +100,6 @@ function NewCandidatePrintingRecord({ candidatePrintingId }: { candidatePrinting
   );
 }
 
-function uniquePrintings(printings: readonly AdminPrintingResponse[]): AdminPrintingResponse[] {
-  return [...new Map(printings.map((printing) => [printing.id, printing])).values()].toSorted(
-    (a, b) => a.canonicalRank - b.canonicalRank,
-  );
-}
-
 function NewPrintingBody({
   cardSlug,
   candidatePrintingId,
@@ -138,21 +114,16 @@ function NewPrintingBody({
   const detail = detailQuery.data;
   const { data: access } = useAdminAccess();
   const isAdmin = access?.isAdmin === true;
-  const labels = useValueLabels();
   const { data: setsData } = useSets();
   const { data: providerData } = useProviderSettings();
   const navigate = useNavigate();
   const router = useRouter();
   const resolvedPathname = useRouterState({ select: (state) => state.resolvedLocation?.pathname });
   const queryClient = useQueryClient();
-  const scope = [adminKeys.cards.detail(cardSlug), adminKeys.cards.list, adminKeys.workspace];
-  const acceptGroup = useAcceptPrintingGroup(scope, { inlineError: true });
-  const linkCandidates = useLinkCandidatePrintings(scope);
-  const ignoreCandidate = useIgnoreCandidatePrinting(scope);
-  const { announce } = useWorkspaceUndo();
-  const updateDesk = useUpdateDeskPrinting({ inlineError: true });
-  const uploadImage = useUploadPrintingImage(scope, { inlineError: true });
-  const addImageFromUrl = useAddImageFromUrl(scope, { inlineError: true });
+  const scope = cardRecordScope(cardSlug);
+  const creator = useAcceptPrintingDrafts(scope);
+  const linkCandidates = useLinkToExisting(scope, detail?.displayName ?? cardSlug);
+  const ignoreGroup = useIgnorePrintingGroup(scope);
   const [draftEdit, setDraftEdit] = useState<CreationDraft | null>(null);
   const [working, setWorking] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -173,7 +144,12 @@ function NewPrintingBody({
     }
     useWorkspaceActionsStore.getState().leave(false);
     focusRecordPane();
-    void navigate({ to: "/admin/workspace/cards/$cardSlug", params: { cardSlug } });
+    const trail = router.latestLocation.state.workspaceReview;
+    void navigate({
+      to: "/admin/workspace/cards/$cardSlug",
+      params: { cardSlug },
+      search: { queue: trail?.queue, q: trail?.q },
+    });
   }
 
   const candidate = detail?.candidatePrintings.find((entry) => entry.id === candidatePrintingId);
@@ -204,7 +180,7 @@ function NewPrintingBody({
           ),
         };
   const draft = draftEdit ?? seeded;
-  const existing = uniquePrintings(detail?.printings ?? []);
+  const existing = uniquePrintingsByRank(detail?.printings ?? []);
   const duplicates =
     draft === null
       ? []
@@ -219,63 +195,24 @@ function NewPrintingBody({
     issues.length === 0 &&
     !working &&
     createdId === null &&
-    !acceptGroup.isPending;
-
-  const uploadOne = (signal: AbortSignal, printingId: string, upload: PlannedImageUpload) =>
-    upload.image.kind === "file"
-      ? uploadImage.mutateAsync(
-          { printingId, file: upload.image.file, mode: upload.mode, face: upload.face },
-          { signal },
-        )
-      : addImageFromUrl.mutateAsync(
-          { printingId, url: upload.image.url, mode: upload.mode, face: upload.face },
-          { signal },
-        );
+    !creator.pending;
 
   const acceptDraft = async (signal: AbortSignal, toCreate: CreationDraft) => {
     setWorking(true);
     setFailure(null);
     onAcceptingChange(true);
-    let created: Awaited<ReturnType<typeof acceptGroup.mutateAsync>> | undefined;
-    const ok = await runReportedMutation(
-      async () => {
-        created = await acceptGroup.mutateAsync(toAcceptInput(toCreate), { signal });
-      },
-      (error) => setFailure(errorText(error, "Could not accept the printing.")),
-    );
-    if (!ok || !created) {
+    const created = await creator.accept(signal, toCreate);
+    if (created.printingId === null) {
+      setFailure(created.failure);
       setWorking(false);
       onAcceptingChange(false);
       return;
     }
-    const printingId = created.printingId;
-    setCreatedId(printingId);
-    const followUp = isAdmin ? printingFollowUpFields(toCreate) : null;
-    const failed: string[] = [];
-    const reasons = new Set<string>();
-    const noteReason = (error: unknown) => reasons.add(errorText(error, "unknown error"));
-    if (
-      followUp !== null &&
-      !(await runReportedMutation(
-        () => updateDesk.mutateAsync({ printingId, ...followUp }, { signal }),
-        noteReason,
-      ))
-    ) {
-      failed.push("the dates and note");
-    }
-    if (isAdmin) {
-      for (const upload of plannedImageUploads(toCreate)) {
-        if (!(await runReportedMutation(() => uploadOne(signal, printingId, upload), noteReason))) {
-          failed.push("an image");
-        }
-      }
-    }
+    setCreatedId(created.printingId);
     await queryClient.invalidateQueries({ queryKey: adminKeys.workspace });
     setWorking(false);
-    if (failed.length > 0) {
-      setFailure(
-        `The printing was created, but ${failed.join(" and ")} did not save: ${[...reasons].join("; ")}.`,
-      );
+    if (created.failure !== null) {
+      setFailure(created.failure);
       return;
     }
     openCardPass();
@@ -295,10 +232,11 @@ function NewPrintingBody({
     if (candidate === undefined) {
       return;
     }
-    const ignored = { provider, externalId: candidate.externalId, finish: candidate.finish };
-    const entry = ignoredPrintingUndo(ignored, detail?.displayName ?? cardSlug);
-    if (await runReportedMutation(() => ignoreCandidate.mutateAsync(ignored, { signal }))) {
-      announce(entry);
+    if (detail === undefined) {
+      return;
+    }
+    const group = unlinkedGroupCandidates(detail, candidate.id);
+    if (await ignoreGroup.run(signal, detail, group.length === 0 ? [candidate] : group)) {
       openCardPass();
     }
   };
@@ -307,18 +245,14 @@ function NewPrintingBody({
     if (draft === null) {
       return;
     }
-    const ok = await runReportedMutation(() =>
-      linkCandidates.mutateAsync(
-        { candidatePrintingIds: draft.candidatePrintingIds, printingId },
-        { signal },
-      ),
-    );
-    if (ok) {
+    const label =
+      existing.find((printing) => printing.id === printingId)?.expectedPrintingId ?? printingId;
+    if (await linkCandidates.run(signal, draft.candidatePrintingIds, { id: printingId, label })) {
       openCardPass();
     }
   };
 
-  const ignoring = ignoreCandidate.isPending;
+  const ignoring = ignoreGroup.pending;
   useRegisterRecordActions({
     loading: (detail === undefined && !detailQuery.isError) || ignoring,
     accept: canAccept && !ignoring ? accept : undefined,
@@ -328,7 +262,11 @@ function NewPrintingBody({
 
   if (detail === undefined) {
     return detailQuery.isError ? (
-      <p className="text-muted-foreground p-4">The card could not be loaded.</p>
+      <RecordError
+        error={detailQuery.error}
+        missing={<>No card with ID &ldquo;{cardSlug}&rdquo; exists.</>}
+        onRetry={() => void detailQuery.refetch()}
+      />
     ) : (
       <Skeleton className="m-4 h-96" />
     );
@@ -374,7 +312,7 @@ function NewPrintingBody({
                 <Button
                   variant="outline"
                   size="sm"
-                  pending={ignoreCandidate.isPending}
+                  pending={ignoreGroup.pending}
                   onClick={() => void queueWrite(ignore)}
                 >
                   Ignore <Kbd>X</Kbd>
@@ -384,10 +322,10 @@ function NewPrintingBody({
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     render={
-                      <Button variant="outline" size="sm" disabled={linkCandidates.isPending} />
+                      <Button variant="outline" size="sm" disabled={linkCandidates.pending} />
                     }
                   >
-                    Merge into existing…
+                    Link to existing…
                     <ChevronDownIcon />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -405,9 +343,10 @@ function NewPrintingBody({
               <Button
                 size="sm"
                 disabled={!canAccept}
+                pending={working}
                 onClick={() => void queueWrite(accept, { limit: "upload" })}
               >
-                Accept <Kbd>A</Kbd>
+                Create <Kbd>A</Kbd>
               </Button>
             </>
           }
@@ -437,48 +376,20 @@ function NewPrintingBody({
       )}
       {!isAdmin && (
         <p className="text-muted-foreground text-sm">
-          Release dates, the note and extra images are added by an admin after the accept.
+          Release dates, the note and extra images are added by an admin once the printing is
+          created.
         </p>
       )}
 
-      <RecordSection title={`${detail.displayName} already has`}>
-        {existing.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No printings yet.</p>
-        ) : (
-          <ul className="space-y-1 text-sm">
-            {existing.map((printing) => (
-              <li key={printing.id} className="flex flex-wrap items-baseline gap-x-2">
-                <Link
-                  to="/admin/workspace/printings/$printingId"
-                  params={{ printingId: printing.id }}
-                  className="font-mono underline"
-                >
-                  {printing.expectedPrintingId}
-                </Link>
-                <span className="text-muted-foreground">
-                  {[
-                    printing.language,
-                    formatCatalogFieldValue("finish", printing.finish, labels),
-                    formatCatalogFieldValue("size", printing.size, labels),
-                    printing.markerSlugs.length > 0
-                      ? formatCatalogFieldValue("markerSlugs", printing.markerSlugs, labels)
-                      : null,
-                    printing.distributionChannelSlugs.length > 0
-                      ? formatCatalogFieldValue(
-                          "distributionChannelSlugs",
-                          printing.distributionChannelSlugs,
-                          labels,
-                        )
-                      : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </RecordSection>
+      <ExistingPrintingsSection
+        title={`${detail.displayName} already has`}
+        printings={existing.map((printing) => ({
+          ...printing,
+          key: printing.id,
+          printingId: printing.id,
+          code: printing.expectedPrintingId,
+        }))}
+      />
     </RecordPane>
   );
 }

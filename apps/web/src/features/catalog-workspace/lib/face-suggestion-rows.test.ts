@@ -1,6 +1,7 @@
 import type { AdminPrintingImageResponse } from "@openrift/shared/types/api/admin";
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { FACE_FIELDS } from "@/features/admin/lib/source-compare";
 import {
   makeAdminCardDetail,
   makeAdminPrinting,
@@ -11,9 +12,7 @@ import {
 
 import {
   buildFaceSuggestions,
-  candidateBelongsToFace,
   describeElsewhere,
-  FACE_FIELDS,
   FACE_FIELDS_FOR_READING,
   faceCompareCandidates,
 } from "./face-suggestion-rows";
@@ -59,32 +58,6 @@ describe("describeElsewhere", () => {
   });
 });
 
-describe("candidateBelongsToFace", () => {
-  const front = makeAdminPrinting({ id: "p1", side: 1, faceId: "f1", shortCode: "UNL-T02" });
-  const back = makeAdminPrinting({ id: "p1", side: 2, faceId: "f2", shortCode: "UNL-T03" });
-
-  it("rejects an unlinked candidate", () => {
-    expect(candidateBelongsToFace(makeCandidatePrinting(), "f1", [front])).toBe(false);
-  });
-
-  it("accepts a candidate on a printing that shows the face once", () => {
-    const candidate = makeCandidatePrinting({ printingId: "p1", shortCode: "anything" });
-    expect(candidateBelongsToFace(candidate, "f1", [front])).toBe(true);
-  });
-
-  it("splits a printing with this card on both faces by short code", () => {
-    const backCode = makeCandidatePrinting({ printingId: "p1", shortCode: "unl-t03" });
-    expect(candidateBelongsToFace(backCode, "f2", [front, back])).toBe(true);
-    expect(candidateBelongsToFace(backCode, "f1", [front, back])).toBe(false);
-  });
-
-  it("falls back to the front face when the code matches neither face", () => {
-    const other = makeCandidatePrinting({ printingId: "p1", shortCode: "OGN-001" });
-    expect(candidateBelongsToFace(other, "f1", [front, back])).toBe(true);
-    expect(candidateBelongsToFace(other, "f2", [front, back])).toBe(false);
-  });
-});
-
 describe("buildFaceSuggestions", () => {
   it("returns an empty model for a face the card does not have", () => {
     const model = buildFaceSuggestions(makeAdminCardDetail(), "missing", CONTEXT);
@@ -123,7 +96,6 @@ describe("buildFaceSuggestions", () => {
         elsewhere: "1 printing field",
       }),
     ]);
-    expect(model.enterCandidateIds).toEqual([]);
   });
 
   it("compares a source's set slug with the face's set slug, and undoes to the slug", () => {
@@ -158,7 +130,7 @@ describe("buildFaceSuggestions", () => {
     ]);
   });
 
-  it("checks a source on Enter when every difference it carries is on the face", () => {
+  it("counts a new image among a source's differences", () => {
     const source = makeCandidateCard({ provider: "provider-a" });
     const printing = makeAdminPrinting({ id: "printing-1", faceId: "f1", artist: "" });
     const candidate = makeCandidatePrinting({
@@ -176,46 +148,9 @@ describe("buildFaceSuggestions", () => {
     const model = buildFaceSuggestions(detail, "f1", CONTEXT);
 
     expect(model.sources[0]).toMatchObject({ differences: 2, elsewhere: null });
-    expect(model.enterCandidateIds).toEqual([candidate.id]);
   });
 
-  it("keeps a candidate whose only difference is printing-level out of Enter", () => {
-    const source = makeCandidateCard({ provider: "provider-a" });
-    const printing = makeAdminPrinting({ id: "printing-1", faceId: "f1" });
-    const candidate = makeCandidatePrinting({
-      candidateCardId: source.id,
-      printingId: "printing-1",
-      size: "oversized",
-    });
-    const detail = makeAdminCardDetail({
-      sources: [source],
-      printings: [printing],
-      candidatePrintings: [candidate],
-    });
-
-    expect(buildFaceSuggestions(detail, "f1", CONTEXT).enterCandidateIds).toEqual([]);
-  });
-
-  it("checks a matching source on Enter so it leaves the queue", () => {
-    const source = makeCandidateCard({ provider: "provider-a" });
-    const printing = makeAdminPrinting({ id: "printing-1", faceId: "f1" });
-    const candidate = makeCandidatePrinting({
-      candidateCardId: source.id,
-      printingId: "printing-1",
-    });
-    const detail = makeAdminCardDetail({
-      sources: [source],
-      printings: [printing],
-      candidatePrintings: [candidate],
-    });
-
-    const model = buildFaceSuggestions(detail, "f1", CONTEXT);
-
-    expect(model.suggestions).toEqual([]);
-    expect(model.enterCandidateIds).toEqual([candidate.id]);
-  });
-
-  it("marks contributor suggestions and keeps them out of Enter", () => {
+  it("marks contributor suggestions", () => {
     const source = makeCandidateCard({ provider: "usersubmission" });
     const printing = makeAdminPrinting({ id: "printing-1", faceId: "f1", artist: "" });
     const candidate = makeCandidatePrinting({
@@ -232,7 +167,6 @@ describe("buildFaceSuggestions", () => {
     const model = buildFaceSuggestions(detail, "f1", CONTEXT);
 
     expect(model.suggestions[0]?.isContributor).toBe(true);
-    expect(model.enterCandidateIds).toEqual([]);
   });
 
   it("skips checked rows, hidden providers and the other card's sources", () => {

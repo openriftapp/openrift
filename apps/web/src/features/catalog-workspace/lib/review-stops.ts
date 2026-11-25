@@ -1,4 +1,12 @@
+import type { NavigateOptions } from "@tanstack/react-router";
+
 import type { CardView } from "@/features/catalog-workspace/lib/workspace-search";
+
+declare module "@tanstack/react-router" {
+  interface HistoryState {
+    workspaceReview?: ReviewTrail;
+  }
+}
 
 export type ReviewStop = { kind: "card" } | { kind: "printing"; printingId: string };
 
@@ -7,7 +15,23 @@ export type ListedStop = ReviewStop & { pending: boolean };
 export interface ReviewTrail {
   cardSlug: string;
   queue?: CardView;
+  q?: string;
   cardIndex: number;
+}
+
+export function stopNavigation(stop: ReviewStop, trail: ReviewTrail): NavigateOptions {
+  if (stop.kind === "printing") {
+    return {
+      to: "/admin/workspace/printings/$printingId",
+      params: { printingId: stop.printingId },
+      state: { workspaceReview: trail },
+    };
+  }
+  return {
+    to: "/admin/workspace/cards/$cardSlug",
+    params: { cardSlug: trail.cardSlug },
+    search: { queue: trail.queue, q: trail.q },
+  };
 }
 
 interface PassLike {

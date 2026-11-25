@@ -4,6 +4,7 @@ import type {
   AcceptNewCardBody,
   AcceptPrintingBody,
   AcceptPrintingField,
+  AcceptPrintingGroup,
   CreateCardBody,
   CreatePrintingBody,
   DismissedValueTarget,
@@ -244,7 +245,7 @@ const copyCandidatePrintingFn = createServerFn({ method: "POST" })
     });
   });
 
-const linkCandidatePrintingsFn = createServerFn({ method: "POST" })
+export const linkCandidatePrintingsFn = createServerFn({ method: "POST" })
   .validator((input: { candidatePrintingIds: string[]; printingId: string | null }) => input)
   .middleware([withCookies])
   .handler(async ({ context, data }) => {
@@ -289,6 +290,23 @@ const acceptPrintingGroupFn = createServerFn({ method: "POST" })
       candidatePrintingIds: data.candidatePrintingIds,
       secondSideFaceId: data.secondSideFaceId,
     }),
+  );
+
+const acceptPrintingGroupsFn = createServerFn({ method: "POST" })
+  .validator((input: { cardId: string; groups: AcceptPrintingGroup[] }) => input)
+  .middleware([withCookies])
+  .handler(({ context, data }) =>
+    apiOrpcClient(adminCardMutationsContract, context.cookie).acceptPrintings(data),
+  );
+
+const checkPassFn = createServerFn({ method: "POST" })
+  .validator(
+    (input: { cardId: string; candidateCardIds: string[]; candidatePrintingIds: string[] }) =>
+      input,
+  )
+  .middleware([withCookies])
+  .handler(({ context, data }) =>
+    apiOrpcClient(adminCardMutationsContract, context.cookie).checkPass(data),
   );
 
 const checkProviderFn = createServerFn({ method: "POST" })
@@ -476,8 +494,9 @@ export function useAcceptPrintingField(invalidates: Scope = defaultScope) {
   });
 }
 
-export function useAcceptNewCard() {
+export function useAcceptNewCard(meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: async (
       {
         name,
@@ -667,6 +686,27 @@ export function useAcceptPrintingGroup(invalidates: Scope = defaultScope, meta?:
   });
 }
 
+/** Creates every group or none in one request; the catalog refreshes once. */
+export function useAcceptPrintingGroups(invalidates: Scope = defaultScope, meta?: MutationMeta) {
+  return useMutationWithInvalidation({
+    meta,
+    mutationFn: (input: { cardId: string; groups: AcceptPrintingGroup[] }, signal) =>
+      acceptPrintingGroupsFn({ data: input, signal }),
+    invalidates,
+  });
+}
+
+/** Checks a pass's card and printing sources in one transaction. */
+export function useCheckPass(invalidates: Scope = defaultScope) {
+  return useMutationWithInvalidation({
+    mutationFn: (
+      input: { cardId: string; candidateCardIds: string[]; candidatePrintingIds: string[] },
+      signal,
+    ) => checkPassFn({ data: input, signal }),
+    invalidates,
+  });
+}
+
 export function useCheckProvider() {
   return useMutationWithInvalidation({
     mutationFn: (provider: string, signal) => checkProviderFn({ data: { provider }, signal }),
@@ -785,7 +825,7 @@ export function useDeleteProvider() {
   });
 }
 
-const unmapMarketplacePrintingFn = createServerFn({ method: "POST" })
+export const unmapMarketplacePrintingFn = createServerFn({ method: "POST" })
   .validator(
     (input: {
       marketplace: Marketplace;

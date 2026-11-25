@@ -3,7 +3,7 @@ import { MARKETPLACE_LINKS } from "@openrift/shared/marketplace";
 import { computeProductSuggestions } from "@openrift/shared/marketplace-suggestions";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import type { Marketplace } from "@openrift/shared/types/pricing";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ChevronDownIcon, ChevronRightIcon, EllipsisVerticalIcon, UnlinkIcon } from "lucide-react";
 
@@ -17,13 +17,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TextLink } from "@/components/ui/text-link";
-import { useUnmapMarketplacePrinting } from "@/features/admin/hooks/use-admin-card-mutations";
-import { useUnifiedSaveMappings } from "@/features/admin/hooks/use-unified-mappings";
-import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 import { usePricesOnDemand } from "@/features/cards/hooks/use-prices";
 import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
-import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
+import { useListingWrites } from "@/features/catalog-workspace/hooks/use-listing-writes";
 import type { CardListingRow } from "@/features/catalog-workspace/lib/card-listing-rows";
 import {
   buildCardListings,
@@ -37,7 +34,6 @@ import {
 } from "@/features/catalog-workspace/lib/printing-marketplace-coverage";
 import { useEnumOrders } from "@/hooks/use-enums";
 import { formatterForMarketplace } from "@/lib/format";
-import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 type Mapping = AdminCardDetailResponse["marketplaceMappings"][number];
 
@@ -93,6 +89,7 @@ export function PrintingMarketplaceSection({
               language={language}
               cardSlug={cardSlug}
               candidates={pickableListings(unassigned, row.marketplace, printingId)}
+              cardName={cardName}
             />
             {row.products.length > 0 && (
               <span className="w-20 shrink-0 text-right font-semibold tabular-nums">
@@ -111,12 +108,14 @@ function CoverageBody({
   printingId,
   language,
   cardSlug,
+  cardName,
   candidates,
 }: {
   row: MarketplaceCoverage;
   printingId: string;
   language: string;
   cardSlug: string;
+  cardName: string;
   candidates: CardListingRow[];
 }) {
   if (row.products.length > 0) {
@@ -128,6 +127,8 @@ function CoverageBody({
             product={product}
             printingId={printingId}
             language={language}
+            cardSlug={cardSlug}
+            cardName={cardName}
           />
         ))}
       </ul>
@@ -148,6 +149,7 @@ function CoverageBody({
           marketplace={row.marketplace}
           printingId={printingId}
           cardSlug={cardSlug}
+          cardName={cardName}
           candidates={candidates}
         />
       )}
@@ -159,34 +161,25 @@ function MapListingMenu({
   marketplace,
   printingId,
   cardSlug,
+  cardName,
   candidates,
 }: {
   marketplace: Marketplace;
   printingId: string;
   cardSlug: string;
+  cardName: string;
   candidates: CardListingRow[];
 }) {
   const { labels } = useEnumOrders();
-  const queueWrite = useQueueWorkspaceWrite();
-  const queryClient = useQueryClient();
-  const save = useUnifiedSaveMappings(marketplace);
+  const writes = useListingWrites(cardSlug, cardName);
 
   const map = (listing: CardListingRow) =>
-    void queueWrite(async (signal) => {
-      const mappings = [listingAssignment(listing, printingId)];
-      if (await runReportedMutation(() => save.mutateAsync({ mappings }, { signal }))) {
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: adminKeys.cards.detail(cardSlug) }),
-          queryClient.invalidateQueries({ queryKey: adminKeys.unifiedMappings.all }),
-          queryClient.invalidateQueries({ queryKey: adminKeys.workspace }),
-        ]);
-      }
-    });
+    void writes.map(marketplace, listingAssignment(listing, printingId), "this printing");
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<Button variant="outline" size="sm" disabled={save.isPending} />}
+        render={<Button variant="outline" size="sm" disabled={writes.pending} />}
       >
         Map
         <ChevronDownIcon />
@@ -217,18 +210,17 @@ function MappedProduct({
   product,
   printingId,
   language,
+  cardSlug,
+  cardName,
 }: {
   product: Mapping;
   printingId: string;
   language: string;
+  cardSlug: string;
+  cardName: string;
 }) {
   const { labels } = useEnumOrders();
-  const queueWrite = useQueueWorkspaceWrite();
-  const unmap = useUnmapMarketplacePrinting([
-    adminKeys.cards.all,
-    adminKeys.unifiedMappings.all,
-    adminKeys.workspace,
-  ]);
+  const writes = useListingWrites(cardSlug, cardName);
   const detail = [enumLabel(labels.finishes, product.finish), product.variantLanguage]
     .filter((part) => part !== null)
     .join(" · ");
@@ -253,20 +245,16 @@ function MappedProduct({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem
-            disabled={unmap.isPending}
+            disabled={writes.pending}
             onClick={() =>
-              void queueWrite((signal) =>
-                unmap.mutateAsync(
-                  {
-                    marketplace: product.marketplace,
-                    printingId,
-                    externalId: product.externalId,
-                    finish: product.finish,
-                    language: product.variantLanguage,
-                  },
-                  { signal },
-                ),
-              )
+              void writes.unmap(product.marketplace, [
+                {
+                  printingId,
+                  externalId: product.externalId,
+                  finish: product.finish,
+                  language: product.variantLanguage,
+                },
+              ])
             }
           >
             <UnlinkIcon />

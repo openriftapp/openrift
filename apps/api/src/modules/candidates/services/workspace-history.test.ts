@@ -105,10 +105,12 @@ describe("listWorkspaceHistory", () => {
     });
   });
 
-  it("returns no events for a face without a printing in the desk holder's scope", async () => {
+  it("forbids a desk holder a face without a printing in their scope", async () => {
     const repos = makeRepos();
     repos.workspaceRecords.facePrintingIds.mockResolvedValue(["base"]);
-    await expect(history(repos, DESK, { faceId: "face-1" })).resolves.toEqual({ events: [] });
+    await expect(history(repos, DESK, { faceId: "face-1" })).rejects.toMatchObject({
+      status: 403,
+    });
     expect(repos.workspaceRecords.eventsOnPrintings).not.toHaveBeenCalled();
   });
 });

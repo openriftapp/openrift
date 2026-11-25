@@ -6,7 +6,7 @@ const fns = vi.hoisted(() => ({
 }));
 
 vi.mock("@/features/admin/hooks/use-ignored-candidates", () => ({
-  unignoreCandidateCardFn: fns.unignoreCard,
+  unignoreCandidateCardsFn: fns.unignoreCard,
   unignoreCandidatePrintingFn: fns.unignorePrinting,
 }));
 
@@ -20,7 +20,7 @@ beforeEach(() => {
 const { signal } = new AbortController();
 
 describe("ignoredCardsUndo", () => {
-  it("un-ignores every source the ignore covered", async () => {
+  it("un-ignores every source the ignore covered in one write", async () => {
     const sources = [
       { provider: "provider-a", externalId: "a1" },
       { provider: "provider-b", externalId: "b1" },
@@ -32,10 +32,12 @@ describe("ignoredCardsUndo", () => {
 
     await entry.undo(signal);
 
-    expect(fns.unignoreCard.mock.calls).toEqual([
-      [{ data: sources[0], signal }],
-      [{ data: sources[1], signal }],
-    ]);
+    expect(fns.unignoreCard.mock.calls).toEqual([[{ data: { sources }, signal }]]);
+  });
+
+  it("writes nothing when the ignore covered no source", async () => {
+    await ignoredCardsUndo([], "Ekko, Recurrent").undo(signal);
+    expect(fns.unignoreCard).not.toHaveBeenCalled();
   });
 });
 

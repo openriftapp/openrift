@@ -1,6 +1,6 @@
 import { adminCatalogWorkspaceContract } from "@openrift/shared/contracts/admin/catalog-workspace";
 import type {
-  WorkspaceQueueResponse,
+  WorkspaceCandidatePrintingCard,
   WorkspaceRecordsInput,
   WorkspaceRecordsResponse,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
@@ -12,10 +12,13 @@ import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { withCookies } from "@/lib/server-fns/middleware";
 import { apiOrpcClient } from "@/lib/server-fns/orpc-client";
 
-const fetchWorkspaceQueue = createServerFn({ method: "GET" })
+const fetchCandidatePrintingCard = createServerFn({ method: "GET" })
+  .validator((input: { candidatePrintingId: string }) => input)
   .middleware([withCookies])
-  .handler(({ context }): Promise<WorkspaceQueueResponse> =>
-    apiOrpcClient(adminCatalogWorkspaceContract, context.cookie).workspaceQueue({}),
+  .handler(({ context, data }): Promise<WorkspaceCandidatePrintingCard> =>
+    apiOrpcClient(adminCatalogWorkspaceContract, context.cookie).workspaceCandidatePrintingCard(
+      data,
+    ),
   );
 
 const fetchCardImages = createServerFn({ method: "GET" })
@@ -43,10 +46,10 @@ const fetchWorkspaceRecords = createServerFn({ method: "GET" })
     apiOrpcClient(adminCatalogWorkspaceContract, context.cookie).workspaceRecords(data),
   );
 
-export function workspaceQueueQueryOptions() {
+export function candidatePrintingCardQueryOptions(candidatePrintingId: string) {
   return queryOptions({
-    queryKey: adminKeys.workspaceQueue,
-    queryFn: () => fetchWorkspaceQueue(),
+    queryKey: adminKeys.workspaceCandidatePrintingCard(candidatePrintingId),
+    queryFn: () => fetchCandidatePrintingCard({ data: { candidatePrintingId } }),
     staleTime: MINUTE_MS,
   });
 }

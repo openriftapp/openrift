@@ -1,14 +1,3 @@
-import type { ComparablePrintingField } from "@openrift/shared/catalog-field-compare";
-import {
-  COMPARABLE_PRINTING_FIELDS,
-  hasFieldValue,
-  isDismissedValue,
-  sameFieldValue,
-} from "@openrift/shared/catalog-field-compare";
-import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
-import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
-import { normalizeProvidedPrintingValue } from "@openrift/shared/printing-value-normalize";
-import { withoutCoveredRelease } from "@openrift/shared/set-release";
 import { pluralize } from "@openrift/shared/strings";
 import type {
   AdminCardDetailResponse,
@@ -17,28 +6,19 @@ import type {
   CandidatePrintingResponse,
 } from "@openrift/shared/types/api/admin";
 
-import { PRINTING_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
-import { printingAsAccepted } from "@/features/admin/lib/printing-fields";
 import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
-
-export interface CompareContext {
-  costKeywords: readonly string[];
-  setTotals: Record<string, number>;
-  hiddenProviders?: ReadonlySet<string>;
-}
-
-export interface PrintingFieldSuggestion {
-  key: string;
-  field: ComparablePrintingField;
-  label: string;
-  current: unknown;
-  proposed: unknown;
-  candidate: CandidatePrintingResponse;
-  printingId: string;
-  faceId: string;
-  provider: string;
-  isContributor: boolean;
-}
+import type { CompareContext } from "@/features/admin/lib/source-compare";
+import {
+  candidateBelongsToFace,
+  candidateHasNewImage,
+  FACE_FIELDS,
+  isContributorProvider,
+  PRINTING_FIELDS,
+  printingDifferences,
+  providerOf,
+} from "@/features/admin/lib/source-compare";
+import type { PrintingFieldSuggestion } from "@/features/catalog-workspace/lib/suggestion-rows";
+import { printingFieldSuggestions } from "@/features/catalog-workspace/lib/suggestion-rows";
 
 export interface SuggestionSource {
   candidatePrintingId: string;
@@ -63,13 +43,7 @@ export interface FaceSuggestionModel {
   suggestions: PrintingFieldSuggestion[];
   sources: SuggestionSource[];
   sourceImages: SourceImageCandidate[];
-  agreeingFields: number;
-  enterCandidateIds: string[];
 }
-
-export const FACE_FIELDS = COMPARABLE_PRINTING_FIELDS.filter(
-  (field) => !isPrintingLevelField(field),
-);
 
 const FACE_FIELD_READING_ORDER: readonly string[] = [
   "shortCode",
@@ -98,23 +72,6 @@ export const FACE_FIELDS_FOR_READING = FACE_FIELDS.toSorted((a, b) => {
   return rank(a) - rank(b);
 });
 
-export const PRINTING_FIELDS = COMPARABLE_PRINTING_FIELDS.filter((field) =>
-  isPrintingLevelField(field),
-);
-
-export function candidateHasNewImage(
-  candidate: CandidatePrintingResponse,
-  ownUrls: ReadonlySet<string | null>,
-  isContributor: boolean,
-): boolean {
-  return (
-    hasFieldValue(candidate.imageUrl) &&
-    !isDismissedValue(candidate.dismissedValues, "imageUrl", candidate.imageUrl) &&
-    (isContributor || candidate.imageMatch !== "same") &&
-    !ownUrls.has(candidate.imageUrl)
-  );
-}
-
 export function describeElsewhere(counts: {
   faceFields?: number;
   printingFields?: number;
@@ -131,60 +88,6 @@ export function describeElsewhere(counts: {
   return named.length === 0 ? null : named.join(" and ");
 }
 
-export function compareCandidate(
-  candidate: CandidatePrintingResponse,
-  row: AdminPrintingResponse,
-  fields: readonly ComparablePrintingField[],
-  context: CompareContext,
-  provider: string,
-): { suggestions: PrintingFieldSuggestion[]; agreeing: number } {
-  const printedTotal = context.setTotals[row.setSlug] ?? null;
-  const live = printingAsAccepted(row);
-  const proposedRow = candidate;
-  const suggestions: PrintingFieldSuggestion[] = [];
-  let agreeing = 0;
-  for (const field of fields) {
-    const proposed = normalizeProvidedPrintingValue(field, proposedRow[field], {
-      costKeywords: context.costKeywords,
-      printedTotal,
-    });
-    if (!hasFieldValue(proposed)) {
-      continue;
-    }
-    const current = live[field] ?? null;
-    if (sameFieldValue(current, proposed, field)) {
-      agreeing += 1;
-      continue;
-    }
-    if (isDismissedValue(candidate.dismissedValues, field, proposed)) {
-      continue;
-    }
-    suggestions.push({
-      key: `${candidate.id}:${field}`,
-      field,
-      label: PRINTING_FIELD_LABELS[field],
-      current,
-      proposed,
-      candidate,
-      printingId: row.id,
-      faceId: row.faceId,
-      provider,
-      isContributor: provider === USER_SUBMISSION_PROVIDER,
-    });
-  }
-  const shown = new Set(
-    withoutCoveredRelease(
-      suggestions.map((suggestion) => suggestion.field),
-      { releasedAt: row.releasedAt, setReleasedAt: row.setReleasedAt },
-      { releasedAt: candidate.releasedAt, releasePrecision: candidate.releasePrecision },
-    ),
-  );
-  return {
-    suggestions: suggestions.filter((suggestion) => shown.has(suggestion.field)),
-    agreeing,
-  };
-}
-
 export function faceCompareCandidates(
   detail: AdminCardDetailResponse,
   faceId: string,
@@ -197,42 +100,6 @@ export function faceCompareCandidates(
       !hiddenProviders.has(providerOf(detail, candidate.candidateCardId)) &&
       candidateBelongsToFace(candidate, faceId, detail.printings),
   );
-}
-
-export function providerOf(detail: AdminCardDetailResponse, candidateCardId: string): string {
-  return detail.sources.find((source) => source.id === candidateCardId)?.provider ?? "Source";
-}
-
-/**
- * A candidate printing carries no side, so a printing with this card on both faces is
- * split by short code, the way the API picks the face for an accepted image.
- */
-export function candidateBelongsToFace(
-  candidate: CandidatePrintingResponse,
-  faceId: string,
-  printings: readonly AdminPrintingResponse[],
-): boolean {
-  if (candidate.printingId === null) {
-    return false;
-  }
-  const rows = printings.filter((row) => row.id === candidate.printingId);
-  const own = rows.find((row) => row.faceId === faceId);
-  if (own === undefined) {
-    return false;
-  }
-  if (rows.length < 2) {
-    return true;
-  }
-  const code = candidate.shortCode.toUpperCase();
-  const front = rows.find((row) => row.side === 1);
-  const back = rows.find((row) => row.side === 2);
-  const side =
-    back !== undefined &&
-    back.shortCode.toUpperCase() === code &&
-    front?.shortCode.toUpperCase() !== code
-      ? 2
-      : 1;
-  return own.side === side;
 }
 
 export function buildFaceSuggestions(
@@ -250,8 +117,6 @@ export function buildFaceSuggestions(
       suggestions: [],
       sources: [],
       sourceImages: [],
-      agreeingFields: 0,
-      enterCandidateIds: [],
     };
   }
 
@@ -270,23 +135,25 @@ export function buildFaceSuggestions(
   const suggestions: PrintingFieldSuggestion[] = [];
   const sources: SuggestionSource[] = [];
   const sourceImages: SourceImageCandidate[] = [];
-  const enterCandidateIds: string[] = [];
-  let agreeingFields = 0;
 
   for (const candidate of candidates) {
     const provider = providerOf(detail, candidate.candidateCardId);
-    const isContributor = provider === USER_SUBMISSION_PROVIDER;
+    const isContributor = isContributorProvider(provider);
     const row = printings.find((entry) => entry.id === candidate.printingId) ?? face;
-    const faceCompare = compareCandidate(candidate, row, FACE_FIELDS, context, provider);
-    const printingDiffs = compareCandidate(candidate, row, PRINTING_FIELDS, context, provider)
-      .suggestions.length;
+    const faceSuggestions = printingFieldSuggestions(
+      candidate,
+      row,
+      FACE_FIELDS,
+      context,
+      provider,
+    );
+    const printingDiffs = printingDifferences(candidate, row, PRINTING_FIELDS, context).length;
     const hasImage = candidateHasNewImage(candidate, ownUrls, isContributor);
     if (hasImage) {
       sourceImages.push({ candidate, url: candidate.imageUrl as string, provider, isContributor });
     }
-    suggestions.push(...faceCompare.suggestions);
-    agreeingFields = Math.max(agreeingFields, faceCompare.agreeing);
-    const differences = faceCompare.suggestions.length + (hasImage ? 1 : 0);
+    suggestions.push(...faceSuggestions);
+    const differences = faceSuggestions.length + (hasImage ? 1 : 0);
     sources.push({
       candidatePrintingId: candidate.id,
       candidateCardId: candidate.candidateCardId,
@@ -295,9 +162,6 @@ export function buildFaceSuggestions(
       differences,
       elsewhere: describeElsewhere({ printingFields: printingDiffs }),
     });
-    if (!isContributor && printingDiffs === 0) {
-      enterCandidateIds.push(candidate.id);
-    }
   }
 
   return {
@@ -307,7 +171,5 @@ export function buildFaceSuggestions(
     suggestions,
     sources,
     sourceImages,
-    agreeingFields,
-    enterCandidateIds,
   };
 }

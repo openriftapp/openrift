@@ -3,11 +3,6 @@ import { create } from "zustand";
 import type { WriteLimit } from "@/features/catalog-workspace/lib/workspace-write-queue";
 
 export interface WorkspaceRecordActions {
-  primary?: {
-    label: string;
-    disabled?: boolean;
-    run: (signal: AbortSignal) => Promise<void> | void;
-  };
   accept?: (signal: AbortSignal) => Promise<void> | void;
   acceptLimit?: WriteLimit;
   ignore?: (signal: AbortSignal) => Promise<void> | void;

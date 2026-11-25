@@ -8,18 +8,16 @@ import type {
 } from "@openrift/shared/types/api/admin";
 import {
   ArrowLeftRightIcon,
-  CropIcon,
   DownloadIcon,
   EllipsisVerticalIcon,
   ImagePlusIcon,
-  RotateCwIcon,
-  Trash2Icon,
   UploadIcon,
   XIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { ConfirmActionButton } from "@/components/confirm-action-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,9 +41,10 @@ import { RehostStatusBadge } from "@/features/admin/components/rehost-status-bad
 import { StraightenImageDialog } from "@/features/admin/components/straighten-image-dialog";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import {
+  activatePrintingImageFn,
+  unkeepPrintingImageFn,
   useSetCandidatePrintingImage,
   useActivatePrintingImage,
-  useAddImageFromUrl,
   useDeletePrintingImage,
   useKeepPrintingImage,
   useImageEditPending,
@@ -53,29 +52,34 @@ import {
   useRotatePrintingImage,
   useSetPrintingImageNeedsLevels,
   useSetPrintingImageNeedsTrim,
-  useUploadPrintingImage,
 } from "@/features/admin/hooks/use-admin-image-mutations";
-import { useSetDeskImageFace, useUpdateDeskImage } from "@/features/admin/hooks/use-printing-desk";
-import { adminKeys, IMAGE_FILE_SCOPE } from "@/features/admin/lib/admin-query-keys";
+import { useSetDeskImageFace } from "@/features/admin/hooks/use-printing-desk";
+import { IMAGE_FILE_SCOPE } from "@/features/admin/lib/admin-query-keys";
 import { hasAdminSection } from "@/features/admin/lib/admin-sections";
 import { buildAttentionSubmissions } from "@/features/admin/lib/attention-items";
 import { deskImageSrc } from "@/features/admin/lib/printing-desk-image";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 import { siblingImagesOf } from "@/features/admin/lib/sibling-images";
 import { imageQuadOf } from "@/features/admin/lib/straighten-quad";
+import { DeskImageControls } from "@/features/catalog-workspace/components/desk-image-controls";
 import { ContributionBlock } from "@/features/catalog-workspace/components/pass/pass-parts";
 import { useSubmissionDecisions } from "@/features/catalog-workspace/components/pass/submission-decisions";
 import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
+import { sourceImageUndo } from "@/features/catalog-workspace/hooks/source-image-undo";
 import { useDismissSuggestion } from "@/features/catalog-workspace/hooks/use-dismiss-suggestion";
 import { useFaceSuggestionWrites } from "@/features/catalog-workspace/hooks/use-face-record-actions";
+import { usePrintingImageUpload } from "@/features/catalog-workspace/hooks/use-printing-creation";
+import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import { imageOrigin, passContributor } from "@/features/catalog-workspace/lib/card-pass";
 import type { SourceImageCandidate } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import { cardRecordScope } from "@/features/catalog-workspace/lib/record-scopes";
+import { undoScope } from "@/features/catalog-workspace/lib/workspace-undo";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
-import { useSession } from "@/hooks/use-session";
 import { errorText } from "@/lib/error-text";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { cn } from "@/lib/utils";
+import { withWriteSignal } from "@/lib/write-signal";
 
 type Rotation = 0 | 90 | 180 | 270;
 type Scope = readonly (readonly unknown[])[];
@@ -108,14 +112,8 @@ export function FaceImagesSection({
   title?: string;
 }) {
   const queueWrite = useQueueWorkspaceWrite();
-  const scope: Scope = [
-    adminKeys.cards.detail(cardSlug),
-    adminKeys.cards.list,
-    adminKeys.printingDesk.all,
-    adminKeys.workspace,
-  ];
-  const upload = useUploadPrintingImage(scope, { inlineError: true });
-  const addFromUrl = useAddImageFromUrl(scope);
+  const scope: Scope = IMAGE_FILE_SCOPE;
+  const imageUpload = usePrintingImageUpload();
   const [uploading, setUploading] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -129,6 +127,8 @@ export function FaceImagesSection({
     cardSlug,
     record: face.expectedPrintingId,
     face,
+    contributorName: (candidateCardId) =>
+      passContributor(detail, submissions, candidateCardId).name,
   });
 
   const side = sideOf(face);
@@ -147,11 +147,19 @@ export function FaceImagesSection({
   async function addUrl() {
     const input = {
       printingId: face.id,
-      url: url.trim(),
+      image: { kind: "url" as const, url: url.trim() },
       face: side,
       mode: hasActive ? ("additional" as const) : ("main" as const),
     };
-    if (await queueWrite((signal) => addFromUrl.mutateAsync(input, { signal }))) {
+    setUploadError(null);
+    let added = false;
+    await queueWrite(async (signal) => {
+      added = await runReportedMutation(
+        () => imageUpload.upload(signal, input),
+        (error) => setUploadError(errorText(error, "Could not add the image.")),
+      );
+    });
+    if (added) {
       setUrl("");
       setAdding(false);
     }
@@ -165,15 +173,12 @@ export function FaceImagesSection({
         (signal) =>
           runReportedMutation(
             () =>
-              upload.mutateAsync(
-                {
-                  printingId: face.id,
-                  file,
-                  face: side,
-                  mode: !hasActive && index === 0 ? "main" : "additional",
-                },
-                { signal },
-              ),
+              imageUpload.upload(signal, {
+                printingId: face.id,
+                image: { kind: "file", file },
+                face: side,
+                mode: !hasActive && index === 0 ? "main" : "additional",
+              }),
             (error) => setUploadError(errorText(error, `Could not upload ${file.name}.`)),
           ),
         { limit: "upload" },
@@ -225,6 +230,10 @@ export function FaceImagesSection({
             image={selectedStored}
             caption={`${imageOrigin(detail, selectedStored)}, added ${formatDay(selectedStored.addedAt)}`}
             currentUrl={currentUrl}
+            active={active ?? null}
+            otherPending={images.some(
+              (image) => image.id !== selectedStored.id && image.activateWhenRehosted,
+            )}
             mode={mode}
             face={face}
             scope={scope}
@@ -239,19 +248,18 @@ export function FaceImagesSection({
             currentUrl={currentUrl}
             mode={mode}
             scope={scope}
+            dismissScope={cardRecordScope(cardSlug)}
             record={face.expectedPrintingId}
             hasActive={hasActive}
             isAdmin={isAdmin}
             landscape={landscape}
             pending={writes.pending}
             onUse={() =>
-              void queueWrite((signal) =>
-                writes.applyChip(signal, {
-                  kind: "image",
-                  key: selectedSource.candidate.id,
-                  image: selectedSource,
-                }),
-              )
+              void writes.apply({
+                kind: "image",
+                key: selectedSource.candidate.id,
+                image: selectedSource,
+              })
             }
           />
         )}
@@ -323,11 +331,7 @@ export function FaceImagesSection({
                 />
               }
               pending={writes.pending}
-              onUse={() =>
-                void queueWrite((signal) =>
-                  writes.applyChip(signal, { kind: "image", key: image.candidate.id, image }),
-                )
-              }
+              onUse={() => void writes.apply({ kind: "image", key: image.candidate.id, image })}
               onReject={() => decisions.onReject(image.candidate.candidateCardId, "Image")}
               onMove={
                 decisions.onMove && (() => decisions.onMove?.(image.candidate.candidateCardId))
@@ -366,7 +370,7 @@ export function FaceImagesSection({
                 <Button
                   variant="outline"
                   disabled={url.trim().length === 0}
-                  pending={addFromUrl.isPending}
+                  pending={imageUpload.pending}
                   onClick={() => void addUrl()}
                 >
                   Add
@@ -387,6 +391,8 @@ function StoredCandidate({
   image,
   caption,
   currentUrl,
+  active,
+  otherPending,
   mode,
   face,
   scope,
@@ -396,6 +402,8 @@ function StoredCandidate({
   image: AdminPrintingImageResponse;
   caption: string;
   currentUrl: string | null;
+  active: AdminPrintingImageResponse | null;
+  otherPending: boolean;
   mode: CompareMode;
   face: AdminPrintingResponse;
   scope: Scope;
@@ -414,9 +422,69 @@ function StoredCandidate({
   const editing = useImageEditPending(image.id);
   const rehost = useRehostPrintingImage();
   const moveFace = useSetDeskImageFace();
+  const { announce } = useWorkspaceUndo();
   const [straightening, setStraightening] = useState(false);
 
   const pending = activate.isPending || remove.isPending || keep.isPending;
+  const record = face.expectedPrintingId;
+
+  const unkeep = (imageId: string, signal: AbortSignal) =>
+    withWriteSignal(signal, () => unkeepPrintingImageFn({ data: { imageId }, signal }));
+  const reopensReview = (target: AdminPrintingImageResponse | null) =>
+    canKeep && target !== null && !target.isReviewed;
+  const restorable = image.rehostedUrl !== null && !otherPending;
+
+  async function undoMakeMain(signal: AbortSignal) {
+    if (active !== null && reopensReview(active)) {
+      await unkeep(active.id, signal);
+    }
+    await withWriteSignal(signal, () =>
+      activatePrintingImageFn({
+        data:
+          active === null
+            ? { imageId: image.id, active: false }
+            : { imageId: active.id, active: true },
+        signal,
+      }),
+    );
+    if (reopensReview(image)) {
+      await unkeep(image.id, signal);
+    }
+  }
+
+  const makeMain = (signal: AbortSignal) =>
+    runReportedMutation(async () => {
+      await activate.mutateAsync({ imageId: image.id, active: true }, { signal });
+      if (restorable) {
+        announce({
+          label: `Made an image main on ${record}`,
+          undoneLabel: `Undone: the earlier main image is back on ${record}`,
+          invalidates: undoScope(scope),
+          undo: undoMakeMain,
+        });
+      }
+    });
+
+  const keepAsExtra = (signal: AbortSignal) =>
+    runReportedMutation(async () => {
+      await keep.mutateAsync(image.id, { signal });
+      announce({
+        label: `Kept an image as an extra on ${record}`,
+        undoneLabel: `Undone: the image is waiting for review again on ${record}`,
+        invalidates: undoScope(scope),
+        undo: (undoSignal) => unkeep(image.id, undoSignal),
+      });
+    });
+
+  async function deleteImage() {
+    let ok = false;
+    await queueWrite(async (signal) => {
+      ok = await runReportedMutation(() => remove.mutateAsync(image.id, { signal }));
+    });
+    if (!ok) {
+      throw new Error("The image was not deleted.");
+    }
+  }
   const otherSide = face.side === 2 ? "front" : "back";
 
   const url = printingImageDisplayUrl(image);
@@ -426,11 +494,7 @@ function StoredCandidate({
         size="sm"
         disabled={pending}
         pending={activate.isPending}
-        onClick={() =>
-          void queueWrite((signal) =>
-            activate.mutateAsync({ imageId: image.id, active: true }, { signal }),
-          )
-        }
+        onClick={() => void queueWrite(makeMain)}
       >
         Make main
       </Button>
@@ -440,21 +504,22 @@ function StoredCandidate({
           size="sm"
           disabled={pending}
           pending={keep.isPending}
-          onClick={() => void queueWrite((signal) => keep.mutateAsync(image.id, { signal }))}
+          onClick={() => void queueWrite(keepAsExtra)}
         >
           Keep as extra
         </Button>
       )}
       {isAdmin && (
-        <Button
-          variant="outline-destructive"
-          size="sm"
+        <ConfirmActionButton
+          trigger={<Button variant="outline-destructive" size="sm" />}
           disabled={pending}
-          pending={remove.isPending}
-          onClick={() => void queueWrite((signal) => remove.mutateAsync(image.id, { signal }))}
+          title="Delete this image?"
+          description="The stored file is removed from this face."
+          confirmLabel="Delete"
+          onConfirm={deleteImage}
         >
           Delete
-        </Button>
+        </ConfirmActionButton>
       )}
     </>
   );
@@ -546,15 +611,6 @@ function StoredCandidate({
               Move to {face.otherFace.cardName}
             </DropdownMenuItem>
           )}
-          {isAdmin && (
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={() => void queueWrite((signal) => remove.mutateAsync(image.id, { signal }))}
-            >
-              <Trash2Icon />
-              Remove
-            </DropdownMenuItem>
-          )}
         </DropdownMenuContent>
       </DropdownMenu>
       {image.rehostedUrl !== null && (
@@ -584,35 +640,28 @@ export function DeskFaceImagesSection({
   landscape: boolean;
 }) {
   const queueWrite = useQueueWorkspaceWrite();
-  const { data: session } = useSession();
-  const upload = useUploadPrintingImage(IMAGE_FILE_SCOPE, { inlineError: true });
+  const imageUpload = usePrintingImageUpload();
   const [uploading, setUploading] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const faceImages = images.filter((image) => image.face === imageFace);
   const active = faceImages.find((image) => image.isActive) ?? null;
   const waiting = faceImages.filter((image) => !image.isActive);
-  const uploaderName = session?.user.name ?? "";
 
   async function handleFiles(files: File[]) {
     setUploadError(null);
-    const credit = uploaderName.length > 0 ? uploaderName : undefined;
     for (const file of files) {
       setUploading((count) => count + 1);
       await queueWrite(
         (signal) =>
           runReportedMutation(
             () =>
-              upload.mutateAsync(
-                {
-                  printingId: printing.printingId,
-                  file,
-                  mode: "additional",
-                  face: imageFace,
-                  credit,
-                },
-                { signal },
-              ),
+              imageUpload.upload(signal, {
+                printingId: printing.printingId,
+                image: { kind: "file", file },
+                mode: "additional",
+                face: imageFace,
+              }),
             (error) => setUploadError(errorText(error, `Could not upload ${file.name}.`)),
           ),
         { limit: "upload" },
@@ -623,7 +672,9 @@ export function DeskFaceImagesSection({
 
   return (
     <RecordSection title="Images">
-      <p className="text-muted-foreground text-sm">Images are public with your credit.</p>
+      {imageUpload.credit !== undefined && (
+        <p className="text-muted-foreground text-sm">Images are public with your credit.</p>
+      )}
       <div className="flex flex-wrap gap-3">
         <div className="space-y-1">
           <PrintingImageBox
@@ -677,36 +728,6 @@ function DeskWaitingImage({
   landscape: boolean;
 }) {
   const queueWrite = useQueueWorkspaceWrite();
-  const rotate = useRotatePrintingImage();
-  const remove = useDeletePrintingImage(IMAGE_FILE_SCOPE);
-  const editing = useImageEditPending(image.printingImageId);
-  const updateImage = useUpdateDeskImage();
-  const moveFace = useSetDeskImageFace();
-  const [straightening, setStraightening] = useState(false);
-  const [credit, setCredit] = useState(image.credit ?? "");
-  const [lastCredit, setLastCredit] = useState(image.credit ?? "");
-  if ((image.credit ?? "") !== lastCredit) {
-    setLastCredit(image.credit ?? "");
-    setCredit(image.credit ?? "");
-  }
-
-  const ownTools = image.canDelete;
-  const otherFace = image.face === "front" ? "back" : "front";
-
-  function saveCredit() {
-    const next = credit.trim();
-    if (next !== (image.credit ?? "")) {
-      void queueWrite((signal) =>
-        updateImage.mutateAsync(
-          {
-            imageFileId: image.imageFileId,
-            credit: next.length > 0 ? next : null,
-          },
-          { signal },
-        ),
-      );
-    }
-  }
 
   return (
     <div className="w-40 space-y-1">
@@ -716,88 +737,14 @@ function DeskWaitingImage({
         className="w-40"
         landscape={landscape}
       />
-      <Badge variant="warning">Waiting for an admin</Badge>
-      {ownTools && (
-        <>
-          <Input
-            aria-label="Image credit"
-            value={credit}
-            placeholder="Who made this image"
-            onChange={(event) => setCredit(event.target.value)}
-            onBlur={saveCredit}
-          />
-          <span className="flex flex-wrap items-center gap-0.5">
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              aria-label="Turn right"
-              disabled={editing}
-              pending={rotate.isPending}
-              onClick={() =>
-                void queueWrite((signal) =>
-                  rotate.mutateAsync(
-                    {
-                      imageId: image.printingImageId,
-                      rotation: ((image.rotation + 90) % 360) as Rotation,
-                    },
-                    { signal },
-                  ),
-                )
-              }
-            >
-              <RotateCwIcon />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              aria-label="Straighten"
-              disabled={editing}
-              onClick={() => setStraightening(true)}
-            >
-              <CropIcon />
-            </Button>
-            {printing.secondSide !== null && (
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                aria-label="Move to the other face"
-                pending={moveFace.isPending}
-                onClick={() =>
-                  void queueWrite((signal) =>
-                    moveFace.mutateAsync(
-                      {
-                        printingImageId: image.printingImageId,
-                        printingId: printing.printingId,
-                        face: otherFace,
-                      },
-                      { signal },
-                    ),
-                  )
-                }
-              >
-                <ArrowLeftRightIcon />
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              aria-label="Delete image"
-              pending={remove.isPending}
-              onClick={() =>
-                void queueWrite((signal) => remove.mutateAsync(image.printingImageId, { signal }))
-              }
-            >
-              <Trash2Icon />
-            </Button>
-          </span>
-          <StraightenImageDialog
-            imageId={image.printingImageId}
-            quad={image.quad}
-            open={straightening}
-            onOpenChange={setStraightening}
-            runWrite={queueWrite}
-          />
-        </>
+      <Badge variant="warning">Waiting for review</Badge>
+      {image.canDelete && (
+        <DeskImageControls
+          printingId={printing.printingId}
+          image={image}
+          canMoveFace={printing.secondSide !== null}
+          runWrite={queueWrite}
+        />
       )}
     </div>
   );
@@ -906,6 +853,7 @@ function SourceCandidate({
   currentUrl,
   mode,
   scope,
+  dismissScope,
   record,
   hasActive,
   isAdmin,
@@ -917,6 +865,7 @@ function SourceCandidate({
   currentUrl: string | null;
   mode: CompareMode;
   scope: Scope;
+  dismissScope: Scope;
   record: string;
   hasActive: boolean;
   isAdmin: boolean;
@@ -926,7 +875,20 @@ function SourceCandidate({
 }) {
   const queueWrite = useQueueWorkspaceWrite();
   const store = useSetCandidatePrintingImage(scope);
-  const dismissValue = useDismissSuggestion(scope, record);
+  const dismissValue = useDismissSuggestion(dismissScope, record);
+  const { announce } = useWorkspaceUndo();
+
+  const storeBeside = (signal: AbortSignal) =>
+    runReportedMutation(async () => {
+      const stored = await store.mutateAsync(
+        { candidatePrintingId: image.candidate.id, mode: "additional" },
+        { signal },
+      );
+      const entry = isAdmin ? sourceImageUndo(stored, "additional", record, scope) : null;
+      if (entry !== null) {
+        announce(entry);
+      }
+    });
 
   return (
     <div className="w-full max-w-96 min-w-0 space-y-2 text-sm">
@@ -941,7 +903,7 @@ function SourceCandidate({
         <Badge variant="neutral">Not stored</Badge>
       </span>
       <div className="flex flex-wrap gap-1.5">
-        <Button size="sm" disabled={pending} onClick={onUse}>
+        <Button size="sm" disabled={pending} pending={pending} onClick={onUse}>
           Make main
         </Button>
         {hasActive && (
@@ -950,14 +912,7 @@ function SourceCandidate({
             size="sm"
             disabled={pending || store.isPending}
             pending={store.isPending}
-            onClick={() =>
-              void queueWrite((signal) =>
-                store.mutateAsync(
-                  { candidatePrintingId: image.candidate.id, mode: "additional" },
-                  { signal },
-                ),
-              )
-            }
+            onClick={() => void queueWrite(storeBeside)}
           >
             Store beside
           </Button>
@@ -968,17 +923,19 @@ function SourceCandidate({
             size="sm"
             disabled={dismissValue.pending}
             onClick={() =>
-              void dismissValue.run({
-                kind: "printing",
-                candidateId: image.candidate.id,
-                field: "imageUrl",
-                value: image.candidate.imageUrl,
-                label: "the image",
-                source: image.provider,
-              })
+              void dismissValue.run([
+                {
+                  kind: "printing",
+                  candidateId: image.candidate.id,
+                  field: "imageUrl",
+                  value: image.candidate.imageUrl,
+                  label: "the image",
+                  source: image.provider,
+                },
+              ])
             }
           >
-            Dismiss
+            Hide value
           </Button>
         )}
       </div>

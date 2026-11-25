@@ -199,17 +199,6 @@ describe("buildAttentionSubmissions", () => {
     expect(changes).not.toContain("imageUrl");
   });
 
-  it("records unchanged fields alongside the changes", () => {
-    const card = makeAdminCard({ name: "Lux, Lady of Luminosity", might: 3 });
-    const detail = makeAdminCardDetail({
-      card,
-      sources: [makeCandidateCard({ name: card.name, might: 5 })],
-    });
-    const group = buildAttentionSubmissions(detail, [])[0]?.groups[0];
-    expect(group?.changes.map((change) => change.field)).toEqual(["might"]);
-    expect(group?.unchangedFields).toContain("Name");
-  });
-
   it("shows the card group with the lowest-ranked printing's active image", () => {
     const lead = makeAdminPrinting({ canonicalRank: 1 });
     const other = makeAdminPrinting({ canonicalRank: 2 });
@@ -400,7 +389,7 @@ describe("buildAttentionSubmissions", () => {
 });
 
 describe("buildAttentionSources", () => {
-  it("lists a trusted provider with unchecked rows", () => {
+  it("lists a provider with unchecked rows", () => {
     const source = makeCandidateCard({
       provider: "gallery",
       name: "Lux, Lady of Light",
@@ -415,6 +404,7 @@ describe("buildAttentionSources", () => {
       detail,
       [makeProviderSetting({ provider: "gallery", isFavorite: true })],
       [],
+      true,
     );
     expect(blocks).toHaveLength(1);
     expect(blocks[0]?.changedFields).toBe(1);
@@ -448,6 +438,7 @@ describe("buildAttentionSources", () => {
       detail,
       [makeProviderSetting({ provider: "gallery", isFavorite: true })],
       [],
+      true,
     );
     expect(blocks).toHaveLength(1);
     expect(blocks[0]?.entries).toHaveLength(2);
@@ -473,6 +464,7 @@ describe("buildAttentionSources", () => {
       detail,
       [makeProviderSetting({ provider: "gallery", isFavorite: true })],
       [],
+      true,
     );
     expect(blocks).toHaveLength(1);
     expect(blocks[0]?.changedFields).toBe(0);
@@ -480,15 +472,96 @@ describe("buildAttentionSources", () => {
     expect(blocks[0]?.entries[0]?.groups).toEqual([]);
   });
 
-  it("skips an untrusted provider", () => {
+  it("lists an untrusted provider the way the workspace does", () => {
+    const detail = makeAdminCardDetail({
+      card: makeAdminCard({ name: "Lux, Lady of Luminosity" }),
+      sources: [
+        makeCandidateCard({
+          provider: "playloltcg",
+          name: "Lux, Lady of Light",
+          checkedAt: null,
+          submittedByName: null,
+        }),
+      ],
+    });
+    const blocks = buildAttentionSources(
+      detail,
+      [makeProviderSetting({ provider: "playloltcg", isFavorite: false })],
+      [],
+      true,
+    );
+    expect(blocks.map((block) => block.provider)).toEqual(["playloltcg"]);
+  });
+
+  it("skips a dismissed value until the source reports another", () => {
+    const source = makeCandidateCard({
+      provider: "gallery",
+      name: "Lux, Lady of Light",
+      checkedAt: null,
+      submittedByName: null,
+      dismissedValues: { name: "Lux, Lady of Light" },
+    });
+    const detail = makeAdminCardDetail({
+      card: makeAdminCard({ name: "Lux, Lady of Luminosity" }),
+      sources: [source],
+    });
+    expect(buildAttentionSources(detail, [], [], true)[0]?.changedFields).toBe(0);
+  });
+
+  it("drops a release date the printing's set already covers", () => {
+    const source = makeCandidateCard({
+      provider: "gallery",
+      checkedAt: null,
+      submittedByName: null,
+    });
+    const printing = makeAdminPrinting({ releasedAt: null, setReleasedAt: "2025-10-31" });
+    const detail = makeAdminCardDetail({
+      card: makeAdminCard({ name: source.name }),
+      sources: [source],
+      printings: [printing],
+      candidatePrintings: [
+        makeCandidatePrinting({
+          candidateCardId: source.id,
+          printingId: printing.id,
+          artist: printing.artist,
+          publicCode: printing.publicCode,
+          shortCode: printing.shortCode,
+          setId: printing.setSlug,
+          rarity: printing.rarity,
+          artVariant: printing.artVariant,
+          finish: printing.finish,
+          size: printing.size,
+          language: printing.language,
+          printedYear: printing.printedYear,
+          releasedAt: "2025-10-01",
+          releasePrecision: "month",
+        }),
+      ],
+    });
+    const fields = buildAttentionSources(detail, [], [], true)[0]?.entries[0]?.groups.flatMap(
+      (group) => group.changes.map((change) => change.field),
+    );
+    expect(fields ?? []).not.toContain("releasedAt");
+  });
+
+  it("skips a hidden provider and, for a helper, one outside its scope", () => {
     const detail = makeAdminCardDetail({
       sources: [makeCandidateCard({ provider: "playloltcg", checkedAt: null })],
     });
     expect(
       buildAttentionSources(
         detail,
-        [makeProviderSetting({ provider: "playloltcg", isFavorite: false })],
+        [makeProviderSetting({ provider: "playloltcg", isHidden: true })],
         [],
+        true,
+      ),
+    ).toEqual([]);
+    expect(
+      buildAttentionSources(
+        detail,
+        [makeProviderSetting({ provider: "playloltcg", helperReviewable: false })],
+        [],
+        false,
       ),
     ).toEqual([]);
   });
@@ -502,6 +575,7 @@ describe("buildAttentionSources", () => {
         detail,
         [makeProviderSetting({ provider: "usersubmission", isFavorite: true })],
         [],
+        true,
       ),
     ).toEqual([]);
   });
@@ -522,6 +596,7 @@ describe("buildAttentionSources", () => {
       detail,
       [makeProviderSetting({ provider: "gallery", isFavorite: true })],
       [],
+      true,
     );
     expect(blocks[0]?.newPrintings).toBe(1);
     expect(blocks[0]?.changedFields).toBe(0);
@@ -562,8 +637,26 @@ describe("buildAttentionSources image comparison", () => {
   }
   const settings = [makeProviderSetting({ provider: "gallery", isFavorite: true })];
 
+  it("reads an image the face already holds as an extra as nothing differs", () => {
+    const detail = detailWith("art");
+    const extra = {
+      printingId: detail.printings[0]?.id ?? "",
+      face: "front",
+      originalUrl: "https://mirror.example/lux.png",
+      rehostedUrl: null,
+      isActive: false,
+    } as AdminPrintingImageResponse;
+    const blocks = buildAttentionSources(
+      { ...detail, printingImages: [extra] },
+      settings,
+      [],
+      true,
+    );
+    expect(blocks[0]?.changedFields).toBe(0);
+  });
+
   it("reads a rehosted copy of the live image as nothing differs", () => {
-    const blocks = buildAttentionSources(detailWith("same"), settings, []);
+    const blocks = buildAttentionSources(detailWith("same"), settings, [], true);
     expect(blocks[0]?.changedFields).toBe(0);
   });
 
@@ -581,6 +674,7 @@ describe("buildAttentionSources image comparison", () => {
         { ...detail, printingImages: [image] },
         settings,
         [],
+        true,
       )[0]?.entries[0]?.groups[0]?.changes.map((change) => [change.kind, change.label]);
     };
     expect(labels("art")).toEqual([["image", "Image (different image)"]]);
@@ -589,8 +683,8 @@ describe("buildAttentionSources image comparison", () => {
   });
 
   it("labels an image for a side without a photo as Image", () => {
-    const change = buildAttentionSources(detailWith(null), settings, [])[0]?.entries[0]?.groups[0]
-      ?.changes[0];
+    const change = buildAttentionSources(detailWith(null), settings, [], true)[0]?.entries[0]
+      ?.groups[0]?.changes[0];
     expect(change?.label).toBe("Image");
   });
 
@@ -606,8 +700,12 @@ describe("buildAttentionSources image comparison", () => {
       needsTrim: false,
       needsLevels: false,
     } as AdminPrintingImageResponse;
-    const change = buildAttentionSources({ ...detail, printingImages: [image] }, settings, [])[0]
-      ?.entries[0]?.groups[0]?.changes[0];
+    const change = buildAttentionSources(
+      { ...detail, printingImages: [image] },
+      settings,
+      [],
+      true,
+    )[0]?.entries[0]?.groups[0]?.changes[0];
     expect(change?.current).toBe(printingImageDisplayUrl(image));
     expect(change?.current).toBe("/media/cards/lux-full.webp");
   });

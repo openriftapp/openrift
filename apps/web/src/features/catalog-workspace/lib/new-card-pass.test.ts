@@ -1,4 +1,3 @@
-import type { ReviewCard } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import type { PrintingValueLabels } from "@/features/admin/lib/field-value-text";
@@ -8,61 +7,12 @@ import { draftFromCandidatePrinting } from "./creation-draft";
 import {
   newCardCreateLabel,
   newCardFieldRows,
-  newCardReviewKey,
   printingGroupLines,
   printingGroupProviders,
-  reviewNeighborByKey,
 } from "./new-card-pass";
 
 beforeEach(() => {
   resetIdCounter();
-});
-
-function reviewCard(key: string): ReviewCard {
-  return {
-    key,
-    cardSlug: key.startsWith("new:") ? null : key,
-    cardName: key,
-    hasContribution: false,
-    providers: [],
-    waitingSince: "2026-11-20T09:00:00.000Z",
-    pending: {
-      cardFields: [],
-      newPrintings: 0,
-      faces: 0,
-      printings: 0,
-      newImages: 0,
-      failedImages: 0,
-    },
-  };
-}
-
-describe("reviewNeighborByKey", () => {
-  const cards = [reviewCard("ahri"), reviewCard(newCardReviewKey("jinx")), reviewCard("vi")];
-
-  it("finds a new card by its key and steps both ways", () => {
-    expect(reviewNeighborByKey(cards, "new:jinx", 1, 1)?.key).toBe("vi");
-    expect(reviewNeighborByKey(cards, "new:jinx", -1, 1)?.key).toBe("ahri");
-  });
-
-  it("steps from the slot a created card left behind", () => {
-    const rest = [reviewCard("ahri"), reviewCard("vi")];
-    expect(reviewNeighborByKey(rest, "new:jinx", 1, 1)?.key).toBe("vi");
-    expect(reviewNeighborByKey(rest, "new:jinx", -1, 1)?.key).toBe("ahri");
-    expect(reviewNeighborByKey(rest, "new:jinx", 1, 2)).toBeNull();
-    expect(reviewNeighborByKey(rest, "new:jinx", -1, 0)).toBeNull();
-  });
-
-  it("skips the card the new card turned into", () => {
-    const rest = [reviewCard("ahri"), reviewCard("jinx"), reviewCard("vi")];
-    expect(reviewNeighborByKey(rest, "new:jinx", 1, 1, "jinx")?.key).toBe("vi");
-    expect(reviewNeighborByKey([reviewCard("jinx")], "new:jinx", 1, 0, "jinx")).toBeNull();
-  });
-
-  it("opens the first card when the position was never known", () => {
-    expect(reviewNeighborByKey(cards, "new:gone", 1, -1)?.key).toBe("ahri");
-    expect(reviewNeighborByKey(cards, "new:gone", -1, -1)).toBeNull();
-  });
 });
 
 describe("newCardCreateLabel", () => {

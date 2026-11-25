@@ -9,6 +9,11 @@ import { sql } from "kysely";
 import { primaryCardTypeSql } from "../../../db/helpers.js";
 import type { Database } from "../../../db/tables.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
+import {
+  printingCreatedBy,
+  printingInDeskScope,
+  printingIsPromo,
+} from "../../../repositories/printing-promo-sql.js";
 import { imageUrlWithOriginal, joinAdminFaceImage } from "../../../repositories/query-helpers.js";
 
 interface WorkspaceRecordBaseDbRow {
@@ -53,7 +58,7 @@ interface WorkspaceRecordsQuery<F> {
   q?: string;
   filter?: F;
   limit: number;
-  cursor?: string;
+  offset: number;
   setSlug?: string;
   sort?: { key: WorkspaceRecordSort; direction: "asc" | "desc" };
   printingIds?: readonly string[];
@@ -79,14 +84,6 @@ export interface WorkspaceEventRow {
   cardSlug: string | null;
   createdAt: Date;
 }
-
-const printingIsPromo = sql<SqlBool>`(
-  exists (
-    select 1 from faces mf
-    where mf.id in (p.face1_id, p.face2_id) and cardinality(mf.marker_slugs) > 0
-  )
-  or exists (select 1 from printing_distribution_channels pdc2 where pdc2.printing_id = p.id)
-)`;
 
 const printingImageCount = sql<number>`(
   select count(*)::int from face_images pi2 where pi2.face_id in (p.face1_id, p.face2_id)
@@ -138,11 +135,34 @@ const printingCanonicalRank = sql<number>`(
   where r.printing_id = p.id and r.position = 1
 )`;
 
-const faceCanonicalRank = sql<number>`(
-  select min(r.canonical_rank)
-  from mv_printing_sides_canonical_rank r
-  join printings rp on rp.id = r.printing_id
-  where (r.position = 1 and rp.face1_id = f.id) or (r.position = 2 and rp.face2_id = f.id)
+const faceCanonicalRank = sql<number>`least(
+  (
+    select min(r.canonical_rank)
+    from printings rp
+    join mv_printing_sides_canonical_rank r on r.printing_id = rp.id and r.position = 1
+    where rp.face1_id = f.id
+  ),
+  (
+    select min(r.canonical_rank)
+    from printings rp
+    join mv_printing_sides_canonical_rank r on r.printing_id = rp.id and r.position = 2
+    where rp.face2_id = f.id
+  )
+)`;
+
+/** For an unfiltered list only; a filtered one ranks its few rows through `faceCanonicalRank`. */
+const faceCanonicalRanks = sql<{ faceId: string; canonicalRank: number }>`(
+  select sides.face_id, min(sides.canonical_rank) as canonical_rank
+  from (
+    select rp.face1_id as face_id, r.canonical_rank
+    from printings rp
+    join mv_printing_sides_canonical_rank r on r.printing_id = rp.id and r.position = 1
+    union all
+    select rp.face2_id, r.canonical_rank
+    from printings rp
+    join mv_printing_sides_canonical_rank r on r.printing_id = rp.id and r.position = 2
+  ) sides
+  group by sides.face_id
 )`;
 
 const faceHasOwnImage = sql<SqlBool>`exists (
@@ -165,7 +185,19 @@ const faceImageState = sql<WorkspaceImageState>`case
 end`;
 
 const facePrintingCount = sql<number>`(
-  select count(*)::int from printings pc where f.id in (pc.face1_id, pc.face2_id)
+  (select count(*)::int from printings pc where pc.face1_id = f.id)
+  + (select count(*)::int from printings pc where pc.face2_id = f.id)
+)`;
+
+const sharedFaceIds = sql`(
+  select shared.face_id
+  from (
+    select face1_id as face_id from printings
+    union all
+    select face2_id from printings where face2_id is not null
+  ) shared
+  group by shared.face_id
+  having count(*) > 1
 )`;
 
 function searchPredicate(q: string) {
@@ -203,7 +235,7 @@ function faceFilterPredicate(filter: WorkspaceFaceRecordFilter): Expression<SqlB
       return sql<SqlBool>`not ${faceHasOwnImage} and ${faceHasSubstitute}`;
     }
     case "shared": {
-      return sql<SqlBool>`${facePrintingCount} > 1`;
+      return sql<SqlBool>`f.id in ${sharedFaceIds}`;
     }
   }
 }
@@ -244,12 +276,6 @@ function sortColumn(key: WorkspaceRecordSort, updatedColumn: string): string {
 
 function inSet(setSlug: string): Expression<SqlBool> {
   return sql<SqlBool>`f.set_id = (select st.id from sets st where st.slug = ${setSlug})`;
-}
-
-/** Lists page by offset; the cursor is the number of rows already sent. */
-export function offsetCursor(cursor: string | undefined): number {
-  const offset = Number(cursor);
-  return Number.isInteger(offset) && offset > 0 ? offset : 0;
 }
 
 export function workspaceRecordsRepo(db: Kysely<Database>) {
@@ -306,7 +332,7 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
           : page.orderBy(sql.ref(sortColumn(query.sort.key, "p.updatedAt")), query.sort.direction)
       )
         .orderBy("p.id", "desc")
-        .offset(offsetCursor(query.cursor));
+        .offset(query.offset);
       const [rows, count] = await Promise.all([
         page.execute(),
         base.select(sql<number>`count(*)::int`.as("total")).executeTakeFirstOrThrow(),
@@ -320,6 +346,13 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
       if (query.printingIds?.length === 0 || query.faceIds?.length === 0) {
         return { rows: [], total: 0 };
       }
+      const rankAll =
+        query.sort === undefined &&
+        query.faceIds === undefined &&
+        query.printingIds === undefined &&
+        query.q === undefined &&
+        query.setSlug === undefined &&
+        query.filter === undefined;
       let base = db.selectFrom("faces as f").innerJoin("cards as c", "c.id", "f.cardId");
       if (query.faceIds !== undefined) {
         base = base.where("f.id", "in", [...query.faceIds]);
@@ -341,6 +374,9 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
       }
       let page = joinAdminFaceImage(base, "f.id")
         .innerJoin("sets as s", "s.id", "f.setId")
+        .$if(rankAll, (qb) =>
+          qb.leftJoin(faceCanonicalRanks.as("fr"), (join) => join.onRef("fr.faceId", "=", "f.id")),
+        )
         .select([
           "f.id",
           "c.slug as cardSlug",
@@ -361,11 +397,11 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
         .limit(query.limit + 1);
       page = (
         query.sort === undefined
-          ? page.orderBy(faceCanonicalRank, "asc")
+          ? page.orderBy(rankAll ? sql`fr.canonical_rank` : faceCanonicalRank, "asc")
           : page.orderBy(sql.ref(sortColumn(query.sort.key, "f.updatedAt")), query.sort.direction)
       )
         .orderBy("f.id", "desc")
-        .offset(offsetCursor(query.cursor));
+        .offset(query.offset);
       const [rows, count] = await Promise.all([
         page.execute(),
         base.select(sql<number>`count(*)::int`.as("total")).executeTakeFirstOrThrow(),
@@ -424,7 +460,22 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
       return rows.map((row) => row.id);
     },
 
-    /** Must agree with `deskPrintingScope`. */
+    async deskScope(actorUserId: string): Promise<{ promoIds: string[]; createdIds: string[] }> {
+      const rows = await db
+        .selectFrom("printings as p")
+        .select([
+          "p.id",
+          printingIsPromo.as("isPromo"),
+          printingCreatedBy(actorUserId).as("isCreated"),
+        ])
+        .where(printingInDeskScope(actorUserId))
+        .execute();
+      return {
+        promoIds: rows.filter((row) => row.isPromo).map((row) => row.id),
+        createdIds: rows.filter((row) => row.isCreated).map((row) => row.id),
+      };
+    },
+
     async anyInDeskScope(printingIds: readonly string[], actorUserId: string): Promise<boolean> {
       if (printingIds.length === 0) {
         return false;
@@ -433,13 +484,7 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
         .selectFrom("printings as p")
         .select("p.id")
         .where("p.id", "in", [...printingIds])
-        .where(
-          sql<SqlBool>`(${printingIsPromo} or exists (
-            select 1 from admin_events ce
-            where ce.actor_user_id = ${actorUserId} and ce.action = 'printing.create'
-              and ce.entity_type = 'printing' and ce.entity_id = p.id::text
-          ))`,
-        )
+        .where(printingInDeskScope(actorUserId))
         .limit(1)
         .executeTakeFirst();
       return row !== undefined;

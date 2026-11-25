@@ -142,10 +142,18 @@ interface LinkedPrintingDifferences {
   newImage: boolean;
 }
 
-/** Compares like `checkMatchingCandidates`, so a row it would auto-check yields nothing here. */
+export function cardSourceDifferences(row: Pick<WorkspaceCardDifferenceRow, "candidate" | "live">) {
+  return differingFields(
+    COMPARABLE_CARD_FIELDS,
+    row.live,
+    row.candidate,
+    row.candidate.dismissedValues,
+  );
+}
+
 export function linkedPrintingDifferences(
-  row: WorkspaceLinkedPrintingRow,
-  costKeywords: string[],
+  row: Pick<WorkspaceLinkedPrintingRow, "candidate" | "live" | "printedTotal">,
+  costKeywords: readonly string[],
 ): LinkedPrintingDifferences {
   const { imageUrl, imageFingerprint, dismissedValues, ...candidate } = row.candidate;
   const { imageUrls, imageFingerprints, ...live } = row.live;
@@ -180,12 +188,7 @@ export function buildWorkspaceQueueEntries(sources: WorkspaceQueueSources): Work
   const collector = new EntryCollector();
 
   for (const row of sources.cardDifferences) {
-    const fields = differingFields(
-      COMPARABLE_CARD_FIELDS,
-      row.live,
-      row.candidate,
-      row.candidate.dismissedValues,
-    );
+    const fields = cardSourceDifferences(row);
     if (fields.length === 0) {
       continue;
     }
@@ -403,10 +406,8 @@ function cardListingEntries(listings: readonly UnmatchedListing[]): WorkspaceQue
 
 export function toWorkspaceQueueResponse(
   items: readonly WorkspaceQueueItem[],
-  owner?: WorkspaceOwner,
 ): WorkspaceQueueResponse {
-  const sorted = items.toSorted((a, b) => a.createdAt.localeCompare(b.createdAt));
-  return { items: owner === undefined ? sorted : sorted.filter((item) => item.owner === owner) };
+  return { items: items.toSorted((a, b) => a.createdAt.localeCompare(b.createdAt)) };
 }
 
 export interface DeskRecordScope {

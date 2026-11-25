@@ -3,37 +3,41 @@ import type { ProductSuggestion } from "@openrift/shared/marketplace-suggestions
 import { suggestionStrength } from "@openrift/shared/marketplace-suggestions";
 import type {
   AdminMarketplaceName,
-  StagedProductResponse,
   UnifiedMappingGroupResponse,
   UnifiedMappingPrintingResponse,
 } from "@openrift/shared/types/api/admin";
 import { ALL_MARKETPLACES, marketplaceCarriesLanguage } from "@openrift/shared/types/pricing";
 
+import type { TableEntry } from "@/features/admin/lib/marketplace-product-entries";
+import { collectEntries } from "@/features/admin/lib/marketplace-product-entries";
 import type { PrintingAssignment } from "@/features/admin/lib/printing-assignment";
 import { emptyAssignmentsByMarketplace } from "@/features/admin/lib/printing-assignment";
 
 export type ListingStrength = "strong" | "weak" | "possible";
+
+export type RowSuggestion = ProductSuggestion & { printing: UnifiedMappingPrintingResponse };
 
 interface ListingSuggestion {
   printing: UnifiedMappingPrintingResponse;
   strength: ListingStrength;
 }
 
-export interface CardListingRow {
+export interface CardListingRow extends TableEntry {
   key: string;
-  marketplace: AdminMarketplaceName;
-  product: StagedProductResponse;
-  isAssigned: boolean;
-  assignedPrintings: UnifiedMappingPrintingResponse[];
+  showProduct: boolean;
+  suggestions: RowSuggestion[];
   suggestion: ListingSuggestion | null;
   assignablePrintings: UnifiedMappingPrintingResponse[];
 }
 
 export interface CardListings {
+  rows: Record<AdminMarketplaceName, CardListingRow[]>;
   unassigned: CardListingRow[];
   assigned: CardListingRow[];
   strong: Record<AdminMarketplaceName, PrintingAssignment[]>;
+  weak: Record<AdminMarketplaceName, PrintingAssignment[]>;
   strongCount: number;
+  weakCount: number;
 }
 
 export function listingAssignment(
@@ -48,31 +52,35 @@ export function listingAssignment(
   };
 }
 
-function sameSku(a: StagedProductResponse, b: StagedProductResponse): boolean {
-  return a.externalId === b.externalId && a.finish === b.finish && a.language === b.language;
+function countAssignments(byMarketplace: Record<AdminMarketplaceName, PrintingAssignment[]>) {
+  return ALL_MARKETPLACES.reduce((sum, marketplace) => sum + byMarketplace[marketplace].length, 0);
 }
 
-function listingEntries(group: UnifiedMappingGroupResponse) {
-  return ALL_MARKETPLACES.flatMap((marketplace) => {
-    const { stagedProducts, assignedProducts, assignments = [] } = group[marketplace];
-    const products = [...stagedProducts, ...assignedProducts].filter(
-      (product, index, all) => all.findIndex((other) => sameSku(other, product)) === index,
-    );
-    return products.map((product) => ({
-      marketplace,
-      product,
-      isAssigned: assignedProducts.some((assigned) => sameSku(assigned, product)),
-      // Cardmarket stores a null assignment language, which matches every language.
-      assignedPrintingIds: assignments
-        .filter(
-          (assignment) =>
-            assignment.externalId === product.externalId &&
-            assignment.finish === product.finish &&
-            (assignment.language === null || assignment.language === product.language),
-        )
-        .map((assignment) => assignment.printingId),
-    }));
+function listingRow(
+  entry: TableEntry,
+  showProduct: boolean,
+  group: UnifiedMappingGroupResponse,
+  printingById: ReadonlyMap<string, UnifiedMappingPrintingResponse>,
+  suggestions: ReadonlyMap<string, ProductSuggestion[]>,
+): CardListingRow {
+  const { marketplace, product } = entry;
+  const key = marketplaceSkuKey(marketplace, product.externalId, product.finish, product.language);
+  const rowSuggestions = (suggestions.get(key) ?? []).flatMap((suggestion) => {
+    const printing = printingById.get(suggestion.printingId);
+    return printing === undefined ? [] : [{ ...suggestion, printing }];
   });
+  const [best] = rowSuggestions.toSorted((a, b) => b.score - a.score);
+  return {
+    ...entry,
+    key,
+    showProduct,
+    suggestions: rowSuggestions,
+    suggestion:
+      best === undefined ? null : { printing: best.printing, strength: suggestionStrength(best) },
+    assignablePrintings: group.printings.filter((printing) =>
+      marketplaceCarriesLanguage(marketplace, printing.language),
+    ),
+  };
 }
 
 export function buildCardListings(
@@ -80,49 +88,46 @@ export function buildCardListings(
   suggestions: ReadonlyMap<string, ProductSuggestion[]>,
 ): CardListings {
   const printingById = new Map(group.printings.map((printing) => [printing.printingId, printing]));
-  const unassigned: CardListingRow[] = [];
-  const assigned: CardListingRow[] = [];
+  const entries = collectEntries(group);
   const strong = emptyAssignmentsByMarketplace();
+  const weak = emptyAssignmentsByMarketplace();
+  const rows = Object.fromEntries(
+    ALL_MARKETPLACES.map((marketplace) => {
+      const byProduct = Map.groupBy(
+        entries.filter((entry) => entry.marketplace === marketplace),
+        (entry) => entry.product.externalId,
+      );
+      const marketplaceRows = [...byProduct.values()].flatMap((variants) =>
+        variants.map((entry, index) =>
+          listingRow(entry, index === 0, group, printingById, suggestions),
+        ),
+      );
+      return [marketplace, marketplaceRows];
+    }),
+  ) as Record<AdminMarketplaceName, CardListingRow[]>;
 
-  for (const entry of listingEntries(group)) {
-    const { marketplace, product } = entry;
-    const ranked = (
-      suggestions.get(
-        marketplaceSkuKey(marketplace, product.externalId, product.finish, product.language),
-      ) ?? []
-    ).toSorted((a, b) => b.score - a.score);
-    const [best] = ranked.filter((suggestion) => printingById.has(suggestion.printingId));
-    const row: CardListingRow = {
-      key: `${marketplace}:${product.externalId}:${product.finish}:${product.language ?? ""}`,
-      marketplace,
-      product,
-      isAssigned: entry.isAssigned,
-      assignedPrintings: entry.assignedPrintingIds
-        .map((printingId) => printingById.get(printingId))
-        .filter((printing) => printing !== undefined),
-      suggestion:
-        best === undefined
-          ? null
-          : {
-              printing: printingById.get(best.printingId) as UnifiedMappingPrintingResponse,
-              strength: suggestionStrength(best),
-            },
-      assignablePrintings: group.printings.filter((printing) =>
-        marketplaceCarriesLanguage(marketplace, printing.language),
-      ),
-    };
-    if (entry.isAssigned) {
-      assigned.push(row);
+  const all = ALL_MARKETPLACES.flatMap((marketplace) => rows[marketplace]);
+  for (const row of all) {
+    if (row.isAssigned) {
       continue;
     }
-    unassigned.push(row);
-    for (const suggestion of ranked) {
-      if (suggestionStrength(suggestion) === "strong" && printingById.has(suggestion.printingId)) {
-        strong[marketplace].push(listingAssignment(row, suggestion.printingId));
+    for (const suggestion of row.suggestions) {
+      const strength = suggestionStrength(suggestion);
+      if (strength !== "possible") {
+        (strength === "strong" ? strong : weak)[row.marketplace].push(
+          listingAssignment(row, suggestion.printingId),
+        );
       }
     }
   }
 
-  const strongCount = ALL_MARKETPLACES.reduce((sum, mp) => sum + strong[mp].length, 0);
-  return { unassigned, assigned, strong, strongCount };
+  return {
+    rows,
+    unassigned: all.filter((row) => !row.isAssigned),
+    assigned: all.filter((row) => row.isAssigned),
+    strong,
+    weak,
+    strongCount: countAssignments(strong),
+    weakCount: countAssignments(weak),
+  };
 }

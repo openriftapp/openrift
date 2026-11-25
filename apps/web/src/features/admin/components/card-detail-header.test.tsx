@@ -100,8 +100,11 @@ describe("CardDetailHeader", () => {
     const goToCard = vi.fn();
     const { getByText } = renderHeader({ cardSlug: "yasu", expectedCardSlug: "yasuo", goToCard });
 
-    getByText("Regenerate ID (yasuo)").click();
-    expect(captured.rename).toHaveBeenCalledWith({ cardId: "card-uuid", newId: "yasuo" });
+    getByText("Regenerate ID (yasu → yasuo)").click();
+    expect(captured.rename).toHaveBeenCalledWith(
+      { cardId: "card-uuid", newId: "yasuo" },
+      { signal: undefined },
+    );
     await vi.waitFor(() => expect(goToCard).toHaveBeenCalledWith("yasuo"));
   });
 
@@ -109,7 +112,7 @@ describe("CardDetailHeader", () => {
     captured.rename.mockResolvedValue(undefined);
     const { getByText } = renderHeader({ cardSlug: "yasu", expectedCardSlug: "yasuo" });
 
-    getByText("Regenerate ID (yasuo)").click();
+    getByText("Regenerate ID (yasu → yasuo)").click();
 
     await vi.waitFor(() => expect(captured.leftSlugs).toEqual(["yasu"]));
   });
@@ -119,7 +122,7 @@ describe("CardDetailHeader", () => {
     const goToList = vi.fn(async () => {});
     const { getByText } = renderHeader({ goToList });
 
-    getByText("Delete card").click();
+    getByText("Delete card…").click();
     await vi.waitFor(() => getByText("Confirm delete").click());
 
     await vi.waitFor(() => expect(captured.leftSlugs).toEqual(["yasuo"]));
@@ -131,7 +134,7 @@ describe("CardDetailHeader", () => {
     const goToCard = vi.fn();
     const { getByText } = renderHeader({ cardSlug: "yasu", expectedCardSlug: "yasuo", goToCard });
 
-    getByText("Regenerate ID (yasuo)").click();
+    getByText("Regenerate ID (yasu → yasuo)").click();
     await vi.waitFor(() => expect(captured.rename).toHaveBeenCalledOnce());
     await Promise.resolve();
     expect(goToCard).not.toHaveBeenCalled();
@@ -140,7 +143,7 @@ describe("CardDetailHeader", () => {
   it("stays quiet when the slug is current", () => {
     const { queryByText } = renderHeader();
 
-    expect(queryByText("Regenerate ID (yasuo)")).toBeNull();
+    expect(queryByText(/Regenerate ID/u)).toBeNull();
   });
 
   it("shows the drift to non-admins but hides the regenerate action", () => {
@@ -151,7 +154,7 @@ describe("CardDetailHeader", () => {
     });
 
     expect(getByText("ID → yasuo")).toBeTruthy();
-    expect(queryByText("Regenerate ID (yasuo)")).toBeNull();
+    expect(queryByText(/Regenerate ID/u)).toBeNull();
   });
 
   it("hides the admin actions from non-admins", () => {

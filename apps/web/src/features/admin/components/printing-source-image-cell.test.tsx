@@ -2,15 +2,19 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const captured = vi.hoisted(() => ({ setImage: vi.fn() }));
+import type { RunWrite } from "@/features/admin/lib/run-write";
+
+const captured = vi.hoisted(() => ({
+  setImage: vi.fn((..._args: unknown[]) => Promise.resolve()),
+}));
 
 vi.mock("@/features/admin/hooks/use-admin-image-mutations", () => ({
-  useSetCandidatePrintingImage: () => ({ mutate: captured.setImage, isPending: false }),
+  useSetCandidatePrintingImage: () => ({ mutateAsync: captured.setImage, isPending: false }),
 }));
 
 import { PrintingSourceImageCell } from "./printing-source-image-cell";
 
-function renderCell(isUsed = false) {
+function renderCell(isUsed = false, runWrite?: RunWrite) {
   return render(
     <PrintingSourceImageCell
       candidatePrintingId="cp-1"
@@ -18,12 +22,13 @@ function renderCell(isUsed = false) {
       sourceLabel="gallery"
       isUsed={isUsed}
       landscape={false}
+      runWrite={runWrite}
     />,
   );
 }
 
 beforeEach(() => {
-  captured.setImage.mockReset();
+  captured.setImage.mockClear();
 });
 
 describe("PrintingSourceImageCell", () => {
@@ -34,14 +39,31 @@ describe("PrintingSourceImageCell", () => {
     await user.click(screen.getByRole("button", { name: "Main" }));
     await user.click(screen.getByRole("button", { name: "Beside" }));
 
-    expect(captured.setImage).toHaveBeenNthCalledWith(1, {
-      candidatePrintingId: "cp-1",
-      mode: "main",
-    });
-    expect(captured.setImage).toHaveBeenNthCalledWith(2, {
-      candidatePrintingId: "cp-1",
-      mode: "additional",
-    });
+    expect(captured.setImage).toHaveBeenNthCalledWith(
+      1,
+      { candidatePrintingId: "cp-1", mode: "main" },
+      { signal: undefined },
+    );
+    expect(captured.setImage).toHaveBeenNthCalledWith(
+      2,
+      { candidatePrintingId: "cp-1", mode: "additional" },
+      { signal: undefined },
+    );
+  });
+
+  it("stores the image through the caller's write runner and its signal", async () => {
+    const user = userEvent.setup();
+    const { signal } = new AbortController();
+    const runWrite = vi.fn<RunWrite>((write) => write(signal).then(() => true));
+    renderCell(false, runWrite);
+
+    await user.click(screen.getByRole("button", { name: "Beside" }));
+
+    expect(runWrite).toHaveBeenCalledOnce();
+    expect(captured.setImage).toHaveBeenCalledWith(
+      { candidatePrintingId: "cp-1", mode: "additional" },
+      { signal },
+    );
   });
 
   it("says an image is already used instead of offering it again", () => {

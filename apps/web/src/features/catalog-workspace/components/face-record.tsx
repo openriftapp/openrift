@@ -3,9 +3,9 @@ import type { DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-
 import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { pluralize } from "@openrift/shared/strings";
 import type { AdminPrintingResponse } from "@openrift/shared/types/api/admin";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
-  ArrowLeftIcon,
   ChevronRightIcon,
   CopyIcon,
   EllipsisVerticalIcon,
@@ -15,7 +15,7 @@ import { Suspense, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,9 +33,11 @@ import { useProviderSettings } from "@/features/admin/hooks/use-provider-setting
 import { hasAdminSection } from "@/features/admin/lib/admin-sections";
 import { printingPairName } from "@/features/admin/lib/face-rows";
 import { formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
+import { deskCardPrintingsQueryOptions } from "@/features/admin/lib/printing-desk-queries";
 import { deskRowForFace, printingFaces } from "@/features/admin/lib/printing-faces";
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
-import { FaceCompareGrid } from "@/features/catalog-workspace/components/compare-sources-dialog";
+import { hiddenProviders as hiddenProvidersFor } from "@/features/admin/lib/source-compare";
+import { FaceCompareGrid } from "@/features/catalog-workspace/components/compare-grids";
 import {
   DeskFaceImagesSection,
   FaceImagesSection,
@@ -43,6 +45,7 @@ import {
 import { FaceFieldsSection } from "@/features/catalog-workspace/components/record/face-fields-section";
 import { RecordFieldRow } from "@/features/catalog-workspace/components/record/field-row";
 import { RecordDismissAll } from "@/features/catalog-workspace/components/record/record-dismiss-all";
+import { RecordError } from "@/features/catalog-workspace/components/record/record-error";
 import {
   RecordBanner,
   PublicPageLink,
@@ -52,13 +55,15 @@ import {
   VariantFacts,
 } from "@/features/catalog-workspace/components/record/record-pane";
 import { WorkspaceHistorySection } from "@/features/catalog-workspace/components/record/workspace-history-section";
-import { cardRecordScope } from "@/features/catalog-workspace/hooks/use-card-record-actions";
-import { useValueLabels } from "@/features/catalog-workspace/hooks/use-face-record-actions";
+import { useValueLabels } from "@/features/catalog-workspace/hooks/use-value-labels";
+import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import { dismissTargets } from "@/features/catalog-workspace/lib/card-pass";
 import {
   buildFaceSuggestions,
   faceCompareCandidates,
 } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import { cardRecordScope } from "@/features/catalog-workspace/lib/record-scopes";
+import { stopNavigation } from "@/features/catalog-workspace/lib/review-stops";
 import { variantExtras } from "@/features/catalog-workspace/lib/variant-facts";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
@@ -100,23 +105,24 @@ function ReviewFaceRecord({
 }) {
   const detailQuery = useAdminCardDetail(cardSlug);
   const detail = detailQuery.data;
+  const trail = useLocation({ select: (location) => location.state.workspaceReview });
   const { data: providerData } = useProviderSettings();
   const costKeywords = useCostKeywords();
   const labels = useValueLabels();
 
   if (detail === undefined) {
     return detailQuery.isError ? (
-      <p className="text-muted-foreground p-4">The card could not be loaded.</p>
+      <RecordError
+        error={detailQuery.error}
+        missing={<>No card with ID &ldquo;{cardSlug}&rdquo; exists.</>}
+        onRetry={() => void detailQuery.refetch()}
+      />
     ) : (
       <Skeleton className="m-4 h-96" />
     );
   }
   const providerSettings = providerData.providerSettings;
-  const hiddenProviders = new Set(
-    providerSettings
-      .filter((setting) => setting.isHidden || (!isAdmin && !setting.helperReviewable))
-      .map((setting) => setting.provider),
-  );
+  const hiddenProviders = hiddenProvidersFor(providerSettings, isAdmin);
   const model = buildFaceSuggestions(detail, faceId, {
     costKeywords,
     setTotals: detail.setTotals,
@@ -209,8 +215,7 @@ function ReviewFaceRecord({
 
       <RecordSection title="Card">
         <Link
-          to="/admin/workspace/cards/$cardSlug"
-          params={{ cardSlug }}
+          {...stopNavigation({ kind: "card" }, trail ?? { cardSlug, cardIndex: -1 })}
           className="inline-flex items-center gap-1 underline"
         >
           {detail.displayName}
@@ -296,6 +301,23 @@ function FaceActionsMenu({ cardSlug, faceId }: { cardSlug: string; faceId: strin
 }
 
 function DeskFaceRecord({ cardSlug, faceId }: { cardSlug: string; faceId: string }) {
+  const cardQuery = useQuery(deskCardPrintingsQueryOptions(cardSlug));
+  if (cardQuery.data === undefined && cardQuery.isError) {
+    return (
+      <RecordError
+        error={cardQuery.error}
+        missing={<>No card with ID &ldquo;{cardSlug}&rdquo; exists.</>}
+        onRetry={() => void cardQuery.refetch()}
+      />
+    );
+  }
+  if (cardQuery.data === undefined) {
+    return <Skeleton className="m-4 h-96" />;
+  }
+  return <DeskFaceRows cardSlug={cardSlug} faceId={faceId} />;
+}
+
+function DeskFaceRows({ cardSlug, faceId }: { cardSlug: string; faceId: string }) {
   const { data } = useDeskCardPrintings(cardSlug);
   const fromPrintingId = useLocation({
     select: (location) => location.state.workspaceFromPrintingId,
@@ -321,6 +343,7 @@ function DeskFaceBody({
 }) {
   const { data } = useDeskPrinting(printingId, 1);
   const labels = useValueLabels();
+  const queueWrite = useQueueWorkspaceWrite();
   const [editing, setEditing] = useState(false);
 
   const printing = data.printing;
@@ -369,16 +392,6 @@ function DeskFaceBody({
     <RecordPane
       header={
         <RecordHeader
-          thumb={
-            <Link
-              to="/admin/workspace/printings/$printingId"
-              params={{ printingId }}
-              aria-label={`Back to ${pairName}`}
-              className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
-            >
-              <ArrowLeftIcon />
-            </Link>
-          }
           title={face.cardName}
           subtitle={
             <>
@@ -417,6 +430,7 @@ function DeskFaceBody({
               printingId={printingId}
               side={face.position}
               scope="face"
+              runWrite={queueWrite}
               onSaved={() => setEditing(false)}
               onCancel={() => setEditing(false)}
             />

@@ -20,6 +20,7 @@ import { assertFavoriteNewCardEligible } from "../../candidates/services/trusted
 import {
   deletePrinting,
   createNewPrinting,
+  createNewPrintings,
   updatePrintingDistributionChannels,
   updatePrintingMarkers,
 } from "../services/printing-admin.js";
@@ -28,6 +29,7 @@ import { adminCardMutationsRouter } from "./admin-cards-mutations";
 vi.mock("../services/printing-admin.js", async (importOriginal) => ({
   ...(await importOriginal()),
   createNewPrinting: vi.fn(),
+  createNewPrintings: vi.fn(),
   deletePrinting: vi.fn(),
   updatePrintingMarkers: vi.fn(),
   updatePrintingDistributionChannels: vi.fn(),
@@ -36,7 +38,10 @@ vi.mock("../services/printing-admin.js", async (importOriginal) => ({
 vi.mock("../../candidates/services/accept-candidate-printings.js", () => ({
   finishPrintingAccepts: vi.fn(),
 }));
-vi.mock("../../candidates/services/accept-gallery.js", () => ({ acceptFavoriteNewCard: vi.fn() }));
+vi.mock("../../candidates/services/accept-gallery.js", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  acceptFavoriteNewCard: vi.fn(),
+}));
 vi.mock("../../candidates/services/trusted-accept-checks.js", () => ({
   assertFavoriteNewCardEligible: vi.fn(),
 }));
@@ -62,6 +67,7 @@ vi.mock("@openrift/shared/fix-typography", async (importOriginal) => ({
 const mockDeletePrinting = vi.mocked(deletePrinting);
 const mockUpdatePrintingMarkers = vi.mocked(updatePrintingMarkers);
 const mockCreateNewPrinting = vi.mocked(createNewPrinting);
+const mockCreateNewPrintings = vi.mocked(createNewPrintings);
 const mockFinishPrintingAccepts = vi.mocked(finishPrintingAccepts);
 const mockAcceptFavoriteNewCard = vi.mocked(acceptFavoriteNewCard);
 const mockAcceptFavoritePrintingsForCard = vi.mocked(acceptFavoritePrintingsForCard);
@@ -101,7 +107,7 @@ const mockKeywords = { recomputeForPrintingCard: vi.fn() };
 
 const mockCatalogDeleteGuards = { countForCard: vi.fn(), countForPrinting: vi.fn() };
 
-const mockAdminEvents = { insert: vi.fn() };
+const mockAdminEvents = { insert: vi.fn(), insertMany: vi.fn() };
 
 const mockDistributionChannels = {
   listBySlugs: vi.fn(async () => []),
@@ -127,8 +133,10 @@ const mockCandidateCards = {
   checkCandidateCard: vi.fn(),
   uncheckCandidateCard: vi.fn(),
   uncheckCandidateCards: vi.fn(),
-  checkCandidateCards: vi.fn(),
   checkAllCandidatePrintings: vi.fn(),
+  checkCandidatePrintingsOfCard: vi.fn(),
+  dismissCandidateValue: vi.fn(),
+  restoreCandidateValue: vi.fn(),
   checkCandidatePrinting: vi.fn(),
   uncheckCandidatePrinting: vi.fn(),
   uncheckCandidatePrintings: vi.fn(),
@@ -266,6 +274,21 @@ describe("POST /cards/:candidateCardId/check", () => {
     expect(mockNotifySubmitterOfCardAcceptance).not.toHaveBeenCalled();
   });
 
+  it("records the check", async () => {
+    mockCandidateCards.checkCandidateCard.mockResolvedValue({ numUpdatedRows: 1n });
+
+    await app.request(`/api/admin/v1/cards/${CARD_ID}/check`, { method: "POST" });
+
+    expect(mockAdminEvents.insertMany).toHaveBeenCalledWith([
+      expect.objectContaining({
+        action: "candidate-card.check",
+        entityType: "candidate-card",
+        entityId: CARD_ID,
+        newValues: { candidateCardIds: [CARD_ID] },
+      }),
+    ]);
+  });
+
   it("returns 404 when result is null", async () => {
     mockCandidateCards.checkCandidateCard.mockResolvedValue(null);
 
@@ -344,41 +367,108 @@ describe("POST /cards/candidate-printings/uncheck-batch", () => {
 });
 
 describe("POST /cards/candidate-cards/uncheck-batch", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
-  it("unchecks every given candidate card in one call", async () => {
-    mockCandidateCards.uncheckCandidateCards.mockResolvedValue(2);
-
-    const res = await app.request("/api/admin/v1/cards/candidate-cards/uncheck-batch", {
+  const post = (candidateCardIds: string[]) =>
+    app.request("/api/admin/v1/cards/candidate-cards/uncheck-batch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ candidateCardIds: [CARD_ID, CARD_ID2] }),
+      body: JSON.stringify({ candidateCardIds }),
     });
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockTransact.mockImplementation(async (cb) => cb(trxRepos()));
+  });
+
+  it("unchecks every given candidate card once, in one transaction, and records it", async () => {
+    mockCandidateCards.uncheckCandidateCards.mockResolvedValue(2);
+
+    const res = await post([CARD_ID, CARD_ID2, CARD_ID]);
+
     expect(res.status).toBe(200);
     expect(await readJson(res)).toEqual({ updated: 2 });
+    expect(mockTransact).toHaveBeenCalledOnce();
     expect(mockCandidateCards.uncheckCandidateCards).toHaveBeenCalledWith([CARD_ID, CARD_ID2]);
+    expect(mockAdminEvents.insertMany).toHaveBeenCalledWith([
+      expect.objectContaining({
+        action: "candidate-card.uncheck",
+        entityId: null,
+        newValues: { candidateCardIds: [CARD_ID, CARD_ID2] },
+      }),
+    ]);
+  });
+
+  it("answers 404 and rolls back when one id has no row", async () => {
+    mockCandidateCards.uncheckCandidateCards.mockResolvedValue(1);
+    let rolledBack = false;
+    mockTransact.mockImplementation(async (cb) => {
+      const result = cb(trxRepos());
+      await result.catch(() => {
+        rolledBack = true;
+      });
+      return result;
+    });
+
+    const res = await post([CARD_ID, CARD_ID2]);
+
+    expect(res.status).toBe(404);
+    expect(rolledBack).toBe(true);
+    expect(mockAdminEvents.insertMany).not.toHaveBeenCalled();
   });
 
   it("rejects an empty id list", async () => {
-    const res = await app.request("/api/admin/v1/cards/candidate-cards/uncheck-batch", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ candidateCardIds: [] }),
-    });
+    const res = await post([]);
     expect(res.status).toBe(400);
     expect(mockCandidateCards.uncheckCandidateCards).not.toHaveBeenCalled();
   });
 
   it("rejects a list longer than one batch", async () => {
-    const res = await app.request("/api/admin/v1/cards/candidate-cards/uncheck-batch", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ candidateCardIds: Array.from({ length: 1001 }, () => CARD_ID) }),
-    });
+    const res = await post(Array.from({ length: 1001 }, () => CARD_ID));
     expect(res.status).toBe(400);
     expect(mockCandidateCards.uncheckCandidateCards).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /cards/candidate-values/dismiss", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("records the dismissed value on the source row", async () => {
+    mockCandidateCards.dismissCandidateValue.mockResolvedValue(true);
+
+    const res = await app.request("/api/admin/v1/cards/candidate-values/dismiss", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        kind: "printing",
+        candidateId: CP_ID,
+        field: "artist",
+        value: "Kudos",
+      }),
+    });
+
+    expect(res.status).toBe(204);
+    expect(mockAdminEvents.insertMany).toHaveBeenCalledWith([
+      expect.objectContaining({
+        action: "candidate-printing.dismiss-value",
+        entityType: "candidate-printing",
+        entityId: CP_ID,
+        newValues: { field: "artist", value: "Kudos" },
+      }),
+    ]);
+  });
+
+  it("records nothing for a missing source row", async () => {
+    mockCandidateCards.dismissCandidateValue.mockResolvedValue(false);
+
+    const res = await app.request("/api/admin/v1/cards/candidate-values/dismiss", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "card", candidateId: CP_ID, field: "might", value: 3 }),
+    });
+
+    expect(res.status).toBe(404);
+    expect(mockAdminEvents.insertMany).not.toHaveBeenCalled();
   });
 });
 
@@ -390,6 +480,7 @@ describe("POST /cards/candidate-printings/check-all", () => {
   it("returns 200 with updated count", async () => {
     mockCandidateCards.checkAllCandidatePrintings.mockResolvedValue({
       updated: 5,
+      ids: ["cp-1"],
       candidateCardIds: ["cc-1"],
     });
 
@@ -413,6 +504,7 @@ describe("POST /cards/candidate-printings/check-all", () => {
   it("works without optional fields", async () => {
     mockCandidateCards.checkAllCandidatePrintings.mockResolvedValue({
       updated: 0,
+      ids: [],
       candidateCardIds: [],
     });
 
@@ -462,15 +554,16 @@ describe("POST /cards/candidate-printings/:id/uncheck", () => {
 describe("POST /cards/:cardId/check-all", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-  });
-
-  it("returns 200 with updated count", async () => {
+    mockTransact.mockImplementation(async (cb) => cb(trxRepos()));
     mockMut.getCardById.mockResolvedValue({
       id: "card-uuid",
       name: "Fire Dragon",
       slug: "fire-dragon",
     });
     mockCandidateCards.cardNameKeys.mockResolvedValue(["firedragon", "firedragonalt"]);
+  });
+
+  it("returns 200 with updated count", async () => {
     mockCandidateCards.checkAllCandidateCards.mockResolvedValue({
       updated: 3,
       candidateCardIds: ["cc-1"],
@@ -484,16 +577,12 @@ describe("POST /cards/:cardId/check-all", () => {
     expect(mockCandidateCards.checkAllCandidateCards).toHaveBeenCalledWith(
       ["firedragon", "firedragonalt"],
       "card-uuid",
+      undefined,
     );
   });
 
-  it("checks exactly the given candidate card ids, without the name match", async () => {
-    mockMut.getCardById.mockResolvedValue({
-      id: "card-uuid",
-      name: "Fire Dragon",
-      slug: "fire-dragon",
-    });
-    mockCandidateCards.checkCandidateCards.mockResolvedValue({
+  it("checks only the given candidate card ids among the card's own", async () => {
+    mockCandidateCards.checkAllCandidateCards.mockResolvedValue({
       updated: 1,
       candidateCardIds: [CARD_ID],
     });
@@ -505,8 +594,133 @@ describe("POST /cards/:cardId/check-all", () => {
     });
     expect(res.status).toBe(200);
     expect(await readJson(res)).toEqual({ updated: 1, candidateCardIds: [CARD_ID] });
-    expect(mockCandidateCards.checkCandidateCards).toHaveBeenCalledWith([CARD_ID]);
-    expect(mockCandidateCards.checkAllCandidateCards).not.toHaveBeenCalled();
+    expect(mockCandidateCards.checkAllCandidateCards).toHaveBeenCalledWith(
+      ["firedragon", "firedragonalt"],
+      "card-uuid",
+      [CARD_ID],
+    );
+  });
+
+  it("answers 404 and rolls back when a given id belongs to another card", async () => {
+    mockCandidateCards.checkAllCandidateCards.mockResolvedValue({
+      updated: 1,
+      candidateCardIds: [CARD_ID],
+    });
+    let rolledBack = false;
+    mockTransact.mockImplementation(async (cb) => {
+      const result = cb(trxRepos());
+      await result.catch(() => {
+        rolledBack = true;
+      });
+      return result;
+    });
+
+    const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/check-all`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ candidateCardIds: [CARD_ID, CP_ID] }),
+    });
+    expect(res.status).toBe(404);
+    expect(rolledBack).toBe(true);
+    expect(mockResolveCheckedSubmissions).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /cards/:cardId/check-pass", () => {
+  const post = (body: object) =>
+    app.request(`/api/admin/v1/cards/${CARD_ID2}/check-pass`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockTransact.mockImplementation(async (cb) => cb(trxRepos()));
+    mockMut.getCardById.mockResolvedValue({
+      id: "card-uuid",
+      name: "Fire Dragon",
+      slug: "fire-dragon",
+    });
+    mockCandidateCards.cardNameKeys.mockResolvedValue(["firedragon"]);
+    mockResolveCheckedSubmissions.mockResolvedValue([]);
+  });
+
+  it("checks the card and printing sources in one transaction and records both", async () => {
+    mockCandidateCards.checkAllCandidateCards.mockResolvedValue({
+      updated: 1,
+      candidateCardIds: [CARD_ID],
+    });
+    mockCandidateCards.checkCandidatePrintingsOfCard.mockResolvedValue({
+      updated: 1,
+      matchedIds: [CP_ID],
+      candidateCardIds: ["cc-printing"],
+    });
+
+    const res = await post({ candidateCardIds: [CARD_ID], candidatePrintingIds: [CP_ID, CP_ID] });
+
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ cardsUpdated: 1, printingsUpdated: 1 });
+    expect(mockTransact).toHaveBeenCalledOnce();
+    expect(mockCandidateCards.checkCandidatePrintingsOfCard).toHaveBeenCalledWith(
+      ["firedragon"],
+      "card-uuid",
+      [CP_ID],
+    );
+    expect(mockResolveCheckedSubmissions).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ candidateCardIds: [CARD_ID, "cc-printing"] }),
+    );
+    expect(mockAdminEvents.insertMany.mock.calls.flatMap((call) => call[0])).toEqual([
+      expect.objectContaining({
+        action: "candidate-card.check",
+        cardSlug: "fire-dragon",
+        newValues: { candidateCardIds: [CARD_ID] },
+      }),
+      expect.objectContaining({
+        action: "candidate-printing.check",
+        cardSlug: "fire-dragon",
+        newValues: { candidatePrintingIds: [CP_ID] },
+      }),
+    ]);
+  });
+
+  it("answers 404 and rolls back the card checks when a printing belongs to another card", async () => {
+    mockCandidateCards.checkAllCandidateCards.mockResolvedValue({
+      updated: 1,
+      candidateCardIds: [CARD_ID],
+    });
+    mockCandidateCards.checkCandidatePrintingsOfCard.mockResolvedValue({
+      updated: 0,
+      matchedIds: [],
+      candidateCardIds: [],
+    });
+    let rolledBack = false;
+    mockTransact.mockImplementation(async (cb) => {
+      const result = cb(trxRepos());
+      await result.catch(() => {
+        rolledBack = true;
+      });
+      return result;
+    });
+
+    const res = await post({ candidateCardIds: [CARD_ID], candidatePrintingIds: [CP_ID] });
+
+    expect(res.status).toBe(404);
+    expect(rolledBack).toBe(true);
+    expect(mockAdminEvents.insertMany).not.toHaveBeenCalled();
+  });
+
+  it("answers 404 for an unknown card", async () => {
+    mockMut.getCardById.mockResolvedValue(undefined);
+    const res = await post({ candidateCardIds: [CARD_ID], candidatePrintingIds: [] });
+    expect(res.status).toBe(404);
+    expect(mockTransact).not.toHaveBeenCalled();
+  });
+
+  it("rejects a pass with nothing to check", async () => {
+    const res = await post({ candidateCardIds: [], candidatePrintingIds: [] });
+    expect(res.status).toBe(400);
   });
 });
 
@@ -1635,12 +1849,21 @@ describe("POST /cards/new/:name/accept-favorites", () => {
     vi.resetAllMocks();
   });
 
-  it("returns 200 with accept result", async () => {
+  it("returns 200 with accept result and records the card and each printing", async () => {
     const result = { cardSlug: "fire-dragon", printingsCreated: 1, skipped: [] };
     const created = [{ printingId: "p-1", imageIds: [] }];
     mockAcceptFavoriteNewCard.mockImplementation(async (_t, _r, _n, _p, sink) => {
       sink.push(...created);
-      return result;
+      return {
+        ...result,
+        accepted: [
+          {
+            printing: { printingId: "p-1", imageIds: [] },
+            fields: { shortCode: "OGN-001" } as never,
+            candidatePrintingIds: [CP_ID],
+          },
+        ],
+      };
     });
 
     const res = await app.request("/api/admin/v1/cards/new/Fire%20Dragon/accept-favorites", {
@@ -1649,6 +1872,15 @@ describe("POST /cards/new/:name/accept-favorites", () => {
     expect(res.status).toBe(200);
     const json = await readJson(res);
     expect(json).toEqual(result);
+    expect(mockAdminEvents.insertMany).toHaveBeenCalledWith([
+      expect.objectContaining({ action: "card.accept-favorites", cardSlug: "fire-dragon" }),
+      expect.objectContaining({
+        action: "printing.accept",
+        entityType: "printing",
+        entityId: "p-1",
+        cardSlug: "fire-dragon",
+      }),
+    ]);
     expect(mockAcceptFavoriteNewCard).toHaveBeenCalledWith(
       mockTransact,
       expect.objectContaining({ candidateCards: mockCandidateCards, catalogMutations: mockMut }),
@@ -1694,6 +1926,7 @@ describe("POST /cards/new/:name/accept-favorites", () => {
       cardSlug: "fire-dragon",
       printingsCreated: 0,
       skipped: [],
+      accepted: [],
     });
 
     const res = await app.request("/api/admin/v1/cards/new/Fire%20Dragon/accept-favorites", {
@@ -1803,7 +2036,7 @@ describe("POST /cards/:cardId/accept-printing", () => {
 
   it("returns 200 with printingId and finishes the accept", async () => {
     const created = { printingId: "printing-uuid", imageIds: [] };
-    mockCreateNewPrinting.mockResolvedValue(created);
+    mockCreateNewPrintings.mockResolvedValue([created]);
 
     const res = await app.request(`/api/admin/v1/cards/${CARD_ID2}/accept-printing`, {
       method: "POST",
@@ -1824,13 +2057,16 @@ describe("POST /cards/:cardId/accept-printing", () => {
     expect(res.status).toBe(200);
     const json = await readJson(res);
     expect(json).toEqual({ printingId: "printing-uuid" });
-    expect(mockCreateNewPrinting).toHaveBeenCalledWith(
-      expect.anything(),
-      CARD_ID2,
-      expect.objectContaining({ shortCode: "FD" }),
-      ["a0000000-0000-4000-a000-0000000000c1", "a0000000-0000-4000-a000-0000000000c2"],
-      { secondFaceId: null },
-    );
+    expect(mockCreateNewPrintings).toHaveBeenCalledWith(expect.anything(), CARD_ID2, [
+      {
+        printingFields: expect.objectContaining({ shortCode: "FD" }),
+        candidatePrintingIds: [
+          "a0000000-0000-4000-a000-0000000000c1",
+          "a0000000-0000-4000-a000-0000000000c2",
+        ],
+        secondFaceId: null,
+      },
+    ]);
     expect(mockFinishPrintingAccepts).toHaveBeenCalledWith(expect.anything(), mockIo, [created]);
   });
 
@@ -1844,7 +2080,80 @@ describe("POST /cards/:cardId/accept-printing", () => {
       }),
     });
     expect(res.status).toBe(400);
-    expect(mockCreateNewPrinting).not.toHaveBeenCalled();
+    expect(mockCreateNewPrintings).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /cards/:cardId/accept-printings", () => {
+  const fields = (shortCode: string) => ({
+    shortCode,
+    rarity: "common",
+    artist: "Alice",
+    publicCode: `${shortCode}/298`,
+  });
+  const post = (groups: object[]) =>
+    app.request(`/api/admin/v1/cards/${CARD_ID2}/accept-printings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ groups }),
+    });
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mockTransact.mockImplementation(async (cb) => cb(trxRepos()));
+  });
+
+  it("creates every group together, finishes once and records one event per printing", async () => {
+    const created = [
+      { printingId: "p-1", imageIds: [] },
+      { printingId: "p-2", imageIds: [] },
+    ];
+    mockCreateNewPrintings.mockResolvedValue(created);
+    mockMut.getCardById.mockResolvedValue({ id: CARD_ID2, slug: "fire-dragon" });
+
+    const res = await post([
+      { printingFields: fields("OGN-001"), candidatePrintingIds: [CP_ID] },
+      {
+        printingFields: fields("OGN-002"),
+        candidatePrintingIds: [PRINTING_ID],
+        secondSideFaceId: CARD_ID,
+      },
+    ]);
+
+    expect(res.status).toBe(200);
+    expect(await readJson(res)).toEqual({ printingIds: ["p-1", "p-2"] });
+    expect(mockCreateNewPrintings).toHaveBeenCalledOnce();
+    expect(mockCreateNewPrintings.mock.calls[0]?.[2]).toEqual([
+      expect.objectContaining({ candidatePrintingIds: [CP_ID], secondFaceId: null }),
+      expect.objectContaining({ candidatePrintingIds: [PRINTING_ID], secondFaceId: CARD_ID }),
+    ]);
+    expect(mockFinishPrintingAccepts).toHaveBeenCalledOnce();
+    expect(mockFinishPrintingAccepts).toHaveBeenCalledWith(expect.anything(), mockIo, created);
+    expect(mockAdminEvents.insertMany).toHaveBeenCalledOnce();
+    expect(mockAdminEvents.insertMany).toHaveBeenCalledWith([
+      expect.objectContaining({
+        action: "printing.accept",
+        entityId: "p-1",
+        entityLabel: "OGN-001",
+        cardSlug: "fire-dragon",
+      }),
+      expect.objectContaining({ action: "printing.accept", entityId: "p-2" }),
+    ]);
+  });
+
+  it("finishes nothing when the batch fails", async () => {
+    mockCreateNewPrintings.mockRejectedValue(badRequest("Invalid printing fields"));
+
+    const res = await post([{ printingFields: fields("OGN-001"), candidatePrintingIds: [CP_ID] }]);
+
+    expect(res.status).toBe(400);
+    expect(mockFinishPrintingAccepts).not.toHaveBeenCalled();
+  });
+
+  it("rejects an empty batch", async () => {
+    const res = await post([]);
+    expect(res.status).toBe(400);
+    expect(mockCreateNewPrintings).not.toHaveBeenCalled();
   });
 });
 

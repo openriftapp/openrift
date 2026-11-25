@@ -8,6 +8,7 @@ import {
   ChevronDownIcon,
   EllipsisVerticalIcon,
   LinkIcon,
+  UnlinkIcon,
   XIcon,
 } from "lucide-react";
 import React from "react";
@@ -20,11 +21,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { MarketplaceHandlers } from "@/features/admin/lib/marketplace-product-entries";
+import { setPrefix } from "@/features/admin/lib/marketplace-product-entries";
 import { cn } from "@/lib/utils";
 
 import { PrintingLabel } from "./marketplace-printing-label";
-import type { MarketplaceHandlers } from "./marketplace-product-entries";
-import { setPrefix } from "./marketplace-product-entries";
 
 export function AssignToPrintingButton({
   printings,
@@ -64,7 +65,7 @@ export function AssignToPrintingButton({
         render={
           <Button variant="outline" size="sm" disabled={isAssigning}>
             <LinkIcon />
-            Assign
+            Map
             <ChevronDownIcon />
           </Button>
         }
@@ -181,8 +182,8 @@ export function RowActions({
               handlers.onUnassign(product.externalId, product.finish, product.language)
             }
           >
-            <XIcon className="size-3.5" />
-            Unassign
+            <UnlinkIcon className="size-3.5" />
+            Unmap
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

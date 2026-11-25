@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { Route as CardsRoute } from "./cards";
 import { Route as CreateCardRoute } from "./cards.create";
 import { Route as FaceRoute } from "./faces.$cardSlug.$faceId";
 import { Route as PrintingRoute } from "./printings.$printingId";
@@ -19,17 +20,52 @@ function requestedKeys(client: { query: ReturnType<typeof vi.fn> }): string[] {
 }
 
 describe("workspace record loaders", () => {
-  it("requests the face's card and every reference query before any of them resolves", () => {
-    const client = pendingClient();
+  function accessClient(access: { isAdmin: boolean; sections: string[] }) {
+    return {
+      query: vi.fn((options: { queryKey: readonly unknown[] }) =>
+        options.queryKey[1] === "me" ? Promise.resolve(access) : new Promise<never>(() => {}),
+      ),
+    };
+  }
+
+  it("requests a reviewer's face card with what the card detail reads", async () => {
+    const client = accessClient({ isAdmin: false, sections: ["card-review"] });
     void (FaceRoute.options.loader as Loader)({
-      context: { queryClient: client },
+      context: { queryClient: client, userId: "user-1" },
       params: { cardSlug: "ekko-recurrent", faceId: "face-1" },
       preload: false,
     });
 
+    await vi.waitFor(() =>
+      expect(requestedKeys(client).some((key) => key.includes("provider-settings"))).toBe(true),
+    );
     const keys = requestedKeys(client);
-    expect(new Set(keys).size).toBe(5);
+    expect(keys).toContain(JSON.stringify(["admin", "cards", "detail", "ekko-recurrent"]));
+    expect(keys.some((key) => key.includes("artists"))).toBe(true);
+  });
+
+  it("requests a desk holder's card printings and leaves provider settings alone", async () => {
+    const client = accessClient({ isAdmin: false, sections: ["printing-desk"] });
+    void (FaceRoute.options.loader as Loader)({
+      context: { queryClient: client, userId: "user-1" },
+      params: { cardSlug: "ekko-recurrent", faceId: "face-1" },
+      preload: false,
+    });
+
+    await vi.waitFor(() => expect(new Set(requestedKeys(client)).size).toBe(5));
+    const keys = requestedKeys(client);
     expect(keys.some((key) => key.includes("ekko-recurrent"))).toBe(true);
+    expect(keys.some((key) => key.includes("detail"))).toBe(false);
+    expect(keys.some((key) => key.includes("provider-settings"))).toBe(false);
+  });
+
+  it("prefetches the review list for the cards segments", () => {
+    const client = pendingClient();
+    void (CardsRoute.options.loader as Loader)({
+      context: { queryClient: client },
+      preload: false,
+    });
+    expect(requestedKeys(client)).toEqual([JSON.stringify(["admin", "workspace", "review"])]);
   });
 
   it("requests the printing and every reference query before any of them resolves", () => {
@@ -77,7 +113,7 @@ describe("workspace record loaders", () => {
     expect(keys.some((key) => key.includes("printing-1"))).toBe(false);
   });
 
-  it("requests the queue, the sets and every reference query for a new printing together", () => {
+  it("requests the source row's card, the sets and every reference query for a new printing together", () => {
     const client = pendingClient();
     void (NewPrintingRoute.options.loader as Loader)({
       context: { queryClient: client },
@@ -87,16 +123,17 @@ describe("workspace record loaders", () => {
 
     const keys = requestedKeys(client);
     expect(new Set(keys).size).toBe(6);
-    expect(keys).toContain(JSON.stringify(["admin", "workspace", "queue"]));
+    expect(keys).toContain(
+      JSON.stringify(["admin", "workspace", "candidate-printing-card", "candidate-1"]),
+    );
   });
 
-  it("requests the new printing's card once the queue names it", async () => {
-    const queue = {
-      items: [{ owner: "printing", ownerId: "candidate-1", cardSlug: "ekko-recurrent" }],
-    };
+  it("requests the new printing's card once the lookup names it", async () => {
     const client = {
       query: vi.fn((options: { queryKey: readonly unknown[] }) =>
-        options.queryKey.includes("queue") ? Promise.resolve(queue) : new Promise(() => {}),
+        options.queryKey.includes("candidate-printing-card")
+          ? Promise.resolve({ cardSlug: "ekko-recurrent" })
+          : new Promise(() => {}),
       ),
     };
     void (NewPrintingRoute.options.loader as Loader)({

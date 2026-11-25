@@ -5,6 +5,7 @@ import type { Io } from "../../../io.js";
 import {
   cleanupOrphanedImageFiles,
   createNewPrinting,
+  createNewPrintings,
   deletePrinting,
   insertNewPrinting,
   updatePrintingMarkers,
@@ -871,6 +872,56 @@ describe("insertNewPrinting", () => {
       message: expect.stringContaining(
         'This card already has a printing with short code "OGN-001" (foil, standard, EN, no markers)',
       ),
+    });
+  });
+
+  it("creates several printings in one transaction", async () => {
+    const repos = trxRepos();
+    const transact = vi.fn(async (fn: (trx: unknown) => Promise<unknown>) => fn(repos));
+
+    const created = await createNewPrintings(transact as unknown as Transact, "card-uuid", [
+      { printingFields: FIELDS, candidatePrintingIds: ["cp-1"] },
+      { printingFields: { ...FIELDS, finish: "foil" }, candidatePrintingIds: ["cp-2"] },
+    ]);
+
+    expect(transact).toHaveBeenCalledOnce();
+    expect(repos.catalogMutations!.insertPrinting).toHaveBeenCalledTimes(2);
+    expect(created.map((printing) => printing.printingId)).toEqual(["p-uuid", "p-uuid"]);
+  });
+
+  it("names the group whose insert hit a duplicate", async () => {
+    const repos = trxRepos({
+      catalogMutations: {
+        insertPrinting: vi
+          .fn()
+          .mockResolvedValueOnce("p-uuid")
+          .mockRejectedValueOnce(uniqueViolation("uq_faces_identity")),
+      },
+    });
+    const transact = (async (fn: (trx: unknown) => Promise<unknown>) => fn(repos)) as Transact;
+
+    await expect(
+      createNewPrintings(transact, "card-uuid", [
+        { printingFields: FIELDS, candidatePrintingIds: ["cp-1"] },
+        { printingFields: { ...FIELDS, shortCode: "OGN-002" }, candidatePrintingIds: ["cp-2"] },
+      ]),
+    ).rejects.toMatchObject({
+      status: 409,
+      message: expect.stringContaining('short code "OGN-002"'),
+    });
+  });
+
+  it("gives a duplicate caught at commit across several groups the generic message", async () => {
+    const transact = failingCommit(trxRepos(), uniqueViolation("uq_printings_identity"));
+
+    await expect(
+      createNewPrintings(transact, "card-uuid", [
+        { printingFields: FIELDS, candidatePrintingIds: ["cp-1"] },
+        { printingFields: { ...FIELDS, shortCode: "OGN-002" }, candidatePrintingIds: ["cp-2"] },
+      ]),
+    ).rejects.toMatchObject({
+      status: 409,
+      message: expect.stringContaining("Another printing already has that code"),
     });
   });
 

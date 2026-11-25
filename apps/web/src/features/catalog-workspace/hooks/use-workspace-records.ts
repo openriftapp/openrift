@@ -2,7 +2,6 @@ import type {
   WorkspaceOwner,
   WorkspaceRecordFilter,
   WorkspaceRecordRow,
-  WorkspaceRecordsResponse,
 } from "@openrift/shared/contracts/admin/catalog-workspace";
 import { WORKSPACE_RECORD_FILTERS } from "@openrift/shared/contracts/admin/catalog-workspace";
 import type { CandidateCardSummaryResponse } from "@openrift/shared/types/api/admin";
@@ -72,8 +71,6 @@ export function useWorkspaceSearch(): WorkspaceSearch {
 }
 
 interface RecordsCommon {
-  query: { kind: "face" | "printing"; q?: string; filter?: WorkspaceRecordFilter; set?: string };
-  pages: readonly WorkspaceRecordsResponse[];
   total: number | null;
   hasMore: boolean;
   isLoadingMore: boolean;
@@ -84,23 +81,10 @@ interface RecordsCommon {
 
 const NO_MORE = { hasMore: false, isLoadingMore: false, loadMore: () => null };
 
-/** `loadedRows` is what was fetched before the client-side filters, so ticks they hide stay resolvable. */
 export type WorkspaceRecordsResult =
-  | (RecordsCommon & {
-      kind: "card";
-      rows: CandidateCardSummaryResponse[];
-      loadedRows: readonly CandidateCardSummaryResponse[];
-    })
-  | (RecordsCommon & {
-      kind: "desk";
-      rows: DeskRow[];
-      loadedRows: readonly DeskRow[];
-    })
-  | (RecordsCommon & {
-      kind: "face" | "printing";
-      rows: WorkspaceRecordRow[];
-      loadedRows: readonly WorkspaceRecordRow[];
-    });
+  | (RecordsCommon & { kind: "card"; rows: CandidateCardSummaryResponse[] })
+  | (RecordsCommon & { kind: "desk"; rows: DeskRow[] })
+  | (RecordsCommon & { kind: "face" | "printing"; rows: WorkspaceRecordRow[] });
 
 export function useWorkspaceRecords(
   owner: WorkspaceOwner,
@@ -114,17 +98,14 @@ export function useWorkspaceRecords(
   const isDesk = role === "desk" && owner === "printing";
 
   const recordKind = owner === "face" ? "face" : "printing";
-  const query = {
-    kind: recordKind,
-    q,
-    filter: recordFilterFor(recordKind, search.filter),
-    set: search.set,
-  } as const;
 
   const cards = useAdminCardListWhen(enabled && owner === "card");
   const records = useInfiniteQuery({
     ...workspaceRecordsInfiniteQueryOptions({
-      ...query,
+      kind: recordKind,
+      q,
+      filter: recordFilterFor(recordKind, search.filter),
+      set: search.set,
       limit: RECORDS_PAGE_SIZE,
       sort: search.recordSort,
       direction: search.recordSort === undefined ? undefined : (search.recordDir ?? "asc"),
@@ -135,16 +116,13 @@ export function useWorkspaceRecords(
     ...deskPrintingsQueryOptions(deskMode === "promos" ? "all" : "mine"),
     enabled: enabled && isDesk,
   });
-  const common = { query, pages: [] as WorkspaceRecordsResponse[] };
 
   if (owner === "card") {
     const liveCards = (cards.data ?? []).filter((row) => row.cardSlug !== null);
     return {
       kind: "card" as const,
       rows: filterCardSummaries(liveCards, q, search.set),
-      loadedRows: liveCards,
       total: cards.data === undefined ? null : liveCards.length,
-      ...common,
       ...NO_MORE,
       isPending: enabled && cards.isPending,
       error: cards.error,
@@ -155,9 +133,7 @@ export function useWorkspaceRecords(
     return {
       kind: "desk" as const,
       rows,
-      loadedRows: desk.data?.printings ?? [],
       total: desk.data ? rows.length : null,
-      ...common,
       ...NO_MORE,
       isPending: enabled && desk.isPending,
       error: desk.error,
@@ -168,10 +144,7 @@ export function useWorkspaceRecords(
   return {
     kind: recordKind,
     rows,
-    loadedRows: rows,
     total: records.data ? (pages[0]?.total ?? rows.length) : null,
-    ...common,
-    pages,
     hasMore: records.hasNextPage,
     isLoadingMore: records.isFetchingNextPage,
     loadMore: () => {

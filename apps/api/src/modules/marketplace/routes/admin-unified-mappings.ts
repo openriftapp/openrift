@@ -9,6 +9,7 @@ import { recordAdminEvents } from "../../system/services/record-admin-event.js";
 import { createMarketplaceConfigs } from "../lib/marketplace-configs.js";
 import {
   getMappingOverview,
+  mappingEvents,
   saveMappings,
   unmapPrinting,
 } from "../services/marketplace-mapping.js";
@@ -67,24 +68,9 @@ export const adminUnifiedMappingsRouter = {
       configs[marketplace],
       input.body.mappings,
     );
-    await recordAdminEvents(repos, context.userId, async () => {
-      const slugRows = await repos.marketplaceAdmin.cardSlugsForPrintings(
-        applied.map((mapping) => mapping.printingId),
-      );
-      const slugs = new Map(slugRows.map((row) => [row.printingId, row.cardSlug]));
-      return applied.map((mapping) => ({
-        action: "marketplace-variant.map" as const,
-        entityType: "marketplace-variant" as const,
-        entityId: marketplaceSkuKey(
-          marketplace,
-          mapping.externalId,
-          mapping.finish,
-          mapping.language,
-        ),
-        cardSlug: slugs.get(mapping.printingId),
-        newValues: { marketplace, ...mapping },
-      }));
-    });
+    await recordAdminEvents(repos, context.userId, () =>
+      mappingEvents(repos, marketplace, applied),
+    );
     return { saved, skipped };
   }),
 

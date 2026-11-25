@@ -199,7 +199,7 @@ export function AdminSidebar() {
   const isAdmin = access?.isAdmin === true;
   const sections = access?.sections ?? [];
   const canReview = hasAdminSection(access, "card-review");
-  const { data: reviewQueue } = useReviewQueueWhen(canReview);
+  const { data: reviewQueue } = useReviewQueueWhen(canReview && !workspaceEnabled);
   const { data: reviewCards } = useQuery({
     ...reviewCardsQueryOptions(),
     enabled: workspaceEnabled && canReview,
@@ -234,7 +234,7 @@ export function AdminSidebar() {
                   >
                     <page.icon />
                     <span>{page.title}</span>
-                    {page.to === REVIEW_PATH && openReviews > 0 && (
+                    {page.to === REVIEW_PATH && !workspaceEnabled && openReviews > 0 && (
                       <Badge variant="count" className="ml-auto">
                         {openReviews}
                       </Badge>

@@ -12,7 +12,7 @@ import {
 } from "@/features/catalog-workspace/lib/workspace-undo";
 import type { WorkspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
 import { workspaceWriteQueue } from "@/features/catalog-workspace/lib/workspace-write-queue";
-import { useWorkspaceSelectionStore } from "@/features/catalog-workspace/stores/workspace-selection-store";
+import { useWorkspaceUndoStore } from "@/features/catalog-workspace/stores/workspace-undo-store";
 import { reportMutationError } from "@/lib/query-client";
 import { errorStatus } from "@/lib/server-fns/api-error";
 import { isStaleServerFnError } from "@/lib/stale-bundle-reload";
@@ -40,7 +40,7 @@ async function undoOne(
   if (failure !== null && signal.aborted) {
     unansweredUndos.add(entry);
   }
-  const store = useWorkspaceSelectionStore.getState();
+  const store = useWorkspaceUndoStore.getState();
   if (failure === null) {
     store.removeUndo(entry);
     toast.success(entry.undoneLabel);
@@ -76,11 +76,11 @@ async function runQueuedUndo(
   queryClient: QueryClient,
   signal: AbortSignal,
 ): Promise<void> {
-  if (!useWorkspaceSelectionStore.getState().undoQueue.includes(entry)) {
+  if (!useWorkspaceUndoStore.getState().undoQueue.includes(entry)) {
     return;
   }
   const ok = await undoOne(entry, queryClient, signal);
-  const after = useWorkspaceSelectionStore.getState();
+  const after = useWorkspaceUndoStore.getState();
   const rest = ok
     ? after.undoQueue.filter((queued) => queued !== entry && after.undoStack.includes(queued))
     : [];
@@ -89,7 +89,7 @@ async function runQueuedUndo(
 }
 
 function markQueued(entry: WorkspaceUndoEntry): boolean {
-  const store = useWorkspaceSelectionStore.getState();
+  const store = useWorkspaceUndoStore.getState();
   if (!store.undoStack.includes(entry) || store.undoQueue.includes(entry)) {
     return false;
   }
@@ -112,7 +112,7 @@ export async function runWorkspaceUndo(
 }
 
 function latestUndo(): WorkspaceUndoEntry | undefined {
-  const { undoStack, undoQueue } = useWorkspaceSelectionStore.getState();
+  const { undoStack, undoQueue } = useWorkspaceUndoStore.getState();
   return undoStack.findLast((candidate) => !undoQueue.includes(candidate));
 }
 
@@ -132,7 +132,7 @@ export function undoLatestWorkspaceStep(
     void runWorkspaceUndo(entry, queryClient, queue);
     return true;
   }
-  const before = new Set(useWorkspaceSelectionStore.getState().undoStack);
+  const before = new Set(useWorkspaceUndoStore.getState().undoStack);
   void queue.enqueue(
     UNDO_TASK,
     async (signal) => {
@@ -150,7 +150,7 @@ export function undoLatestWorkspaceStep(
 
 export function useWorkspaceUndo() {
   const queryClient = useQueryClient();
-  const pushUndo = useWorkspaceSelectionStore((state) => state.pushUndo);
+  const pushUndo = useWorkspaceUndoStore((state) => state.pushUndo);
 
   const undoEntry = (entry: WorkspaceUndoEntry) => {
     void runWorkspaceUndo(entry, queryClient);

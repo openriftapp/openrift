@@ -65,6 +65,22 @@ export function usedUndoText({
   };
 }
 
+export function hiddenUndoText({
+  label,
+  sources,
+  record,
+}: {
+  label: string;
+  sources: readonly string[];
+  record: string;
+}): WorkspaceUndoText {
+  const from = sources.join(", ");
+  return {
+    label: `Hid ${label} from ${from} on ${record}`,
+    undoneLabel: `Undone: ${label} from ${from} is back on ${record}`,
+  };
+}
+
 export function ignoredUndoText({
   what,
   record,

@@ -33,7 +33,6 @@ import {
 import { AdminFilterSelect } from "@/features/admin/components/admin-filters";
 import { AdminTableGroupRow } from "@/features/admin/components/admin-table-group-row";
 import { ListingPrice } from "@/features/admin/components/marketplace-product-cells";
-import { displayedProductLanguage } from "@/features/admin/components/marketplace-product-entries";
 import {
   useAssignToCardByMarketplace,
   useIgnoreProductsByMarketplace,
@@ -41,6 +40,7 @@ import {
   useUnifiedMappings,
 } from "@/features/admin/hooks/use-unified-mappings";
 import { ADMIN_TABLE_CLASS, ADMIN_TABLE_SURFACE } from "@/features/admin/lib/admin-table-styles";
+import { displayedProductLanguage } from "@/features/admin/lib/marketplace-product-entries";
 import { SOURCE_CONFIGS } from "@/features/admin/lib/marketplace-sources";
 import { scopeUnmatchedRows } from "@/features/admin/lib/unmatched-scope";
 import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";

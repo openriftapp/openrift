@@ -6,21 +6,20 @@ import type { ApiContext } from "../../../orpc/context.js";
 import { listUnassignedListings } from "../../marketplace/services/unassigned-listings.js";
 import { listWorkspaceHistory } from "../services/workspace-history.js";
 import {
+  buildFaceQueueItems,
   buildListingItems,
   buildReviewCards,
-  buildWorkspaceQueue,
+  candidatePrintingCard,
 } from "../services/workspace-queue.js";
 import { listWorkspaceRecords } from "../services/workspace-records.js";
 
 const os = implement(adminCatalogWorkspaceContract).$context<ApiContext>().use(requireAuthedUser);
 
 export const adminCatalogWorkspaceRouter = {
-  workspaceQueue: os.workspaceQueue.handler(({ input, context }) =>
-    buildWorkspaceQueue(context.repos, {
+  workspaceCandidatePrintingCard: os.workspaceCandidatePrintingCard.handler(({ input, context }) =>
+    candidatePrintingCard(context.repos, {
       access: context.adminAccess,
-      userId: context.userId,
-      owner: input.owner,
-      loadListings: () => listUnassignedListings(context.repos),
+      candidatePrintingId: input.candidatePrintingId,
     }),
   ),
 
@@ -49,14 +48,8 @@ export const adminCatalogWorkspaceRouter = {
       access: context.adminAccess,
       userId: context.userId,
       input,
-      loadFaceItems: async () => {
-        const queue = await buildWorkspaceQueue(context.repos, {
-          access: context.adminAccess,
-          userId: context.userId,
-          owner: "face",
-        });
-        return queue.items;
-      },
+      loadFaceItems: (desk) =>
+        buildFaceQueueItems(context.repos, { access: context.adminAccess, desk }),
     }),
   ),
 

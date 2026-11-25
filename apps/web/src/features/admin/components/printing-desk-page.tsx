@@ -95,6 +95,7 @@ export function PrintingDeskPage() {
   const { labels } = useEnumOrders();
 
   const channelPaths = buildChannelBreadcrumbsBySlug(channelData.distributionChannels);
+  const channelLabels = labelMap([...channelPaths].map(([slug, label]) => ({ slug, label })));
   const markerLabels = labelMap(markerData.markers);
   const rows = sortDeskPrintings(
     filterDeskPrintings(data?.printings ?? [], { query, status }),
@@ -233,7 +234,7 @@ export function PrintingDeskPage() {
               key={row.printingId}
               row={row}
               channelPath={row.distributionChannelSlugs
-                .map((slug) => channelPaths.get(slug) ?? slug)
+                .map((slug) => enumLabel(channelLabels, slug))
                 .join(", ")}
               markerLabels={markerLabels}
               finishLabel={enumLabel(labels.finishes, row.finish)}

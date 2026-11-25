@@ -63,22 +63,32 @@ export async function acceptCandidateGroup(
   }
 }
 
+export interface AcceptedCandidateGroup {
+  printing: NewPrinting;
+  fields: CandidateAcceptFields;
+  candidatePrintingIds: string[];
+}
+
 export async function acceptCandidateGroups(
   transact: Transact,
   cardId: string,
   candidates: readonly CandidatePrintingRow[],
-): Promise<{ created: NewPrinting[]; skipped: SkippedCandidateGroup[] }> {
-  const created: NewPrinting[] = [];
+): Promise<{
+  created: NewPrinting[];
+  accepted: AcceptedCandidateGroup[];
+  skipped: SkippedCandidateGroup[];
+}> {
+  const accepted: AcceptedCandidateGroup[] = [];
   const skipped: SkippedCandidateGroup[] = [];
   for (const group of groupCandidatePrintings(candidates)) {
     const outcome = await acceptCandidateGroup(transact, cardId, group);
     if ("printing" in outcome) {
-      created.push(outcome.printing);
+      accepted.push({ ...outcome, candidatePrintingIds: group.map((cp) => cp.id) });
     } else {
       skipped.push({ shortCode: group[0]?.shortCode ?? "", reason: outcome.reason });
     }
   }
-  return { created, skipped };
+  return { created: accepted.map((entry) => entry.printing), accepted, skipped };
 }
 
 type FinishAcceptRepos = Pick<

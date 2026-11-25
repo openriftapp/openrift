@@ -38,7 +38,7 @@ const os = implement(adminCardImagesContract).$context<ApiContext>().use(require
  * multipart body.
  */
 export const adminCardImagesRouter = {
-  setImage: os.setImage.handler(async ({ input, context, errors }): Promise<void> => {
+  setImage: os.setImage.handler(async ({ input, context, errors }) => {
     const { printingImages, candidateCards, providerSettings } = context.repos;
     const { id, mode } = input;
 
@@ -57,6 +57,7 @@ export const adminCardImagesRouter = {
     }
 
     const face = await printingImages.candidateFace(id);
+    const before = await printingImages.faceImageState(ps.printingId, face);
     const imageId = await context.transact((trxRepos) =>
       trxRepos.printingImages.insertImage(ps.printingId as string, ps.imageUrl, mode, face),
     );
@@ -77,6 +78,17 @@ export const adminCardImagesRouter = {
         mode,
       },
     });
+
+    const after =
+      imageId !== null && mode === "main"
+        ? await printingImages.faceImageState(ps.printingId, face)
+        : null;
+    const activated = after !== null && after.activeImageId === imageId;
+    return {
+      imageId,
+      replacedImageId: activated ? before.activeImageId : null,
+      restorable: imageId !== null && !before.hasPending && (mode === "additional" || activated),
+    };
   }),
 
   deleteImage: os.deleteImage.handler(async ({ input, context }): Promise<void> => {
@@ -154,6 +166,22 @@ export const adminCardImagesRouter = {
 
     await recordAdminEvent(context.repos, context.userId, {
       action: "image.keep",
+      entityType: "image",
+      entityId: imageId,
+      newValues: { printingId: image.printingId, face: image.face },
+    });
+  }),
+
+  unkeepImage: os.unkeepImage.handler(async ({ input, context }): Promise<void> => {
+    const { printingImages } = context.repos;
+    const { imageId } = input;
+
+    const image = await printingImages.getForActivate(imageId);
+    assertFound(image, "Printing image not found");
+    await context.transact((trxRepos) => trxRepos.printingImages.clearReviewed(imageId));
+
+    await recordAdminEvent(context.repos, context.userId, {
+      action: "image.unkeep",
       entityType: "image",
       entityId: imageId,
       newValues: { printingId: image.printingId, face: image.face },

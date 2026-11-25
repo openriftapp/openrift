@@ -1,3 +1,4 @@
+import type { AcceptPrintingGroup } from "@openrift/shared/contracts/admin/card-mutations";
 import { adminCardMutationsContract } from "@openrift/shared/contracts/admin/card-mutations";
 import { implement } from "@orpc/server";
 
@@ -12,15 +13,71 @@ import {
 } from "../../candidates/lib/card-review-scope.js";
 import { finishPrintingAccepts } from "../../candidates/services/accept-candidate-printings.js";
 import { acceptFavoritePrintingsForCard } from "../../candidates/services/accept-favorite-printings.js";
-import { recordAdminEvent } from "../../system/services/record-admin-event.js";
+import { recordAdminEvent, recordAdminEvents } from "../../system/services/record-admin-event.js";
 import type { NewPrinting } from "../services/printing-admin.js";
-import { createNewPrinting, deletePrinting } from "../services/printing-admin.js";
+import {
+  createNewPrinting,
+  createNewPrintings,
+  deletePrinting,
+} from "../services/printing-admin.js";
 import {
   acceptPrintingFieldValue,
   changesCatalogViews,
 } from "../services/printing-field-writes.js";
 
 const os = implement(adminCardMutationsContract).$context<ApiContext>().use(requireAuthedUser);
+
+async function acceptPrintingGroups(
+  context: ApiContext & { userId: string },
+  cardId: string,
+  groups: readonly AcceptPrintingGroup[],
+): Promise<string[]> {
+  const scope = await reviewableProviderScope(context.adminAccess, context.repos.providerSettings);
+  if (scope !== null) {
+    // Without candidate ids this is de-facto manual printing creation
+    // (createPrinting), which the card-review section excludes.
+    if (groups.some((group) => group.candidatePrintingIds.length === 0)) {
+      throw forbidden("Forbidden");
+    }
+    await assertCandidatePrintingsInScope(
+      context.repos.candidateCards,
+      [...new Set(groups.flatMap((group) => group.candidatePrintingIds))],
+      scope,
+    );
+  }
+
+  const created = await createNewPrintings(
+    context.transact,
+    cardId,
+    groups.map((group) => ({
+      printingFields: group.printingFields,
+      candidatePrintingIds: group.candidatePrintingIds,
+      secondFaceId: group.secondSideFaceId ?? null,
+    })),
+  );
+
+  await recordAdminEvents(context.repos, context.userId, async () => {
+    const card = await context.repos.catalogMutations.getCardById(cardId);
+    return created.map(({ printingId }, index) => {
+      const group = groups[index];
+      return {
+        action: "printing.accept" as const,
+        entityType: "printing" as const,
+        entityId: printingId,
+        entityLabel: group?.printingFields.shortCode ?? null,
+        cardSlug: card?.slug ?? null,
+        newValues: {
+          printingFields: group?.printingFields,
+          candidatePrintingIds: group?.candidatePrintingIds,
+          secondSideFaceId: group?.secondSideFaceId,
+        },
+      };
+    });
+  });
+
+  await finishPrintingAccepts(context.repos, context.io, created);
+  return created.map(({ printingId }) => printingId);
+}
 
 export const adminCardMutationsPrintingsRouter = {
   deletePrinting: os.deletePrinting.handler(async ({ input, context }): Promise<void> => {
@@ -107,48 +164,15 @@ export const adminCardMutationsPrintingsRouter = {
   }),
 
   acceptPrinting: os.acceptPrinting.handler(async ({ input, context }) => {
-    const { cardId, printingFields, candidatePrintingIds, secondSideFaceId } = input;
-
-    const scope = await reviewableProviderScope(
-      context.adminAccess,
-      context.repos.providerSettings,
-    );
-    if (scope !== null) {
-      // Without candidate ids this is de-facto manual printing creation
-      // (createPrinting), which the card-review section excludes.
-      if (candidatePrintingIds.length === 0) {
-        throw forbidden("Forbidden");
-      }
-      await assertCandidatePrintingsInScope(
-        context.repos.candidateCards,
-        candidatePrintingIds,
-        scope,
-      );
-    }
-
-    const created = await createNewPrinting(
-      context.transact,
-      cardId,
-      printingFields,
-      candidatePrintingIds,
-      { secondFaceId: secondSideFaceId ?? null },
-    );
-    const { printingId } = created;
-
-    const card = await context.repos.catalogMutations.getCardById(cardId);
-    await recordAdminEvent(context.repos, context.userId, {
-      action: "printing.accept",
-      entityType: "printing",
-      entityId: printingId,
-      entityLabel: printingFields.shortCode,
-      cardSlug: card?.slug ?? null,
-      newValues: { printingFields, candidatePrintingIds, secondSideFaceId },
-    });
-
-    await finishPrintingAccepts(context.repos, context.io, [created]);
-
+    const { cardId, ...group } = input;
+    const [printingId] = await acceptPrintingGroups(context, cardId, [group]);
+    assertFound(printingId, "Printing not found");
     return { printingId };
   }),
+
+  acceptPrintings: os.acceptPrintings.handler(async ({ input, context }) => ({
+    printingIds: await acceptPrintingGroups(context, input.cardId, input.groups),
+  })),
 
   acceptFavoritePrintings: os.acceptFavoritePrintings.handler(async ({ input, context }) => {
     const favoriteProviders = await context.repos.providerSettings.favoriteProviders();

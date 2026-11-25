@@ -79,7 +79,7 @@ function BatchDialog({
     <Dialog open={open} onOpenChange={changeOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Assign listings by suggestion</DialogTitle>
+          <DialogTitle>Map listings by suggestion</DialogTitle>
           <DialogDescription>
             {outcome === null
               ? "Each listing is assigned to the printing its strong suggestion names."

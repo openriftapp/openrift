@@ -25,6 +25,11 @@ describe("describeAcceptCardFieldIssues", () => {
     expect(describeAcceptCardFieldIssues(card)).toEqual(["Energy: must be a whole number"]);
   });
 
+  it("uses the shared sentence-case field label", () => {
+    const card = { ...validCard, mightBonus: "2" } as unknown as CardFields;
+    expect(describeAcceptCardFieldIssues(card)).toEqual(["Might bonus: must be a whole number"]);
+  });
+
   it("flags an empty Domains list", () => {
     const card = { ...validCard, domains: [] };
     expect(describeAcceptCardFieldIssues(card)).toEqual(["Domains: needs at least one entry"]);

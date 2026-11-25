@@ -4,24 +4,11 @@ import type { KeyboardEvent } from "react";
 import { Input } from "@/components/ui/input";
 import { MultiSelectCell } from "@/features/admin/components/candidate-cell-editors";
 import type { FieldDef } from "@/features/admin/components/candidate-field-defs";
-import { dropdownOptions, isMultiSelect } from "@/features/admin/components/candidate-field-defs";
-import { parseIntegerInput } from "@/lib/integer-input";
-
-function parseText(field: FieldDef, raw: string): { ok: boolean; value: unknown } {
-  const trimmed = raw.trim();
-  if (field.array === true) {
-    const items = trimmed
-      .split(",")
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0);
-    return { ok: true, value: items.length > 0 ? items : null };
-  }
-  if (field.type === "number") {
-    const parsed = parseIntegerInput(trimmed);
-    return { ok: parsed !== undefined, value: parsed ?? null };
-  }
-  return { ok: true, value: trimmed.length > 0 ? trimmed : null };
-}
+import {
+  dropdownOptions,
+  isMultiSelect,
+  parseFieldInput,
+} from "@/features/admin/components/candidate-field-defs";
 
 export function NewCardFieldEditor({
   field,
@@ -45,7 +32,7 @@ export function NewCardFieldEditor({
   const text = Array.isArray(value) ? value.join(", ") : hasFieldValue(value) ? String(value) : "";
 
   function finish(raw: string) {
-    const parsed = parseText(field, raw);
+    const parsed = parseFieldInput(field, raw);
     if (parsed.ok) {
       commit(parsed.value);
     }

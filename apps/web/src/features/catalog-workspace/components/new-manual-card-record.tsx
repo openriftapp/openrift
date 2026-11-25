@@ -1,59 +1,38 @@
-import { enumLabel } from "@openrift/shared/enum-label";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { FieldGroup } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { TextLink } from "@/components/ui/text-link";
+import { ManualCardFields } from "@/features/admin/components/manual-card-fields";
 import { useCreateCard } from "@/features/admin/hooks/use-admin-card-mutations";
-import { useUploadPrintingImage } from "@/features/admin/hooks/use-admin-image-mutations";
-import {
-  MANUAL_CARD_STATS,
-  useManualCardDraft,
-} from "@/features/admin/hooks/use-manual-card-draft";
+import { useManualCardDraft } from "@/features/admin/hooks/use-manual-card-draft";
 import { useCreateDeskPrinting } from "@/features/admin/hooks/use-printing-desk";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
 import { readCreatedCardId } from "@/features/admin/lib/created-card-id";
-import { catalogKeys, cardsKeys, promosKeys } from "@/features/cards/lib/cards-query-keys";
-import { draftImageLabel } from "@/features/catalog-workspace/components/creation/creation-images";
 import { CreationPanel } from "@/features/catalog-workspace/components/creation/creation-panel";
 import {
   RecordHeader,
   RecordPane,
   RecordSection,
 } from "@/features/catalog-workspace/components/record/record-pane";
+import { useCreationFollowUps } from "@/features/catalog-workspace/hooks/use-printing-creation";
 import { useRegisterRecordActions } from "@/features/catalog-workspace/hooks/use-register-record-actions";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import type { CreationDraft } from "@/features/catalog-workspace/lib/creation-draft";
 import {
   draftFromBasePrinting,
-  plannedImageUploads,
   toDeskCreateInput,
   validateDraft,
 } from "@/features/catalog-workspace/lib/creation-draft";
-import { ChipInput } from "@/features/contribute/components/form-fields";
 import { useEffectiveLanguageOrder } from "@/hooks/use-effective-language-order";
 import { useEnumOrders } from "@/hooks/use-enums";
-import { useSession } from "@/hooks/use-session";
 import { errorText } from "@/lib/error-text";
-import { parseIntegerInput } from "@/lib/integer-input";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
-import { PERSISTENT_ERROR_TOAST } from "@/lib/toast";
-
-const IMAGE_SCOPE = [
-  adminKeys.printingDesk.all,
-  adminKeys.cards.all,
-  adminKeys.workspace,
-  catalogKeys.all,
-  cardsKeys.all,
-  promosKeys.all,
-] as const;
 
 function asExistingCard(draft: CreationDraft, id: string, slug: string, name: string) {
   return { ...draft, card: { mode: "existing" as const, id, slug, name } };
@@ -63,20 +42,19 @@ export function NewManualCardRecord() {
   const queueWrite = useQueueWorkspaceWrite();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
   const createCard = useCreateCard();
   const createPrinting = useCreateDeskPrinting({ inlineError: true });
-  const uploadImage = useUploadPrintingImage(IMAGE_SCOPE);
-  const { orders, labels } = useEnumOrders();
+  const followUps = useCreationFollowUps();
+  const { orders } = useEnumOrders();
   const preferredLanguages = useEffectiveLanguageOrder();
 
   const cardDraft = useManualCardDraft();
   const { name, slug, input } = cardDraft;
-  const { setTypes, setDomains, setSuperTypes, setTags } = cardDraft;
   const [withPrinting, setWithPrinting] = useState(true);
   const [draftEdit, setDraftEdit] = useState<CreationDraft | null>(null);
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [createdSlug, setCreatedSlug] = useState<string | null>(null);
 
   useRegisterRecordActions({});
 
@@ -94,8 +72,8 @@ export function NewManualCardRecord() {
     input !== undefined &&
     (!withPrinting || printingIssues.length === 0) &&
     !pending &&
+    createdSlug === null &&
     !createCard.isPending;
-  const credit = session?.user.name;
 
   async function createFirstPrinting(
     signal: AbortSignal,
@@ -120,33 +98,7 @@ export function NewManualCardRecord() {
     if (!ok || !created) {
       return `The card was created, but its printing was not: ${reason}`;
     }
-    const { printingId } = created;
-    const failed: string[] = [];
-    const uploadCredit = credit !== undefined && credit.length > 0 ? credit : undefined;
-    for (const upload of plannedImageUploads(ready)) {
-      if (upload.image.kind !== "file") {
-        continue;
-      }
-      const file = upload.image.file;
-      const uploaded = await runReportedMutation(() =>
-        uploadImage.mutateAsync(
-          {
-            printingId,
-            file,
-            mode: upload.mode,
-            face: upload.face,
-            credit: uploadCredit,
-          },
-          { signal },
-        ),
-      );
-      if (!uploaded) {
-        failed.push(draftImageLabel(upload.image));
-      }
-    }
-    return failed.length > 0
-      ? `The card and its printing were created, but ${failed.join(", ")} did not upload.`
-      : null;
+    return followUps.finish(signal, created.printingId, ready, { fields: false, urls: false });
   }
 
   async function create(signal: AbortSignal) {
@@ -171,7 +123,9 @@ export function NewManualCardRecord() {
     await queryClient.invalidateQueries({ queryKey: adminKeys.workspace });
     setPending(false);
     if (printingError !== null) {
-      toast.error(printingError, PERSISTENT_ERROR_TOAST);
+      setCreatedSlug(cardSlug);
+      setNotice(printingError);
+      return;
     }
     void navigate({ to: "/admin/workspace/cards/$cardSlug", params: { cardSlug } });
   }
@@ -204,112 +158,30 @@ export function NewManualCardRecord() {
     >
       {notice !== null && (
         <Alert variant="destructive">
-          <AlertDescription>{notice}</AlertDescription>
+          <AlertDescription>
+            {notice}
+            {createdSlug !== null && (
+              <>
+                {" "}
+                <TextLink
+                  render={
+                    <Link
+                      to="/admin/workspace/cards/$cardSlug"
+                      params={{ cardSlug: createdSlug }}
+                    />
+                  }
+                >
+                  Open the card
+                </TextLink>
+              </>
+            )}
+          </AlertDescription>
         </Alert>
       )}
       <RecordSection title="Card fields">
-        <fieldset disabled={pending} className="min-w-0">
+        <fieldset disabled={pending || createdSlug !== null} className="min-w-0">
           <FieldGroup>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field>
-                <FieldLabel htmlFor="new-card-name">Name *</FieldLabel>
-                <Input
-                  id="new-card-name"
-                  value={name}
-                  onChange={(event) => cardDraft.setName(event.target.value)}
-                  placeholder="e.g. Jinx, Rebel"
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="new-card-slug">Card ID *</FieldLabel>
-                <Input
-                  id="new-card-slug"
-                  value={cardDraft.slugInput}
-                  onChange={(event) => cardDraft.setSlug(event.target.value)}
-                  placeholder="made from the name"
-                  className="font-mono"
-                />
-              </Field>
-            </div>
-            <Field>
-              <FieldLabel>Types *</FieldLabel>
-              <ToggleGroup
-                multiple
-                variant="outline"
-                spacing={2}
-                value={cardDraft.types}
-                onValueChange={setTypes}
-                className="w-full flex-wrap"
-              >
-                {orders.cardTypes.map((typeSlug) => (
-                  <ToggleGroupItem key={typeSlug} value={typeSlug}>
-                    {enumLabel(labels.cardTypes, typeSlug)}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            </Field>
-            <Field>
-              <FieldLabel>Domains *</FieldLabel>
-              <ToggleGroup
-                multiple
-                variant="outline"
-                spacing={2}
-                value={cardDraft.domains}
-                onValueChange={setDomains}
-                className="w-full flex-wrap"
-              >
-                {orders.domains.map((domainSlug) => (
-                  <ToggleGroupItem key={domainSlug} value={domainSlug}>
-                    {enumLabel(labels.domains, domainSlug)}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            </Field>
-            <Field>
-              <FieldLabel>Supertypes</FieldLabel>
-              <ToggleGroup
-                multiple
-                variant="outline"
-                spacing={2}
-                value={cardDraft.superTypes}
-                onValueChange={setSuperTypes}
-                className="w-full flex-wrap"
-              >
-                {orders.superTypes.map((superTypeSlug) => (
-                  <ToggleGroupItem key={superTypeSlug} value={superTypeSlug}>
-                    {enumLabel(labels.superTypes, superTypeSlug)}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            </Field>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {MANUAL_CARD_STATS.map(({ key, label }) => {
-                const invalid = parseIntegerInput(cardDraft.numeric[key]) === undefined;
-                return (
-                  <Field key={key} data-invalid={invalid}>
-                    <FieldLabel htmlFor={`new-card-${key}`}>{label}</FieldLabel>
-                    <Input
-                      id={`new-card-${key}`}
-                      type="number"
-                      min={0}
-                      value={cardDraft.numeric[key]}
-                      aria-invalid={invalid}
-                      onChange={(event) => cardDraft.setStat(key, event.target.value)}
-                    />
-                    {invalid && <FieldError>Whole number</FieldError>}
-                  </Field>
-                );
-              })}
-            </div>
-            <Field>
-              <FieldLabel htmlFor="new-card-tags">Tags</FieldLabel>
-              <ChipInput
-                id="new-card-tags"
-                value={cardDraft.tags}
-                onChange={setTags}
-                placeholder="Press Enter or comma to add"
-              />
-            </Field>
+            <ManualCardFields draft={cardDraft} idPrefix="new-card" />
           </FieldGroup>
         </fieldset>
       </RecordSection>
@@ -321,7 +193,7 @@ export function NewManualCardRecord() {
             <Checkbox
               id="new-card-with-printing"
               checked={withPrinting}
-              disabled={pending}
+              disabled={pending || createdSlug !== null}
               onCheckedChange={setWithPrinting}
             />
             <Label htmlFor="new-card-with-printing">Create it with the card</Label>
@@ -330,7 +202,11 @@ export function NewManualCardRecord() {
       >
         {withPrinting ? (
           <>
-            <CreationPanel draft={draft} onChange={setDraftEdit} disabled={pending} />
+            <CreationPanel
+              draft={draft}
+              onChange={setDraftEdit}
+              disabled={pending || createdSlug !== null}
+            />
             {printingIssues.length > 0 && (
               <p className="text-muted-foreground mt-2 text-sm">
                 Still needed: {printingIssues.map((issue) => issue.message).join(" ")}

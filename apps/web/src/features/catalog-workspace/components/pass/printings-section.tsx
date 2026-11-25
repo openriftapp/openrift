@@ -20,11 +20,11 @@ import { faceHeading } from "@/features/catalog-workspace/components/pass/field-
 import type { NewPrintingRow } from "@/features/catalog-workspace/components/pass/new-printing-item";
 import { NewPrintingItem } from "@/features/catalog-workspace/components/pass/new-printing-item";
 import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
-import { stopNavigation } from "@/features/catalog-workspace/components/record/review-stop-bar";
 import type { CardPassModel, PassRow } from "@/features/catalog-workspace/lib/card-pass";
 import { placeNewPrintings } from "@/features/catalog-workspace/lib/card-pass";
 import type { CreationDraft } from "@/features/catalog-workspace/lib/creation-draft";
 import type { ReviewTrail } from "@/features/catalog-workspace/lib/review-stops";
+import { stopNavigation } from "@/features/catalog-workspace/lib/review-stops";
 import { variantExtras } from "@/features/catalog-workspace/lib/variant-facts";
 
 export function PrintingsSection({
@@ -33,6 +33,7 @@ export function PrintingsSection({
   pass,
   newRows,
   trail,
+  acceptKey,
   showAll,
   onToggleAll,
   isAdmin,
@@ -52,6 +53,7 @@ export function PrintingsSection({
   pass: CardPassModel;
   newRows: readonly NewPrintingRow[];
   trail: ReviewTrail;
+  acceptKey?: string;
   showAll: boolean;
   onToggleAll: () => void;
   isAdmin: boolean;
@@ -80,6 +82,8 @@ export function PrintingsSection({
         cardSlug={cardSlug}
         detail={detail}
         row={row}
+        acceptKey={acceptKey}
+        trail={trail}
         isAdmin={isAdmin}
         landscape={landscape}
         labels={labels}
@@ -115,7 +119,12 @@ export function PrintingsSection({
       actions={
         <>
           {ready.length > 1 && (
-            <Button size="sm" disabled={creating} onClick={() => onCreate(ready)}>
+            <Button
+              size="sm"
+              disabled={creating}
+              pending={creating}
+              onClick={() => onCreate(ready)}
+            >
               Create all
             </Button>
           )}

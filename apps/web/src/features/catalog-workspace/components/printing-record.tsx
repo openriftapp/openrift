@@ -1,15 +1,9 @@
+import { legendDisplayName } from "@openrift/shared/card-name";
 import { getOrientation } from "@openrift/shared/card-orientation";
 import type { ComparablePrintingField } from "@openrift/shared/catalog-field-compare";
-import type {
-  DeskImage,
-  DeskPrintingRow,
-  DeskReleasePrecision,
-  DeskUpdateInput,
-} from "@openrift/shared/contracts/admin/printing-desk";
-import { enumLabel } from "@openrift/shared/enum-label";
+import type { DeskImage, DeskPrintingRow } from "@openrift/shared/contracts/admin/printing-desk";
 import { formatDay } from "@openrift/shared/format-date";
 import { formatPrintingCode } from "@openrift/shared/printing-code";
-import { normalizeToPeriodStart } from "@openrift/shared/set-release";
 import { pluralize } from "@openrift/shared/strings";
 import type { CardType } from "@openrift/shared/types/enums";
 import { useQuery } from "@tanstack/react-query";
@@ -20,14 +14,9 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { DatePicker } from "@/components/ui/date-picker";
-import { SimpleSelect } from "@/components/ui/simple-select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
-import { DatePrecisionControl } from "@/features/admin/components/date-precision-control";
 import { PrintingActionsMenu } from "@/features/admin/components/printing-actions-menu";
 import { PrintingCitationsEditor } from "@/features/admin/components/printing-citations-editor";
-import { PrintingDeskChannelPicker } from "@/features/admin/components/printing-desk-channel-picker";
 import { DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import { SideSearch } from "@/features/admin/components/side-search";
@@ -37,7 +26,6 @@ import {
   useDeskPrinting,
   useRemoveDeskSecondSide,
   useSetDeskSecondSide,
-  useUpdateDeskPrinting,
 } from "@/features/admin/hooks/use-printing-desk";
 import type { AdminCardDetail } from "@/features/admin/lib/admin-card-queries";
 import { adminKeys } from "@/features/admin/lib/admin-query-keys";
@@ -45,22 +33,29 @@ import { hasAdminSection } from "@/features/admin/lib/admin-sections";
 import { deskPrintingName } from "@/features/admin/lib/desk-face-options";
 import { EMPTY_VALUE_TEXT, formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
 import { deskImageSrc } from "@/features/admin/lib/printing-desk-image";
+import { deskPrintingQueryOptions } from "@/features/admin/lib/printing-desk-queries";
 import { deskPrintingPeriod } from "@/features/admin/lib/printing-desk-status";
 import type { PrintingFace } from "@/features/admin/lib/printing-faces";
 import { printingFaces } from "@/features/admin/lib/printing-faces";
 import { encodePostSlides } from "@/features/admin/lib/printing-post-slides";
 import { providerSettingsQueryOptions } from "@/features/admin/lib/provider-settings-queries";
+import { hiddenProviders as hiddenProvidersFor } from "@/features/admin/lib/source-compare";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
+import { AddFacePicker } from "@/features/catalog-workspace/components/add-face-picker";
 import {
   FaceCompareGrid,
   PrintingCompareGrid,
-} from "@/features/catalog-workspace/components/compare-sources-dialog";
+} from "@/features/catalog-workspace/components/compare-grids";
 import { FaceImagesSection } from "@/features/catalog-workspace/components/face-images-section";
 import { PrintingMarketplaceSection } from "@/features/catalog-workspace/components/printing-marketplace-section";
 import { FaceFieldsSection } from "@/features/catalog-workspace/components/record/face-fields-section";
 import { RecordFieldRow } from "@/features/catalog-workspace/components/record/field-row";
+import { PrintingCardLinks } from "@/features/catalog-workspace/components/record/printing-card-links";
+import type { PrintingField } from "@/features/catalog-workspace/components/record/printing-field-editor";
+import { PrintingFieldEditor } from "@/features/catalog-workspace/components/record/printing-field-editor";
 import { PrintingRowSuggestions } from "@/features/catalog-workspace/components/record/printing-row-suggestions";
 import { RecordDismissAll } from "@/features/catalog-workspace/components/record/record-dismiss-all";
+import { RecordError } from "@/features/catalog-workspace/components/record/record-error";
 import {
   CompareSourcesToggle,
   PublicPageLink,
@@ -71,8 +66,7 @@ import {
 } from "@/features/catalog-workspace/components/record/record-pane";
 import { ReviewStopBar } from "@/features/catalog-workspace/components/record/review-stop-bar";
 import { WorkspaceHistorySection } from "@/features/catalog-workspace/components/record/workspace-history-section";
-import { cardRecordScope } from "@/features/catalog-workspace/hooks/use-card-record-actions";
-import { useValueLabels } from "@/features/catalog-workspace/hooks/use-face-record-actions";
+import { useValueLabels } from "@/features/catalog-workspace/hooks/use-value-labels";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import { dismissTargets, showsFaceOnStop } from "@/features/catalog-workspace/lib/card-pass";
 import {
@@ -83,16 +77,12 @@ import {
   buildPrintingSuggestions,
   sourcesReportPrintingFields,
 } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
+import { cardRecordScope } from "@/features/catalog-workspace/lib/record-scopes";
 import { replaceSecondFace } from "@/features/catalog-workspace/lib/replace-second-face";
 import { variantExtras } from "@/features/catalog-workspace/lib/variant-facts";
-import { useEnumOrders } from "@/hooks/use-enums";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
-import { errorText } from "@/lib/error-text";
 import { PERSISTENT_ERROR_TOAST } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-
-type PrintingField = "channel" | "size" | "announced" | "release" | "comment";
-type DeskPatch = Omit<DeskUpdateInput, "printingId" | "side">;
 
 const RECORD_DELETE_SCOPE = [
   adminKeys.cards.all,
@@ -106,8 +96,18 @@ export function PrintingRecord({ printingId }: { printingId: string }) {
   const isAdmin = access?.isAdmin === true;
   const canReview = hasAdminSection(access, "card-review");
   const canDesk = hasAdminSection(access, "printing-desk");
+  const printingQuery = useQuery(deskPrintingQueryOptions(printingId, 1));
 
-  if (isPending) {
+  if (printingQuery.data === undefined && printingQuery.isError) {
+    return (
+      <RecordError
+        error={printingQuery.error}
+        missing={<>No printing with ID &ldquo;{printingId}&rdquo; exists.</>}
+        onRetry={() => void printingQuery.refetch()}
+      />
+    );
+  }
+  if (isPending || printingQuery.data === undefined) {
     return <Skeleton className="m-4 h-96" />;
   }
   return (
@@ -161,11 +161,7 @@ function PrintingRecordBody({
   const firstFace = details
     .flatMap((detail) => detail.printings)
     .find((row) => row.id === printingId && row.faceId === printing.faceId);
-  const hiddenProviders = new Set(
-    (providerData?.providerSettings ?? [])
-      .filter((setting) => setting.isHidden || (!isAdmin && !setting.helperReviewable))
-      .map((setting) => setting.provider),
-  );
+  const hiddenProviders = hiddenProvidersFor(providerData?.providerSettings ?? [], isAdmin);
   const { suggestions, sources } = buildPrintingSuggestions(details, printingId, {
     costKeywords,
     setTotals: Object.assign({}, ...details.map((detail) => detail.setTotals)) as Record<
@@ -221,6 +217,7 @@ function PrintingRecordBody({
         printing={reviewRow}
         detail={reviewDetail.detail}
         cardSlug={reviewDetail.slug}
+        cardSlugs={slugs}
         isAdmin={isAdmin}
         labels={labels}
       />
@@ -476,7 +473,7 @@ function PrintingRecordBody({
         <PrintingMarketplaceSection
           printingId={printingId}
           cardSlug={printing.cardSlug}
-          cardName={printing.cardName}
+          cardName={first?.card ? legendDisplayName(first.card) : printing.cardName}
           language={printing.language}
           mappings={details.flatMap((detail) => detail.marketplaceMappings)}
         />
@@ -487,6 +484,8 @@ function PrintingRecordBody({
           <PrintingCitationsEditor printingId={printingId} runWrite={queueWrite} />
         </RecordSection>
       )}
+
+      {canReview && <PrintingCardLinks faces={faces} pendingCount={suggestions.length} />}
 
       {(canReview || printing.canEdit) && <WorkspaceHistorySection target={{ printingId }} />}
     </RecordPane>
@@ -515,7 +514,6 @@ function FaceSummary({
   const active = sideImages.find((image) => image.isActive) ?? null;
   const waiting = sideImages.filter((image) => !image.isActive).length;
   const canChange = printing.canEdit && faceCount > 1;
-  const error = removeFace.error ?? setFace.error;
 
   const replace = async (faceId: string) => {
     let outcome: Awaited<ReturnType<typeof replaceSecondFace>> | undefined;
@@ -576,7 +574,7 @@ function FaceSummary({
           <Link
             to="/admin/workspace/faces/$cardSlug/$faceId"
             params={{ cardSlug: face.cardSlug, faceId: face.faceId }}
-            state={{ workspaceFromPrintingId: printing.printingId }}
+            state={(prev) => ({ ...prev, workspaceFromPrintingId: printing.printingId })}
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
             Open face
@@ -622,11 +620,6 @@ function FaceSummary({
             onPick={(side) => void replace(side.faceId)}
           />
         )}
-        {error !== null && (
-          <p className="text-destructive text-sm">
-            {errorText(error, "Could not change the face.")}
-          </p>
-        )}
       </div>
     </div>
   );
@@ -634,7 +627,6 @@ function FaceSummary({
 
 function AddFace({ printing, onCancel }: { printing: DeskPrintingRow; onCancel: () => void }) {
   const queueWrite = useQueueWorkspaceWrite();
-  const setFace = useSetDeskSecondSide();
 
   return (
     <div className="space-y-2 rounded-lg border border-dashed p-3">
@@ -642,147 +634,10 @@ function AddFace({ printing, onCancel }: { printing: DeskPrintingRow; onCancel: 
       <p className="text-muted-foreground text-sm">
         For a double-faced token, pick the printing&apos;s other face.
       </p>
-      <SideSearch
-        excludeFaceIds={[printing.faceId]}
-        disabled={setFace.isPending}
-        onPick={(side) =>
-          void queueWrite((signal) =>
-            setFace.mutateAsync(
-              { printingId: printing.printingId, faceId: side.faceId },
-              { signal },
-            ),
-          )
-        }
-      />
-      {setFace.error && (
-        <p className="text-destructive text-sm">
-          {errorText(setFace.error, "Could not add the face.")}
-        </p>
-      )}
-      <Button variant="ghost" size="sm" disabled={setFace.isPending} onClick={onCancel}>
+      <AddFacePicker printing={printing} runWrite={queueWrite} />
+      <Button variant="ghost" size="sm" onClick={onCancel}>
         Cancel
       </Button>
-    </div>
-  );
-}
-
-function PrintingFieldEditor({
-  printing,
-  field,
-  onDone,
-}: {
-  printing: DeskPrintingRow;
-  field: PrintingField;
-  onDone: () => void;
-}) {
-  const queueWrite = useQueueWorkspaceWrite();
-  const update = useUpdateDeskPrinting();
-  const { orders, labels } = useEnumOrders();
-  const [channels, setChannels] = useState<string[]>([...printing.distributionChannelSlugs]);
-  const [size, setSize] = useState(printing.size);
-  const [announcedAt, setAnnouncedAt] = useState(printing.announcedAt);
-  const [releasedAt, setReleasedAt] = useState(printing.releasedAt);
-  const [precision, setPrecision] = useState<DeskReleasePrecision>(
-    printing.releasePrecision ?? "day",
-  );
-  const [comment, setComment] = useState(printing.comment ?? "");
-
-  function patch(): DeskPatch {
-    switch (field) {
-      case "channel": {
-        return { distributionChannelSlugs: channels };
-      }
-      case "size": {
-        return { size };
-      }
-      case "announced": {
-        return { announcedAt };
-      }
-      case "release": {
-        const release =
-          releasedAt === null
-            ? { releasedAt: null, precision: null }
-            : normalizeToPeriodStart({ releasedAt, precision });
-        return { releasedAt: release.releasedAt, releasePrecision: release.precision };
-      }
-      case "comment": {
-        const trimmed = comment.trim();
-        return { comment: trimmed.length > 0 ? trimmed : null };
-      }
-    }
-  }
-
-  async function save() {
-    const input = { printingId: printing.printingId, ...patch() };
-    if (await queueWrite((signal) => update.mutateAsync(input, { signal }))) {
-      onDone();
-    }
-  }
-
-  return (
-    <div className="space-y-2">
-      {field === "channel" && (
-        <Suspense fallback={<Skeleton className="h-9 w-full" />}>
-          <PrintingDeskChannelPicker value={channels} onChange={setChannels} />
-        </Suspense>
-      )}
-      {field === "size" && (
-        <SimpleSelect
-          items={orders.cardSizes.map((slug) => ({
-            value: slug,
-            label: enumLabel(labels.cardSizes, slug),
-          }))}
-          value={size}
-          onChange={setSize}
-          label="Size"
-          className="w-full sm:w-56"
-        />
-      )}
-      {field === "announced" && (
-        <DatePicker
-          aria-label="Announced on"
-          className="w-44"
-          value={announcedAt}
-          onValueChange={setAnnouncedAt}
-          onClear={() => setAnnouncedAt(null)}
-        />
-      )}
-      {field === "release" && (
-        <div className="flex flex-wrap items-center gap-2">
-          <DatePicker
-            aria-label="Available from"
-            className="w-44"
-            value={releasedAt}
-            onValueChange={setReleasedAt}
-            onClear={() => setReleasedAt(null)}
-          />
-          <DatePrecisionControl
-            includeQuarter={printing.releasePrecision === "quarter"}
-            value={precision}
-            onChange={setPrecision}
-          />
-        </div>
-      )}
-      {field === "comment" && (
-        <Textarea
-          aria-label="Comment"
-          value={comment}
-          onChange={(event) => setComment(event.target.value)}
-        />
-      )}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" pending={update.isPending} onClick={() => void save()}>
-          Save
-        </Button>
-        <Button variant="ghost" size="sm" disabled={update.isPending} onClick={onDone}>
-          Cancel
-        </Button>
-      </div>
-      {update.error !== null && (
-        <p className="text-destructive text-sm">
-          {errorText(update.error, "Could not save the field.")}
-        </p>
-      )}
     </div>
   );
 }

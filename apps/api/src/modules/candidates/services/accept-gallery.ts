@@ -5,20 +5,25 @@ import type { Repos, Transact } from "../../../deps.js";
 import { badRequest, notFound } from "../../../errors.js";
 import { badRequestOnUnknownCardEnum, conflictOnUniqueViolation } from "../../../lib/assertions.js";
 import type { NewPrinting } from "../../catalog/services/printing-admin.js";
+import type { AdminEventInsert } from "../../system/repositories/admin-events.js";
+import type { AcceptedCandidateGroup } from "./accept-candidate-printings.js";
 import { acceptCandidateGroups } from "./accept-candidate-printings.js";
 import { relinkCandidatePrintings } from "./relink-candidates.js";
 
-export async function acceptFavoriteNewCard(
-  transact: Transact,
-  repos: Pick<Repos, "candidateCards" | "catalogMutations" | "ingest">,
-  normalizedName: string,
-  favoriteProviders: Set<string>,
-  created: NewPrinting[],
-): Promise<{
+interface FavoriteNewCardResult {
   cardSlug: string;
   printingsCreated: number;
   skipped: { shortCode: string; reason: string }[];
-}> {
+  accepted: AcceptedCandidateGroup[];
+}
+
+export async function acceptFavoriteNewCard(
+  transact: Transact,
+  repos: Pick<Repos, "candidateCards" | "catalogMutations">,
+  normalizedName: string,
+  favoriteProviders: ReadonlySet<string>,
+  created: NewPrinting[],
+): Promise<FavoriteNewCardResult> {
   const mut = repos.catalogMutations;
 
   const allCandidates = await repos.candidateCards.candidateCardsByNormName(normalizedName);
@@ -41,8 +46,8 @@ export async function acceptFavoriteNewCard(
     cardId = existing.id;
     await transact(async (trxRepos) => {
       await trxRepos.catalogMutations.createNameAliases(normalizedName, existing.id);
+      await relinkCandidatePrintings(trxRepos, { normName: normalizedName });
     });
-    await relinkCandidatePrintings(repos);
   } else {
     const cardFields = {
       id: cardSlug,
@@ -74,13 +79,43 @@ export async function acceptFavoriteNewCard(
   const accepted = await acceptCandidateGroups(transact, cardId, candidates);
   created.push(...accepted.created);
 
-  for (const cc of favoriteCandidates) {
-    await repos.candidateCards.checkCandidateCard(cc.id);
-  }
+  await repos.candidateCards.checkCandidateCardsByIds(
+    favoriteCandidates.map((cc) => cc.id),
+    new Date(),
+  );
 
   return {
     cardSlug,
     printingsCreated: accepted.created.length,
     skipped: accepted.skipped,
+    accepted: accepted.accepted,
   };
+}
+
+export function favoriteAcceptEvents(
+  result: FavoriteNewCardResult,
+  normalizedName: string,
+): Omit<AdminEventInsert, "actorUserId">[] {
+  return [
+    {
+      action: "card.accept-favorites",
+      entityType: "card",
+      entityId: result.cardSlug,
+      entityLabel: normalizedName,
+      cardSlug: result.cardSlug,
+      newValues: {
+        cardSlug: result.cardSlug,
+        printingsCreated: result.printingsCreated,
+        skipped: result.skipped,
+      },
+    },
+    ...result.accepted.map((entry) => ({
+      action: "printing.accept" as const,
+      entityType: "printing" as const,
+      entityId: entry.printing.printingId,
+      entityLabel: entry.fields.shortCode,
+      cardSlug: result.cardSlug,
+      newValues: { printingFields: entry.fields, candidatePrintingIds: entry.candidatePrintingIds },
+    })),
+  ];
 }

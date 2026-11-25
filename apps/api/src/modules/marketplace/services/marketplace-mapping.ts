@@ -1,5 +1,5 @@
 import { normalizeNameForIdentity } from "@openrift/shared/card-name";
-import { skuKey } from "@openrift/shared/marketplace-sku-key";
+import { marketplaceSkuKey, skuKey } from "@openrift/shared/marketplace-sku-key";
 import type {
   MappingGroupHeader,
   MappingPrintingResponse,
@@ -10,6 +10,7 @@ import type {
 import type { Marketplace } from "@openrift/shared/types/pricing";
 
 import type { Repos, Transact } from "../../../deps.js";
+import type { AdminEventInsert } from "../../system/repositories/admin-events.js";
 import type { MarketplaceConfig, ProductInfo, StagingRow } from "../lib/marketplace-configs.js";
 import { buildStagedRowMapping } from "../lib/marketplace-mapping-shared.js";
 
@@ -654,6 +655,24 @@ export async function saveMappings(
   });
 
   return { saved, skipped, applied };
+}
+
+export async function mappingEvents(
+  repos: Pick<Repos, "marketplaceAdmin">,
+  marketplace: Marketplace,
+  applied: readonly SaveMappingInput[],
+): Promise<Omit<AdminEventInsert, "actorUserId">[]> {
+  const slugRows = await repos.marketplaceAdmin.cardSlugsForPrintings(
+    applied.map((mapping) => mapping.printingId),
+  );
+  const slugs = new Map(slugRows.map((row) => [row.printingId, row.cardSlug]));
+  return applied.map((mapping) => ({
+    action: "marketplace-variant.map",
+    entityType: "marketplace-variant",
+    entityId: marketplaceSkuKey(marketplace, mapping.externalId, mapping.finish, mapping.language),
+    cardSlug: slugs.get(mapping.printingId),
+    newValues: { marketplace, ...mapping },
+  }));
 }
 
 export async function unmapPrinting(

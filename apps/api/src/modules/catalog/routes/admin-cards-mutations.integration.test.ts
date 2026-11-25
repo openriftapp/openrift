@@ -354,25 +354,26 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
       expect(await readJson(res)).toEqual({ updated: 1, candidateCardIds: [cardShortCode] });
     });
 
-    it("checks a given candidate card whose name does not match the card", async () => {
+    it("refuses a given candidate card of another card and checks none of the list", async () => {
       await db
         .updateTable("candidateCards")
         .set({ checkedAt: null })
-        .where("id", "=", csUnmatchedId)
+        .where("id", "in", [cardShortCode, csUnmatchedId])
         .execute();
 
       const res = await app.fetch(
-        adminReq("POST", `${P}/${cardId}/check-all`, { candidateCardIds: [csUnmatchedId] }),
+        adminReq("POST", `${P}/${cardId}/check-all`, {
+          candidateCardIds: [cardShortCode, csUnmatchedId],
+        }),
       );
-      expect(res.status).toBe(200);
-      expect(await readJson(res)).toEqual({ updated: 1, candidateCardIds: [csUnmatchedId] });
+      expect(res.status).toBe(404);
 
-      const row = await db
+      const rows = await db
         .selectFrom("candidateCards")
         .select("checkedAt")
-        .where("id", "=", csUnmatchedId)
-        .executeTakeFirstOrThrow();
-      expect(row.checkedAt).not.toBeNull();
+        .where("id", "in", [cardShortCode, csUnmatchedId])
+        .execute();
+      expect(rows.map((row) => row.checkedAt)).toEqual([null, null]);
     });
 
     it("returns 404 for non-existent card slug", async () => {
@@ -380,6 +381,66 @@ describe.skipIf(!ctx)("Card-sources mutation routes (integration)", () => {
         adminReq("POST", `${P}/00000000-0000-4000-a000-000000000000/check-all`),
       );
       expect(res.status).toBe(404);
+    });
+  });
+
+  describe("POST /:cardId/check-pass", () => {
+    it("checks the card's card and printing sources together", async () => {
+      await db
+        .updateTable("candidateCards")
+        .set({ checkedAt: null })
+        .where("id", "=", cardShortCode)
+        .execute();
+      await db
+        .updateTable("candidatePrintings")
+        .set({ checkedAt: null })
+        .where("id", "=", psId)
+        .execute();
+
+      const res = await app.fetch(
+        adminReq("POST", `${P}/${cardId}/check-pass`, {
+          candidateCardIds: [cardShortCode],
+          candidatePrintingIds: [psId],
+        }),
+      );
+      expect(res.status).toBe(200);
+      expect(await readJson(res)).toEqual({ cardsUpdated: 1, printingsUpdated: 1 });
+
+      const events = await db
+        .selectFrom("adminEvents")
+        .select(["action", "newValues"])
+        .where("action", "in", ["candidate-card.check", "candidate-printing.check"])
+        .where("cardSlug", "=", "CSM-001")
+        .execute();
+      expect(events).toEqual(
+        expect.arrayContaining([
+          { action: "candidate-card.check", newValues: { candidateCardIds: [cardShortCode] } },
+          { action: "candidate-printing.check", newValues: { candidatePrintingIds: [psId] } },
+        ]),
+      );
+    });
+
+    it("rolls the card checks back when a printing belongs to another card", async () => {
+      await db
+        .updateTable("candidateCards")
+        .set({ checkedAt: null })
+        .where("id", "=", cardShortCode)
+        .execute();
+
+      const res = await app.fetch(
+        adminReq("POST", `${P}/${cardId}/check-pass`, {
+          candidateCardIds: [cardShortCode],
+          candidatePrintingIds: [psUnlinkedId],
+        }),
+      );
+      expect(res.status).toBe(404);
+
+      const row = await db
+        .selectFrom("candidateCards")
+        .select("checkedAt")
+        .where("id", "=", cardShortCode)
+        .executeTakeFirstOrThrow();
+      expect(row.checkedAt).toBeNull();
     });
   });
 

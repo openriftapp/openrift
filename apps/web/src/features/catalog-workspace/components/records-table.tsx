@@ -22,15 +22,14 @@ import { InstantCell } from "@/features/admin/components/admin-crud-shared";
 import { AdminTable } from "@/features/admin/components/admin-table";
 import type { AdminCellSlotProps, AdminColumnDef } from "@/features/admin/components/admin-table";
 import { DeskStatusBadge } from "@/features/admin/components/printing-desk-shared";
-import { useDistributionChannels } from "@/features/admin/hooks/use-distribution-channels";
 import { useMarkers } from "@/features/admin/hooks/use-markers";
 import type { ServerSort } from "@/features/admin/lib/admin-table-types";
 import { EMPTY_VALUE_TEXT } from "@/features/admin/lib/field-value-text";
 import { imageCountText } from "@/features/admin/lib/printing-desk-filter";
 import { useSets } from "@/features/cards/hooks/use-sets";
-import { buildChannelBreadcrumbsBySlug } from "@/features/cards/lib/channel-breadcrumbs";
 import { CardThumb } from "@/features/catalog-workspace/components/record/record-thumb";
-import type { WorkspaceRecordsResult } from "@/features/catalog-workspace/hooks/use-workspace-queue";
+import { useValueLabels } from "@/features/catalog-workspace/hooks/use-value-labels";
+import type { WorkspaceRecordsResult } from "@/features/catalog-workspace/hooks/use-workspace-records";
 import type { DeskRow, WorkspaceTarget } from "@/features/catalog-workspace/lib/owner-items";
 import {
   cardSummaryKey,
@@ -356,16 +355,15 @@ function DeskCodesCell({ row }: AdminCellSlotProps<DeskRow>) {
   return <span className="font-mono text-sm">{row ? deskEntry(row).code : ""}</span>;
 }
 
-function DeskChannelCell({
-  row,
-  channelPaths,
-}: AdminCellSlotProps<DeskRow> & { channelPaths?: ReadonlyMap<string, string> }) {
+function DeskChannelCell({ row, channels }: AdminCellSlotProps<DeskRow> & { channels?: LabelMap }) {
   if (!row) {
     return null;
   }
   return (
     <Muted>
-      {row.distributionChannelSlugs.map((slug) => channelPaths?.get(slug) ?? slug).join(", ")}
+      {row.distributionChannelSlugs
+        .map((slug) => (channels === undefined ? slug : enumLabel(channels, slug)))
+        .join(", ")}
     </Muted>
   );
 }
@@ -628,10 +626,9 @@ function FacesTable({ records, sort }: { records: RowRecords; sort: ServerSort }
 function DeskTable({ records }: { records: DeskRecords }) {
   const rows = records.rows;
 
-  const { data: channelData } = useDistributionChannels();
   const { data: markerData } = useMarkers();
   const { labels } = useEnumOrders();
-  const channelPaths = buildChannelBreadcrumbsBySlug(channelData.distributionChannels);
+  const { channels } = useValueLabels();
   const markerLabels = labelMap(markerData.markers);
 
   const columns: AdminColumnDef<DeskRow>[] = [
@@ -653,7 +650,7 @@ function DeskTable({ records }: { records: DeskRecords }) {
       header: "Channel",
       id: "channel",
       wrap: true,
-      cell: <DeskChannelCell channelPaths={channelPaths} />,
+      cell: <DeskChannelCell channels={channels} />,
     },
     { header: "Status", id: "status", width: "w-28", cell: <DeskStatusCell /> },
     { header: "Images", id: "images", width: "w-24", align: "right", cell: <DeskImagesCell /> },
