@@ -9,6 +9,7 @@ import type {
 import { Link } from "@tanstack/react-router";
 import { EllipsisVerticalIcon } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -29,13 +30,12 @@ import { EMPTY_VALUE_TEXT, formatCatalogFieldValue } from "@/features/admin/lib/
 import { printingImageDisplayUrl } from "@/features/admin/lib/printing-image-display-url";
 import { imagesOnSide } from "@/features/admin/lib/printing-side-images";
 import { ContributionActions } from "@/features/catalog-workspace/components/pass/pass-parts";
-import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
 import { ignoredPrintingUndo } from "@/features/catalog-workspace/hooks/candidate-undo";
 import { cardRecordScope } from "@/features/catalog-workspace/hooks/use-card-record-actions";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import type { NewPrintingGroup } from "@/features/catalog-workspace/lib/card-pass";
-import { passContributor } from "@/features/catalog-workspace/lib/card-pass";
+import { existingPrintings, passContributor } from "@/features/catalog-workspace/lib/card-pass";
 import type { CreationDraft } from "@/features/catalog-workspace/lib/creation-draft";
 import { providerOf } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import type { PrintingMatches } from "@/features/catalog-workspace/lib/printing-matches";
@@ -44,7 +44,7 @@ import { providerName } from "@/features/catalog-workspace/lib/review-cards";
 import { combinedUndo, ignoredUndoText } from "@/features/catalog-workspace/lib/workspace-undo";
 import { cn } from "@/lib/utils";
 
-interface NewPrintingRow {
+export interface NewPrintingRow {
   group: NewPrintingGroup;
   draft: CreationDraft | null;
   ready: boolean;
@@ -183,10 +183,10 @@ function ClosestPrintings({
   );
 }
 
-export function NewPrintingsSection({
+export function NewPrintingItem({
   cardSlug,
   detail,
-  rows,
+  row,
   isAdmin,
   landscape,
   labels,
@@ -199,7 +199,7 @@ export function NewPrintingsSection({
 }: {
   cardSlug: string;
   detail: AdminCardDetailResponse;
-  rows: readonly NewPrintingRow[];
+  row: NewPrintingRow;
   isAdmin: boolean;
   landscape: boolean;
   labels: PrintingValueLabels;
@@ -216,10 +216,7 @@ export function NewPrintingsSection({
   const ignore = useIgnoreCandidatePrinting(scope);
   const { announce } = useWorkspaceUndo();
 
-  const ready = rows.flatMap((row) => (row.ready && row.draft !== null ? [row.draft] : []));
-  const existing = [...new Map(detail.printings.map((row) => [row.id, row])).values()].toSorted(
-    (a, b) => a.canonicalRank - b.canonicalRank,
-  );
+  const existing = existingPrintings(detail);
   const pending = creating || link.isPending || ignore.isPending;
 
   async function ignoreGroup(signal: AbortSignal, group: NewPrintingGroup) {
@@ -240,164 +237,142 @@ export function NewPrintingsSection({
     );
   }
 
+  const { group, draft, ready: creatable } = row;
+  const [lead] = group.candidates;
+  if (lead === undefined) {
+    return null;
+  }
+  const contributorId = group.candidates.find(
+    (candidate) => providerOf(detail, candidate.candidateCardId) === USER_SUBMISSION_PROVIDER,
+  )?.candidateCardId;
+  const summary = [
+    formatPrintingCode(lead.publicCode ?? lead.shortCode),
+    formatCatalogFieldValue("artVariant", lead.artVariant, labels),
+    formatCatalogFieldValue("finish", lead.finish, labels),
+    lead.language,
+    formatCatalogFieldValue("rarity", lead.rarity, labels),
+  ].filter((part) => part !== EMPTY_VALUE_TEXT);
+  const details = [
+    formatCatalogFieldValue("size", lead.size, labels),
+    lead.distributionChannelSlugs.length > 0
+      ? formatCatalogFieldValue("distributionChannelSlugs", lead.distributionChannelSlugs, labels)
+      : null,
+    `from ${group.providers.map((provider) => providerName(provider)).join(", ")}`,
+  ].filter((part) => part !== null && part !== EMPTY_VALUE_TEXT);
   return (
-    <RecordSection
-      title="New printings"
-      actions={
-        ready.length > 1 && (
-          <Button size="sm" disabled={pending} onClick={() => onCreate(ready)}>
-            Create all
-          </Button>
-        )
-      }
-    >
-      <div className="flex flex-col">
-        {rows.map(({ group, draft, ready: creatable }) => {
-          const [lead] = group.candidates;
-          if (lead === undefined) {
-            return null;
-          }
-          const contributorId = group.candidates.find(
-            (candidate) =>
-              providerOf(detail, candidate.candidateCardId) === USER_SUBMISSION_PROVIDER,
-          )?.candidateCardId;
-          const summary = [
-            formatPrintingCode(lead.publicCode ?? lead.shortCode),
-            formatCatalogFieldValue("artVariant", lead.artVariant, labels),
-            formatCatalogFieldValue("finish", lead.finish, labels),
-            lead.language,
-            formatCatalogFieldValue("rarity", lead.rarity, labels),
-          ].filter((part) => part !== EMPTY_VALUE_TEXT);
-          const details = [
-            formatCatalogFieldValue("size", lead.size, labels),
-            lead.distributionChannelSlugs.length > 0
-              ? formatCatalogFieldValue(
-                  "distributionChannelSlugs",
-                  lead.distributionChannelSlugs,
-                  labels,
-                )
-              : null,
-            `from ${group.providers.map((provider) => providerName(provider)).join(", ")}`,
-          ].filter((part) => part !== null && part !== EMPTY_VALUE_TEXT);
-          return (
-            <div key={group.key} className="flex flex-col gap-2 border-t py-2 first:border-t-0">
-              <div className="flex items-center gap-3">
-                <PrintingImageBox
-                  url={lead.imageUrl}
-                  alt={`${providerName(group.providers[0] ?? "")} scan`}
-                  href={lead.imageUrl ?? undefined}
-                  className="w-12 shrink-0"
-                  landscape={landscape}
+    <div className="border-warning flex flex-col gap-2 rounded-lg border px-3 py-2">
+      <div className="flex items-center gap-3">
+        <PrintingImageBox
+          url={lead.imageUrl}
+          alt={`${providerName(group.providers[0] ?? "")} scan`}
+          href={lead.imageUrl ?? undefined}
+          className="w-12 shrink-0"
+          landscape={landscape}
+        />
+        <div className="min-w-0 flex-1">
+          <p className="flex flex-wrap items-center gap-x-2 break-words">
+            <Badge variant="warning">New</Badge>
+            {summary.join(" · ")}
+          </p>
+          <p className="text-muted-foreground text-sm break-words">{details.join(" · ")}</p>
+          {contributorId !== undefined && (
+            <ContributorLine
+              {...passContributor(detail, submissions, contributorId)}
+              pending={pending}
+              onReject={() => onReject(contributorId, "New printing")}
+              onMove={onMove && (() => onMove(contributorId))}
+              onMarkApplied={() => onMarkApplied(contributorId)}
+            />
+          )}
+        </div>
+        {isAdmin && (existing.length > 0 || !group.hasContributor) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={pending}
+                  aria-label="More for this printing"
                 />
-                <div className="min-w-0 flex-1">
-                  <p className="break-words">{summary.join(" · ")}</p>
-                  <p className="text-muted-foreground text-sm break-words">{details.join(" · ")}</p>
-                  {contributorId !== undefined && (
-                    <ContributorLine
-                      {...passContributor(detail, submissions, contributorId)}
-                      pending={pending}
-                      onReject={() => onReject(contributorId, "New printing")}
-                      onMove={onMove && (() => onMove(contributorId))}
-                      onMarkApplied={() => onMarkApplied(contributorId)}
-                    />
-                  )}
-                </div>
-                {isAdmin && (existing.length > 0 || !group.hasContributor) && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      render={
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          disabled={pending}
-                          aria-label="More for this printing"
-                        />
-                      }
-                    >
-                      <EllipsisVerticalIcon />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {existing.length > 0 && (
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger>
-                            It is an existing printing…
-                          </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent>
-                            {existing.map((printing) => (
-                              <DropdownMenuItem
-                                key={printing.id}
-                                onClick={() =>
-                                  void queueWrite((signal) =>
-                                    link.mutateAsync(
-                                      {
-                                        candidatePrintingIds: group.candidates.map(
-                                          (candidate) => candidate.id,
-                                        ),
-                                        printingId: printing.id,
-                                      },
-                                      { signal },
-                                    ),
-                                  )
-                                }
-                              >
-                                {printing.expectedPrintingId}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                      )}
-                      {!group.hasContributor && (
-                        <DropdownMenuItem
-                          onClick={() => void queueWrite((signal) => ignoreGroup(signal, group))}
-                        >
-                          Ignore
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-                {creatable && draft !== null ? (
-                  <Button size="sm" disabled={pending} onClick={() => onCreate([draft])}>
-                    Create
-                  </Button>
-                ) : (
-                  <Link
-                    to="/admin/workspace/printings/new/$candidatePrintingId"
-                    params={{ candidatePrintingId: lead.id }}
-                    className={buttonVariants({ size: "sm" })}
-                  >
-                    Review and create
-                  </Link>
-                )}
-              </div>
-              <ClosestPrintings
-                detail={detail}
-                lead={lead}
-                found={closestPrintings(lead, existing)}
-                labels={labels}
-                landscape={landscape}
-                pending={pending}
-                onLink={
-                  isAdmin
-                    ? (printingId) =>
-                        void queueWrite((signal) =>
-                          link.mutateAsync(
-                            {
-                              candidatePrintingIds: group.candidates.map(
-                                (candidate) => candidate.id,
-                              ),
-                              printingId,
-                            },
-                            { signal },
-                          ),
-                        )
-                    : undefined
-                }
-              />
-            </div>
-          );
-        })}
+              }
+            >
+              <EllipsisVerticalIcon />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {existing.length > 0 && (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>It is an existing printing…</DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    {existing.map((printing) => (
+                      <DropdownMenuItem
+                        key={printing.id}
+                        onClick={() =>
+                          void queueWrite((signal) =>
+                            link.mutateAsync(
+                              {
+                                candidatePrintingIds: group.candidates.map(
+                                  (candidate) => candidate.id,
+                                ),
+                                printingId: printing.id,
+                              },
+                              { signal },
+                            ),
+                          )
+                        }
+                      >
+                        {printing.expectedPrintingId}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              )}
+              {!group.hasContributor && (
+                <DropdownMenuItem
+                  onClick={() => void queueWrite((signal) => ignoreGroup(signal, group))}
+                >
+                  Ignore
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+        {creatable && draft !== null ? (
+          <Button size="sm" disabled={pending} onClick={() => onCreate([draft])}>
+            Create
+          </Button>
+        ) : (
+          <Link
+            to="/admin/workspace/printings/new/$candidatePrintingId"
+            params={{ candidatePrintingId: lead.id }}
+            className={buttonVariants({ size: "sm" })}
+          >
+            Review and create
+          </Link>
+        )}
       </div>
-    </RecordSection>
+      <ClosestPrintings
+        detail={detail}
+        lead={lead}
+        found={closestPrintings(lead, existing)}
+        labels={labels}
+        landscape={landscape}
+        pending={pending}
+        onLink={
+          isAdmin
+            ? (printingId) =>
+                void queueWrite((signal) =>
+                  link.mutateAsync(
+                    {
+                      candidatePrintingIds: group.candidates.map((candidate) => candidate.id),
+                      printingId,
+                    },
+                    { signal },
+                  ),
+                )
+            : undefined
+        }
+      />
+    </div>
   );
 }

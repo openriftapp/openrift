@@ -16,9 +16,12 @@ import {
   buildCardPass,
   imageOrigin,
   newPrintingGroups,
+  placeNewPrintings,
   reviewNeighbor,
   seededPrintingDraft,
+  showsFaceOnStop,
 } from "./card-pass";
+import { buildFaceSuggestions } from "./face-suggestion-rows";
 
 const OPTIONS = { providerSettings: [], submissions: [], costKeywords: [], isAdmin: true };
 
@@ -195,6 +198,136 @@ describe("buildCardPass images", () => {
     const face = passFor([image({ activateWhenRehosted: true })]);
 
     expect(face?.pending).toBe(false);
+  });
+});
+
+describe("buildCardPass rows", () => {
+  const waiting = (printingId: string, face: "front" | "back"): AdminPrintingImageResponse => ({
+    id: `${printingId}-${face}`,
+    printingId,
+    imageFileId: `file-${printingId}-${face}`,
+    face,
+    originalUrl: "https://img.example/own.png",
+    rehostedUrl: null,
+    rotation: 0,
+    needsTrim: false,
+    needsLevels: false,
+    quad: null,
+    isActive: false,
+    activateWhenRehosted: false,
+    isReviewed: false,
+    addedAt: "2026-01-01T00:00:00.000Z",
+    uploadedByName: null,
+    fileInUseElsewhere: false,
+    rehostFailure: null,
+  });
+  const summary = (rows: ReturnType<typeof buildCardPass>["rows"]) =>
+    rows.map((row) => ({
+      printing: row.entry.printing.id,
+      faces: row.faces.map((face) => face.face.faceId),
+      pending: row.pending,
+    }));
+
+  it("puts both faces of a two-faced printing on one row, pending when either face has work", () => {
+    const detail = makeAdminCardDetail({
+      printings: [
+        makeAdminPrinting({ id: "printing-1", faceId: "f1", side: 1 }),
+        makeAdminPrinting({ id: "printing-1", faceId: "f2", side: 2 }),
+      ],
+      printingImages: [waiting("printing-1", "back")],
+    });
+
+    expect(summary(buildCardPass(detail, OPTIONS).rows)).toEqual([
+      { printing: "printing-1", faces: ["f1", "f2"], pending: true },
+    ]);
+  });
+
+  it("shows a shared face on every printing that carries it", () => {
+    const detail = makeAdminCardDetail({
+      printings: [
+        makeAdminPrinting({ id: "printing-1", faceId: "f1", canonicalRank: 0 }),
+        makeAdminPrinting({ id: "printing-2", faceId: "f1", canonicalRank: 1 }),
+      ],
+      printingImages: [waiting("printing-1", "front")],
+    });
+
+    expect(summary(buildCardPass(detail, OPTIONS).rows)).toEqual([
+      { printing: "printing-1", faces: ["f1"], pending: true },
+      { printing: "printing-2", faces: ["f1"], pending: true },
+    ]);
+  });
+
+  it("shows the reviewed card's face on its stop and another card's face only with work", () => {
+    const quiet = makeAdminCardDetail({
+      printings: [makeAdminPrinting({ id: "printing-1", faceId: "f1" })],
+    });
+    const busy = makeAdminCardDetail({
+      printings: [makeAdminPrinting({ id: "printing-1", faceId: "f1" })],
+      printingImages: [waiting("printing-1", "front")],
+    });
+    const context = { costKeywords: [], setTotals: {}, hiddenProviders: new Set<string>() };
+    const quietModel = buildFaceSuggestions(quiet, "f1", context);
+    const busyModel = buildFaceSuggestions(busy, "f1", context);
+
+    expect(showsFaceOnStop("chaos-rune", quietModel, "chaos-rune")).toBe(true);
+    expect(showsFaceOnStop("bird", quietModel, "chaos-rune")).toBe(false);
+    expect(showsFaceOnStop("bird", busyModel, "chaos-rune")).toBe(true);
+    expect(showsFaceOnStop("bird", buildFaceSuggestions(quiet, "missing", context))).toBe(false);
+  });
+
+  it("places a new printing after its closest listed printing and an unmatched one first", () => {
+    const source = makeCandidateCard({ provider: "provider-a" });
+    const listed = makeAdminPrinting({
+      id: "printing-1",
+      faceId: "f1",
+      shortCode: "VEN-R05",
+      language: "EN",
+    });
+    const near = makeCandidatePrinting({
+      candidateCardId: source.id,
+      printingId: null,
+      shortCode: "VEN-R05",
+      language: "EN",
+    });
+    const far = makeCandidatePrinting({
+      candidateCardId: source.id,
+      printingId: null,
+      shortCode: "RAD-R05",
+      language: "EN",
+    });
+    const detail = makeAdminCardDetail({ sources: [source], printings: [listed] });
+    const row = (candidate: typeof near) => ({
+      group: { key: candidate.id, candidates: [candidate], providers: [], hasContributor: false },
+    });
+    const pass = buildCardPass(detail, OPTIONS);
+
+    const placed = placeNewPrintings(detail, pass.rows, [row(near), row(far)]);
+
+    expect(placed.after.get("printing-1")?.map((entry) => entry.group.key)).toEqual([near.id]);
+    expect(placed.ordered.map((entry) => entry.group.key)).toEqual([far.id, near.id]);
+  });
+
+  it("lists only this card's face on a printing paired with another card", () => {
+    const detail = makeAdminCardDetail({
+      printings: [
+        makeAdminPrinting({
+          id: "printing-1",
+          faceId: "f1",
+          side: 1,
+          otherFace: {
+            faceId: "other",
+            cardName: "Bird",
+            cardSlug: "bird",
+            publicCode: "SGN-T01",
+            imageUrl: null,
+          },
+        }),
+      ],
+    });
+
+    expect(summary(buildCardPass(detail, OPTIONS).rows)).toEqual([
+      { printing: "printing-1", faces: ["f1"], pending: false },
+    ]);
   });
 });
 

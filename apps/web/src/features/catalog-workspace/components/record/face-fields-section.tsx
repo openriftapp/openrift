@@ -51,6 +51,7 @@ export function FaceFieldsSection({
   detail,
   suggestions,
   isAdmin,
+  title = "Face fields",
 }: {
   cardSlug: string;
   face: AdminPrintingResponse;
@@ -60,6 +61,7 @@ export function FaceFieldsSection({
   detail: AdminCardDetailResponse;
   suggestions: readonly PrintingFieldSuggestion[];
   isAdmin: boolean;
+  title?: string;
 }) {
   const labels = useValueLabels();
   const scope = [
@@ -116,7 +118,7 @@ export function FaceFieldsSection({
 
   return (
     <RecordSection
-      title="Face fields"
+      title={title}
       actions={
         compare !== undefined && (
           <CompareSourcesToggle

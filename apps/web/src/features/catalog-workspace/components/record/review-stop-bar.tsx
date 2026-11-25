@@ -29,13 +29,6 @@ declare module "@tanstack/react-router" {
 }
 
 export function stopNavigation(stop: ReviewStop, trail: ReviewTrail): NavigateOptions {
-  if (stop.kind === "face") {
-    return {
-      to: "/admin/workspace/faces/$cardSlug/$faceId",
-      params: { cardSlug: trail.cardSlug, faceId: stop.faceId },
-      state: { workspaceReview: trail },
-    };
-  }
   if (stop.kind === "printing") {
     return {
       to: "/admin/workspace/printings/$printingId",

@@ -377,6 +377,7 @@ export function makeAdminPrinting(
     releasedAt: null,
     releasePrecision: null,
     setReleasedAt: null,
+    setReleasePrecision: null,
     announcedAt: null,
     expectedPrintingId: "OGN-001",
     canonicalRank: 0,

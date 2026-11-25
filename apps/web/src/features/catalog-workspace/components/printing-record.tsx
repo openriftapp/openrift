@@ -13,9 +13,9 @@ import { normalizeToPeriodStart } from "@openrift/shared/set-release";
 import { pluralize } from "@openrift/shared/strings";
 import type { CardType } from "@openrift/shared/types/enums";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { ChevronRightIcon, Share2Icon } from "lucide-react";
-import { Suspense, useState } from "react";
+import { Fragment, Suspense, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -51,10 +51,16 @@ import { printingFaces } from "@/features/admin/lib/printing-faces";
 import { encodePostSlides } from "@/features/admin/lib/printing-post-slides";
 import { providerSettingsQueryOptions } from "@/features/admin/lib/provider-settings-queries";
 import { catalogKeys } from "@/features/cards/lib/cards-query-keys";
-import { PrintingCompareGrid } from "@/features/catalog-workspace/components/compare-sources-dialog";
+import {
+  FaceCompareGrid,
+  PrintingCompareGrid,
+} from "@/features/catalog-workspace/components/compare-sources-dialog";
+import { FaceImagesSection } from "@/features/catalog-workspace/components/face-images-section";
 import { PrintingMarketplaceSection } from "@/features/catalog-workspace/components/printing-marketplace-section";
+import { FaceFieldsSection } from "@/features/catalog-workspace/components/record/face-fields-section";
 import { RecordFieldRow } from "@/features/catalog-workspace/components/record/field-row";
 import { PrintingRowSuggestions } from "@/features/catalog-workspace/components/record/printing-row-suggestions";
+import { RecordDismissAll } from "@/features/catalog-workspace/components/record/record-dismiss-all";
 import {
   CompareSourcesToggle,
   PublicPageLink,
@@ -65,8 +71,14 @@ import {
 } from "@/features/catalog-workspace/components/record/record-pane";
 import { ReviewStopBar } from "@/features/catalog-workspace/components/record/review-stop-bar";
 import { WorkspaceHistorySection } from "@/features/catalog-workspace/components/record/workspace-history-section";
+import { cardRecordScope } from "@/features/catalog-workspace/hooks/use-card-record-actions";
 import { useValueLabels } from "@/features/catalog-workspace/hooks/use-face-record-actions";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
+import { dismissTargets, showsFaceOnStop } from "@/features/catalog-workspace/lib/card-pass";
+import {
+  buildFaceSuggestions,
+  faceCompareCandidates,
+} from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import {
   buildPrintingSuggestions,
   sourcesReportPrintingFields,
@@ -154,7 +166,7 @@ function PrintingRecordBody({
       .filter((setting) => setting.isHidden || (!isAdmin && !setting.helperReviewable))
       .map((setting) => setting.provider),
   );
-  const { suggestions } = buildPrintingSuggestions(details, printingId, {
+  const { suggestions, sources } = buildPrintingSuggestions(details, printingId, {
     costKeywords,
     setTotals: Object.assign({}, ...details.map((detail) => detail.setTotals)) as Record<
       string,
@@ -168,6 +180,32 @@ function PrintingRecordBody({
     postImage === null
       ? null
       : encodePostSlides([{ printingId, imageFileId: postImage.imageFileId }]);
+
+  const reviewedCard = useLocation({
+    select: (location) => location.state.workspaceReview?.cardSlug,
+  });
+  const faceReviews = canReview
+    ? faces.flatMap((face) => {
+        const detail = cardDetails.find((entry) => entry.slug === face.cardSlug)?.detail;
+        if (detail === undefined) {
+          return [];
+        }
+        const model = buildFaceSuggestions(detail, face.faceId, {
+          costKeywords,
+          setTotals: detail.setTotals,
+          hiddenProviders,
+        });
+        return showsFaceOnStop(face.cardSlug, model, reviewedCard) && model.face !== null
+          ? [{ printingFace: face, face: model.face, model, detail }]
+          : [];
+      })
+    : [];
+
+  const dismiss = dismissTargets(
+    details,
+    [...sources, ...faceReviews.flatMap((entry) => entry.model.sources)],
+    hiddenProviders,
+  );
 
   const reviewRow = details
     .flatMap((detail) => detail.printings)
@@ -243,6 +281,12 @@ function PrintingRecordBody({
           }
           actions={
             <>
+              <RecordDismissAll
+                scope={slugs.flatMap((slug) => cardRecordScope(slug))}
+                record={deskPrintingName(printing)}
+                dismiss={dismiss}
+                isAdmin={isAdmin}
+              />
               <PublicPageLink cardSlug={printing.cardSlug} printingSlug={printing.slug} />
               {canDesk && postSlides === null && (
                 <Button variant="ghost" size="sm" disabled>
@@ -297,6 +341,51 @@ function PrintingRecordBody({
           )}
         </div>
       </RecordSection>
+
+      {faceReviews.map(({ printingFace, face, model, detail }) => {
+        const suffix = faces.length > 1 ? ` · Face ${printingFace.position}` : "";
+        return (
+          <Fragment key={face.faceId}>
+            <FaceImagesSection
+              cardSlug={printingFace.cardSlug}
+              face={face}
+              detail={detail}
+              images={model.images}
+              printings={model.printings}
+              sourceImages={model.sourceImages}
+              providerSettings={providerData?.providerSettings ?? []}
+              isAdmin={isAdmin}
+              landscape={getOrientation(detail.card?.types ?? []) === "landscape"}
+              title={`Images${suffix}`}
+            />
+            <FaceFieldsSection
+              cardSlug={printingFace.cardSlug}
+              face={face}
+              canEdit={isAdmin}
+              isAdmin={isAdmin}
+              detail={detail}
+              suggestions={model.suggestions}
+              title={`Face fields${suffix}`}
+              compareDisabledReason={
+                faceCompareCandidates(detail, face.faceId, hiddenProviders).length === 0
+                  ? "No source lists this face"
+                  : undefined
+              }
+              compare={
+                <FaceCompareGrid
+                  cardSlug={printingFace.cardSlug}
+                  faceId={face.faceId}
+                  detail={detail}
+                  providerSettings={providerData?.providerSettings ?? []}
+                  hiddenProviders={hiddenProviders}
+                  costKeywords={costKeywords}
+                  isAdmin={isAdmin}
+                />
+              }
+            />
+          </Fragment>
+        );
+      })}
 
       <RecordSection
         title="Printing fields"

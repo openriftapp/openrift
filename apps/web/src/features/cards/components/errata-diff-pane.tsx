@@ -84,6 +84,16 @@ function sideSegments(
   return side === "corrected" ? markCorrected(segments) : segments;
 }
 
+export function ErrataChangeText({
+  segments,
+  side,
+}: {
+  segments: ErrataDiffSegment[];
+  side: "printed" | "corrected" | null;
+}) {
+  return <DiffText segments={sideSegments(segments, side)} />;
+}
+
 export function ErrataPane({
   title,
   tone,

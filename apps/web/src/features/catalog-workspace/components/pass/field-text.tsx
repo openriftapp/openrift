@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 
 import type { PrintingValueLabels } from "@/features/admin/lib/field-value-text";
 import { formatCatalogFieldValue, formatReleaseValue } from "@/features/admin/lib/field-value-text";
-import { ErrataPane } from "@/features/cards/components/errata-diff-pane";
+import { ErrataChangeText } from "@/features/cards/components/errata-diff-pane";
 import { diffCardText } from "@/features/cards/lib/errata-diff";
 import type { PrintingFieldSuggestion } from "@/features/catalog-workspace/lib/face-suggestion-rows";
 
@@ -28,14 +28,10 @@ export function textChange(field: string, current: unknown, proposed: unknown): 
   if (!CARD_TEXT_FIELDS.has(field) || typeof proposed !== "string") {
     return null;
   }
-  const segments = diffCardText(typeof current === "string" ? current : "", proposed);
   return (
-    <ErrataPane
-      title="Suggested text"
-      tone="updated"
+    <ErrataChangeText
+      segments={diffCardText(typeof current === "string" ? current : "", proposed)}
       side="corrected"
-      className="basis-full"
-      changes={[{ key: field, label: null, segments }]}
     />
   );
 }

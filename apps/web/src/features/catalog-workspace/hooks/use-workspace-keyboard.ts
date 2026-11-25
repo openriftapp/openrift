@@ -20,9 +20,15 @@ const RECORD_WRITES: ReadonlySet<WorkspaceKeyAction> = new Set([
   "settle-and-next",
   "accept-new",
   "ignore",
+  "dismiss-all",
 ]);
 
-const RECORD_KEYS: ReadonlySet<WorkspaceKeyAction> = new Set(["accept-new", "ignore", "undo"]);
+const RECORD_KEYS: ReadonlySet<WorkspaceKeyAction> = new Set([
+  "accept-new",
+  "ignore",
+  "dismiss-all",
+  "undo",
+]);
 
 const CONTROL_SELECTOR = 'button, [role="button"], [role="menuitem"], [role="option"]';
 
@@ -146,6 +152,14 @@ export function handleWorkspaceKey(event: KeyEventLike, deps: WorkspaceKeyDeps):
         return false;
       }
       void deps.queue.enqueue(deps.record, ignore, { queryClient: deps.queryClient });
+      return true;
+    }
+    case "dismiss-all": {
+      const dismissAll = actions?.dismissAll;
+      if (dismissAll === undefined) {
+        return false;
+      }
+      void deps.queue.enqueue(deps.record, dismissAll, { queryClient: deps.queryClient });
       return true;
     }
     case "undo": {

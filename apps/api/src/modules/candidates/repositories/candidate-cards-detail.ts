@@ -127,6 +127,11 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
             where sr.set_id = printing_sides_ordered.set_id
               and sr.language = printing_sides_ordered.language
           )`.as("setReleasedAt"),
+          sql<"day" | "month" | "quarter" | "year" | null>`(
+            select sr.precision from set_releases sr
+            where sr.set_id = printing_sides_ordered.set_id
+              and sr.language = printing_sides_ordered.language
+          )`.as("setReleasePrecision"),
           "announcedAt",
           "canonicalRank",
           "fallbackArtMode",

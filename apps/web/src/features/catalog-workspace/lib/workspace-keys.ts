@@ -4,6 +4,7 @@ export type WorkspaceKeyAction =
   | "settle-and-next"
   | "accept-new"
   | "ignore"
+  | "dismiss-all"
   | "undo";
 
 export interface WorkspaceKeyBinding {
@@ -18,5 +19,6 @@ export const WORKSPACE_KEYS = [
   { key: "Enter", action: "settle-and-next", label: "Discard remaining suggestions, then next" },
   { key: "a", action: "accept-new", label: "Accept new record" },
   { key: "x", action: "ignore", label: "Ignore" },
+  { key: "d", action: "dismiss-all", label: "Dismiss all suggestions" },
   { key: "z", action: "undo", label: "Undo" },
 ] as const satisfies readonly WorkspaceKeyBinding[];

@@ -436,6 +436,14 @@ describe.skipIf(!ctx)("candidateCardsRepo (integration)", () => {
     expect(result[0]).not.toHaveProperty("updatedAt");
   });
 
+  it("printingsForDetail returns the set release's precision with its date", async () => {
+    const result = await repo.printingsForDetail(SEED_CARD_ANNIE_ID);
+    expect(result[0]).toHaveProperty("setReleasePrecision");
+    for (const row of result) {
+      expect(row.setReleasePrecision === null).toBe(row.setReleasedAt === null);
+    }
+  });
+
   it("exportCards returns all cards ordered by name", async () => {
     const result = await repo.exportCards();
     expect(result.length).toBeGreaterThan(0);

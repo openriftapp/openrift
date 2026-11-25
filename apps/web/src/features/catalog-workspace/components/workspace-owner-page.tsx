@@ -65,6 +65,12 @@ const KEYBOARD_ROUTES: ReadonlySet<string> = new Set([
   "/_app/_authenticated/admin/workspace/printings/new/$candidatePrintingId",
 ]);
 
+const RECORD_KEY_ROUTES: ReadonlySet<string> = new Set([
+  ...KEYBOARD_ROUTES,
+  "/_app/_authenticated/admin/workspace/printings/$printingId",
+  "/_app/_authenticated/admin/workspace/faces/$cardSlug/$faceId",
+]);
+
 const FILTER_LABELS: Record<WorkspaceRecordFilter, string> = {
   promo: "Promos",
   "no-image": "No image",
@@ -130,7 +136,7 @@ export function WorkspaceOwnerPage({ owner }: { owner: WorkspaceOwner }) {
           actions={<WorkspaceUndoButton />}
         />
       )}
-      {KEYBOARD_ROUTES.has(childRouteId) ? <RecordKeyboard /> : <UndoKey />}
+      {RECORD_KEY_ROUTES.has(childRouteId) ? <RecordKeyboard /> : <UndoKey />}
       <Outlet />
     </>
   );

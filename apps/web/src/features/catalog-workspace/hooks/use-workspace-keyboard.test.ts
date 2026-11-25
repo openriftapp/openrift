@@ -178,16 +178,24 @@ describe("handleWorkspaceKey", () => {
     expect(d.goNext).toHaveBeenCalledOnce();
   });
 
-  it("calls accept and ignore", async () => {
+  it("calls accept, ignore and dismiss all", async () => {
     const accept = vi.fn();
     const ignore = vi.fn();
-    const d = deps({ actions: { accept, ignore } });
+    const dismissAll = vi.fn();
+    const d = deps({ actions: { accept, ignore, dismissAll } });
     handleWorkspaceKey(keyEvent("a"), d);
     await vi.waitFor(() => expect(d.queue.idle()).toBe(true));
     handleWorkspaceKey(keyEvent("x"), d);
     await vi.waitFor(() => expect(d.queue.idle()).toBe(true));
+    handleWorkspaceKey(keyEvent("d"), d);
+    await vi.waitFor(() => expect(d.queue.idle()).toBe(true));
     expect(accept).toHaveBeenCalledOnce();
     expect(ignore).toHaveBeenCalledOnce();
+    expect(dismissAll).toHaveBeenCalledOnce();
+  });
+
+  it("leaves D alone on a record with nothing to dismiss", () => {
+    expect(handleWorkspaceKey(keyEvent("d"), deps({ actions: {} }))).toBe(false);
   });
 
   it("gives accept the limit its record registered", async () => {

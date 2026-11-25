@@ -2,10 +2,7 @@ import { getOrientation } from "@openrift/shared/card-orientation";
 import { enumLabel } from "@openrift/shared/enum-label";
 import { countNoun } from "@openrift/shared/strings";
 import type { AdminCardDetailResponse, AdminCardResponse } from "@openrift/shared/types/api/admin";
-import { WellKnown } from "@openrift/shared/well-known";
-import { getRouteApi, Link, useLocation, useNavigate } from "@tanstack/react-router";
-import type { NavigateOptions } from "@tanstack/react-router";
-import { ChevronRightIcon } from "lucide-react";
+import { getRouteApi, useLocation, useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -13,11 +10,8 @@ import { toast } from "sonner";
 import { RouteErrorFallback } from "@/components/error-message";
 import { PageTopBarButton, PageTopBarPrimaryButton } from "@/components/layout/page-top-bar";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TextLink } from "@/components/ui/text-link";
-import type { MatrixGhost } from "@/features/admin/components/admin-printing-matrix";
-import { AdminPrintingMatrix } from "@/features/admin/components/admin-printing-matrix";
 import { CardBansSection } from "@/features/admin/components/card-bans-section";
 import { useCardDetailData } from "@/features/admin/components/card-detail-shared";
 import { CardErrataSection } from "@/features/admin/components/card-errata-section";
@@ -33,20 +27,19 @@ import type { AttentionSubmission } from "@/features/admin/lib/attention-items";
 import { buildAttentionSubmissions } from "@/features/admin/lib/attention-items";
 import { favoriteProviderSet } from "@/features/admin/lib/candidate-rows";
 import { pairNamesByPrinting } from "@/features/admin/lib/face-rows";
-import { EMPTY_VALUE_TEXT, formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
+import { formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
 import { buildSetReleaseYears } from "@/features/admin/lib/set-release-years";
 import { useCardBans } from "@/features/cards/hooks/use-card-bans";
 import { useSets } from "@/features/cards/hooks/use-sets";
 import { CardListingsSection } from "@/features/catalog-workspace/components/card-listings-section";
 import { CardCompareGrid } from "@/features/catalog-workspace/components/compare-sources-dialog";
 import { CardMenu } from "@/features/catalog-workspace/components/pass/card-menu";
-import { faceHeading } from "@/features/catalog-workspace/components/pass/field-text";
-import { NewPrintingsSection } from "@/features/catalog-workspace/components/pass/new-printings-section";
 import {
   ContributionBlock,
   PassTopBar,
   SourceUse,
 } from "@/features/catalog-workspace/components/pass/pass-parts";
+import { PrintingsSection } from "@/features/catalog-workspace/components/pass/printings-section";
 import { RecordFieldRow } from "@/features/catalog-workspace/components/record/field-row";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import {
@@ -76,6 +69,7 @@ import {
   buildCardPass,
   newPrintingGroups,
   passContributor,
+  placeNewPrintings,
   seededPrintingDraft,
 } from "@/features/catalog-workspace/lib/card-pass";
 import {
@@ -227,9 +221,7 @@ function CardPassBody({
   const navigate = useNavigate();
   const [allFields, setAllFields] = useState<boolean | null>(null);
   const showAll = allFields ?? !navigation.inReview;
-  const [allFaces, setAllFaces] = useState<boolean | null>(null);
   const [allPrintings, setAllPrintings] = useState<boolean | null>(null);
-  const facesShown = allFaces ?? !navigation.inReview;
   const printingsShown = allPrintings ?? !navigation.inReview;
   const [compare, setCompare] = useState(false);
   const [rejecting, setRejecting] = useState<{ candidateCardId: string; kindLabel: string } | null>(
@@ -248,7 +240,7 @@ function CardPassBody({
     submissions,
   });
   const dismiss = usePassDismiss({
-    cardSlug,
+    scope,
     cardId: card.id,
     record: detail.displayName,
     dismiss: pass.dismiss,
@@ -257,45 +249,10 @@ function CardPassBody({
   const markApplied = useAcceptSubmission({ cardSlug });
   const favorites = favoriteProviderSet(providerSettings);
   const setReleaseYears = buildSetReleaseYears(setsData.sets);
-  const rows = newPrintingGroups(detail, pass.hiddenProviders).map((group) => ({
+  const newRows = newPrintingGroups(detail, pass.hiddenProviders).map((group) => ({
     group,
     ...seededPrintingDraft(detail, group, setReleaseYears, favorites),
   }));
-
-  const ghosts: MatrixGhost[] = rows.flatMap(({ group }) => {
-    const [lead] = group.candidates;
-    if (lead === undefined) {
-      return [];
-    }
-    return [
-      {
-        key: group.key,
-        shortCode: lead.shortCode,
-        language: lead.language ?? WellKnown.language.EN,
-        summary: [
-          formatCatalogFieldValue("finish", lead.finish, valueLabels),
-          formatCatalogFieldValue("artVariant", lead.artVariant, valueLabels),
-          formatCatalogFieldValue("rarity", lead.rarity, valueLabels),
-        ]
-          .filter((part) => part !== EMPTY_VALUE_TEXT)
-          .join(" · "),
-        imageUrl: lead.imageUrl,
-        action: (
-          <TextLink
-            className="text-xs"
-            render={
-              <Link
-                to="/admin/workspace/printings/new/$candidatePrintingId"
-                params={{ candidatePrintingId: lead.id }}
-              />
-            }
-          >
-            Review and create
-          </TextLink>
-        ),
-      },
-    ];
-  });
 
   const queue = useCardView();
   const trail: ReviewTrail = {
@@ -316,13 +273,19 @@ function CardPassBody({
   const canDismiss = isAdmin && dismissCount > 0;
   const stillPending = navigation.position !== null;
   const primaryText = firstStop === null && stillPending ? "Skip" : "Next";
-  const firstDraft = rows[0]?.ready === true ? rows[0].draft : null;
+  const [topNewRow] = placeNewPrintings(
+    detail,
+    pass.rows.filter((row) => row.pending),
+    newRows,
+  ).ordered;
+  const firstDraft = topNewRow?.ready === true ? topNewRow.draft : null;
 
   useRegisterRecordActions({
     accept:
       firstDraft === null || creator.pending
         ? undefined
         : (signal) => creator.create(signal, [firstDraft]),
+    dismissAll: canDismiss && !dismiss.pending ? (signal) => dismiss.run(signal) : undefined,
   });
 
   const rowsByField = new Map<string, FieldSuggestion[]>(
@@ -332,13 +295,8 @@ function CardPassBody({
     (def) => (rowsByField.get(def.field)?.length ?? 0) > 0,
   );
   const shownDefs = showAll ? CARD_RECORD_FIELDS : pendingDefs;
-  const pendingFaces = pass.faces.filter((entry) => entry.pending);
-  const pendingFaceIds = new Set(pendingFaces.map((entry) => entry.face.id));
   const shownFailures = pass.faces.reduce((sum, entry) => sum + entry.failedRehosts.length, 0);
   const substituteFailures = (navigation.reviewCard?.pending.failedImages ?? 0) - shownFailures;
-  const substituteFaces = pass.faces.filter(({ face }) => face.fallbackImageFileId !== null);
-  const pendingPrintings = pass.printings.filter((entry) => entry.pending);
-  const pendingPrintingIds = new Set(pendingPrintings.map((entry) => entry.printing.id));
   const landscape = getOrientation(card.types) === "landscape";
   const onReject = (candidateCardId: string, kindLabel: string) =>
     setRejecting({ candidateCardId, kindLabel });
@@ -365,6 +323,7 @@ function CardPassBody({
                 onClick={() => void queueWrite((signal) => dismiss.run(signal))}
               >
                 Dismiss all {dismissCount}
+                <Kbd>D</Kbd>
               </PageTopBarButton>
             )}
             {navigation.inReview && (
@@ -501,158 +460,31 @@ function CardPassBody({
         })}
       </RecordSection>
 
-      {rows.length > 0 && (
-        <NewPrintingsSection
-          cardSlug={cardSlug}
-          detail={detail}
-          rows={rows}
-          isAdmin={isAdmin}
-          landscape={landscape}
-          labels={valueLabels}
-          submissions={submissions}
-          creating={creator.pending}
-          onCreate={(drafts) => void queueWrite((signal) => creator.create(signal, drafts))}
-          onReject={onReject}
-          onMove={onMove}
-          onMarkApplied={onMarkApplied}
-        />
-      )}
-
-      <RecordSection
-        title={pass.faces.length === 0 ? "Faces" : countNoun(pass.faces.length, "face")}
-        titleAction={
-          pass.faces.length > 0 && (
-            <Button variant="link" size="xs" onClick={() => setAllFaces(!facesShown)}>
-              {facesShown ? "Hide all faces" : "Show all faces"}
-            </Button>
-          )
+      <PrintingsSection
+        cardSlug={cardSlug}
+        detail={detail}
+        pass={pass}
+        newRows={newRows}
+        trail={trail}
+        showAll={printingsShown}
+        onToggleAll={() => setAllPrintings(!printingsShown)}
+        isAdmin={isAdmin}
+        landscape={landscape}
+        labels={valueLabels}
+        submissions={submissions}
+        substituteFailures={substituteFailures}
+        creating={creator.pending}
+        onCreate={(drafts) => void queueWrite((signal) => creator.create(signal, drafts))}
+        onReject={onReject}
+        onMove={onMove}
+        onMarkApplied={onMarkApplied}
+        onOpenPrinting={(printingId) =>
+          void navigate({
+            to: "/admin/workspace/printings/$printingId",
+            params: { printingId },
+          })
         }
-      >
-        <div className="flex flex-col gap-3">
-          {pass.faces.length === 0 && <p className="text-muted-foreground">No faces yet.</p>}
-          {substituteFailures > 0 && (
-            <p className="text-muted-foreground">
-              {countNoun(substituteFailures, "substitute image")} failed to rehost. Pick another on
-              the face that uses it:{" "}
-              {substituteFaces.map(({ face }) => (
-                <TextLink
-                  key={face.faceId}
-                  className="mr-2"
-                  render={
-                    <Link
-                      to="/admin/workspace/faces/$cardSlug/$faceId"
-                      params={{ cardSlug, faceId: face.faceId }}
-                    />
-                  }
-                >
-                  {faceHeading(face, valueLabels)}
-                </TextLink>
-              ))}
-            </p>
-          )}
-          {pendingFaces.map((entry) => (
-            <StopLine
-              key={entry.face.faceId}
-              navigation={stopNavigation({ kind: "face", faceId: entry.face.faceId }, trail)}
-              title={faceHeading(entry.face, valueLabels)}
-              summary={[
-                entry.model.suggestions.length > 0
-                  ? countNoun(entry.model.suggestions.length, "field")
-                  : null,
-                entry.model.sourceImages.length +
-                  entry.uploads.length +
-                  entry.failedRehosts.length >
-                0
-                  ? countNoun(
-                      entry.model.sourceImages.length +
-                        entry.uploads.length +
-                        entry.failedRehosts.length,
-                      "image",
-                    )
-                  : null,
-              ]
-                .filter((part) => part !== null)
-                .join(", ")}
-            />
-          ))}
-          {facesShown && pass.faces.length > 0 && (
-            <AdminPrintingMatrix
-              detail={detail}
-              highlightedIds={pendingFaceIds}
-              faces={pass.faces.map((entry) => entry.face)}
-              landscape={landscape}
-              onOpen={(printingId) => {
-                const face = pass.faces.find((entry) => entry.face.id === printingId)?.face;
-                if (face !== undefined) {
-                  void navigate({
-                    to: "/admin/workspace/faces/$cardSlug/$faceId",
-                    params: { cardSlug, faceId: face.faceId },
-                  });
-                }
-              }}
-            />
-          )}
-        </div>
-      </RecordSection>
-
-      <RecordSection
-        title={
-          pass.printings.length === 0 ? "Printings" : countNoun(pass.printings.length, "printing")
-        }
-        titleAction={
-          pass.printings.length > 0 && (
-            <Button variant="link" size="xs" onClick={() => setAllPrintings(!printingsShown)}>
-              {printingsShown ? "Hide all printings" : "Show all printings"}
-            </Button>
-          )
-        }
-        actions={
-          isAdmin && (
-            <Link
-              to="/admin/workspace/printings/create"
-              search={{ card: cardSlug }}
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-            >
-              New printing
-            </Link>
-          )
-        }
-      >
-        <div className="flex flex-col gap-3">
-          {pass.printings.length === 0 && (
-            <p className="text-muted-foreground">No printings yet.</p>
-          )}
-          {pendingPrintings.map((entry) => (
-            <StopLine
-              key={entry.printing.id}
-              navigation={stopNavigation(
-                { kind: "printing", printingId: entry.printing.id },
-                trail,
-              )}
-              title={entry.printing.expectedPrintingId}
-              summary={countNoun(entry.model.suggestions.length, "field")}
-            />
-          ))}
-          {(printingsShown || ghosts.length > 0) && pass.printings.length > 0 && (
-            <AdminPrintingMatrix
-              detail={detail}
-              printings={pass.printings.map((entry) => entry.printing)}
-              highlightedIds={pendingPrintingIds}
-              landscape={landscape}
-              ghosts={ghosts}
-              onlyShortCodes={
-                printingsShown ? undefined : new Set(ghosts.map((ghost) => ghost.shortCode))
-              }
-              onOpen={(printingId) =>
-                void navigate({
-                  to: "/admin/workspace/printings/$printingId",
-                  params: { printingId },
-                })
-              }
-            />
-          )}
-        </div>
-      </RecordSection>
+      />
 
       {isAdmin && (
         <CardListingsSection
@@ -727,29 +559,5 @@ function CardPassBody({
         }}
       />
     </>
-  );
-}
-
-function StopLine({
-  navigation,
-  title,
-  summary,
-}: {
-  navigation: NavigateOptions;
-  title: string;
-  summary: string;
-}) {
-  return (
-    <div className="hover:bg-muted/50 relative flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border px-3 py-2">
-      <TextLink
-        variant="inherit"
-        className="font-medium after:absolute after:inset-0"
-        render={<Link {...navigation} />}
-      >
-        {title}
-      </TextLink>
-      <span className="text-muted-foreground min-w-0 flex-1 text-sm">{summary}</span>
-      <ChevronRightIcon className="text-muted-foreground size-4" />
-    </div>
   );
 }

@@ -190,6 +190,7 @@ export const adminPrintingResponseSchema = z.object({
   releasedAt: z.string().nullable(),
   releasePrecision: releasePrecisionSchema.nullable(),
   setReleasedAt: z.string().nullable(),
+  setReleasePrecision: releasePrecisionSchema.nullable(),
   announcedAt: z.string().nullable(),
   expectedPrintingId: z.string(),
   canonicalRank: z.number(),

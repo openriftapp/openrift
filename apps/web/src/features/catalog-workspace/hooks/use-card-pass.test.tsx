@@ -50,7 +50,7 @@ beforeEach(() => {
 
 function renderDismiss(dismiss: PassDismiss) {
   return renderHook(() =>
-    usePassDismiss({ cardSlug: "jinx", cardId: "card-1", record: RECORD, dismiss }),
+    usePassDismiss({ scope: [["jinx"]], cardId: "card-1", record: RECORD, dismiss }),
   );
 }
 

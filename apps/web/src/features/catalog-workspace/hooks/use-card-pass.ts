@@ -108,17 +108,16 @@ export function useReviewNavigation(card: string | { reviewKey: string }) {
 }
 
 export function usePassDismiss({
-  cardSlug,
+  scope,
   cardId,
   record,
   dismiss,
 }: {
-  cardSlug: string;
-  cardId: string;
+  scope: readonly (readonly unknown[])[];
+  cardId?: string;
   record: string;
   dismiss: PassDismiss;
 }) {
-  const scope = cardRecordScope(cardSlug);
   const checkCards = useCheckCandidateCards(scope);
   const checkPrintings = useCheckAllCandidatePrintings(scope);
   const { push } = useWorkspaceUndo();
@@ -133,7 +132,7 @@ export function usePassDismiss({
       invalidates: undoScope(scope),
       undo,
     });
-    if (cardIds.length > 0) {
+    if (cardIds.length > 0 && cardId !== undefined) {
       await checkCards.mutateAsync({ cardId, candidateCardIds: cardIds }, { signal });
       entries.push(
         undoOf((undoSignal) =>

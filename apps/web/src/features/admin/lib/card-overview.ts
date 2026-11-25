@@ -32,14 +32,6 @@ function adminDesignKey(printing: AdminPrintingResponse): string {
   ].join("|");
 }
 
-/** `faces` holds one row per face, in language-preference order. */
-export function groupAdminFaceDesigns(faces: readonly AdminPrintingResponse[]): {
-  languages: string[];
-  designs: PrintingDesign<AdminPrintingResponse>[];
-} {
-  return groupDesigns(faces, adminFaceDesignKey);
-}
-
 /** `printings` must be in language-preference order. */
 export function groupAdminPrintingDesigns(printings: readonly AdminPrintingResponse[]): {
   languages: string[];

@@ -11,6 +11,7 @@ export interface WorkspaceRecordActions {
   accept?: (signal: AbortSignal) => Promise<void> | void;
   acceptLimit?: WriteLimit;
   ignore?: (signal: AbortSignal) => Promise<void> | void;
+  dismissAll?: (signal: AbortSignal) => Promise<void> | void;
   loading?: boolean;
 }
 

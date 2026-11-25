@@ -18,11 +18,15 @@ import {
   findDuplicateCandidates,
   validateDraft,
 } from "@/features/catalog-workspace/lib/creation-draft";
-import type { FaceSuggestionModel } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import type {
+  FaceSuggestionModel,
+  SuggestionSource,
+} from "@/features/catalog-workspace/lib/face-suggestion-rows";
 import {
   buildFaceSuggestions,
   providerOf,
 } from "@/features/catalog-workspace/lib/face-suggestion-rows";
+import { closestPrintings } from "@/features/catalog-workspace/lib/printing-matches";
 import type { PrintingSuggestionModel } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
 import { buildPrintingSuggestions } from "@/features/catalog-workspace/lib/printing-suggestion-rows";
 import type { CardSuggestions } from "@/features/catalog-workspace/lib/suggestion-rows";
@@ -45,17 +49,24 @@ export interface PassPrinting {
   pending: boolean;
 }
 
+export interface PassRow {
+  entry: PassPrinting;
+  faces: PassFace[];
+  pending: boolean;
+}
+
 export interface PassDismiss {
   candidateCardIds: string[];
   candidatePrintingIds: string[];
   suggestions: number;
 }
 
-interface CardPassModel {
+export interface CardPassModel {
   hiddenProviders: Set<string>;
   card: CardSuggestions;
   faces: PassFace[];
   printings: PassPrinting[];
+  rows: PassRow[];
   dismiss: PassDismiss;
 }
 
@@ -68,6 +79,28 @@ function passHiddenProviders(
       .filter((setting) => setting.isHidden || (!isAdmin && !setting.helperReviewable))
       .map((setting) => setting.provider),
   );
+}
+
+export function faceImageWork(model: FaceSuggestionModel): {
+  uploads: AdminPrintingImageResponse[];
+  failedRehosts: AdminPrintingImageResponse[];
+  pending: boolean;
+} {
+  const uploads = model.images.filter(
+    (image) => !image.isActive && !image.activateWhenRehosted && !image.isReviewed,
+  );
+  const failedRehosts = model.images.filter(
+    (image) => !image.isActive && image.activateWhenRehosted && image.rehostFailure !== null,
+  );
+  return {
+    uploads,
+    failedRehosts,
+    pending:
+      model.suggestions.length > 0 ||
+      model.sourceImages.length > 0 ||
+      uploads.length > 0 ||
+      failedRehosts.length > 0,
+  };
 }
 
 function byRank(printings: readonly AdminPrintingResponse[]): AdminPrintingResponse[] {
@@ -111,23 +144,7 @@ export function buildCardPass(
 
   const faces = firstBy(ranked, (row) => row.faceId).map((face): PassFace => {
     const model = buildFaceSuggestions(detail, face.faceId, context);
-    const uploads = model.images.filter(
-      (image) => !image.isActive && !image.activateWhenRehosted && !image.isReviewed,
-    );
-    const failedRehosts = model.images.filter(
-      (image) => !image.isActive && image.activateWhenRehosted && image.rehostFailure !== null,
-    );
-    return {
-      face,
-      model,
-      uploads,
-      failedRehosts,
-      pending:
-        model.suggestions.length > 0 ||
-        model.sourceImages.length > 0 ||
-        uploads.length > 0 ||
-        failedRehosts.length > 0,
-    };
+    return { face, model, ...faceImageWork(model) };
   });
 
   const printings = firstBy(ranked, (row) => row.id).map((printing): PassPrinting => {
@@ -135,17 +152,26 @@ export function buildCardPass(
     return { printing, model, pending: model.suggestions.length > 0 };
   });
 
-  const sourceRowIds = new Set(
-    visibleSources
-      .filter((source) => source.provider !== USER_SUBMISSION_PROVIDER)
-      .map((source) => source.id),
-  );
-  const printingRows = [
-    ...faces.flatMap((entry) => entry.model.sources),
-    ...printings.flatMap((entry) => entry.model.sources),
-  ].filter(
-    (source) =>
-      !source.isContributor && source.differences > 0 && sourceRowIds.has(source.candidateCardId),
+  const facesById = new Map(faces.map((entry) => [entry.face.faceId, entry]));
+  const rows = printings.map((entry): PassRow => {
+    const onPrinting = ranked
+      .filter((row) => row.id === entry.printing.id)
+      .flatMap((row) => facesById.get(row.faceId) ?? []);
+    const printingFaces = firstBy(onPrinting, (face) => face.face.faceId);
+    return {
+      entry,
+      faces: printingFaces,
+      pending: entry.pending || printingFaces.some((face) => face.pending),
+    };
+  });
+
+  const printingDismiss = dismissTargets(
+    [detail],
+    [
+      ...faces.flatMap((entry) => entry.model.sources),
+      ...printings.flatMap((entry) => entry.model.sources),
+    ],
+    hiddenProviders,
   );
   const cardRows = card.enterTargets.filter((target) => target.differences > 0);
 
@@ -154,15 +180,84 @@ export function buildCardPass(
     card,
     faces,
     printings,
+    rows,
     dismiss: {
       candidateCardIds: cardRows.map((target) => target.candidateRowId),
-      candidatePrintingIds: [...new Set(printingRows.map((source) => source.candidatePrintingId))],
-      suggestions: [...cardRows, ...printingRows].reduce(
-        (total, row) => total + row.differences,
-        0,
-      ),
+      candidatePrintingIds: printingDismiss.candidatePrintingIds,
+      suggestions:
+        cardRows.reduce((total, row) => total + row.differences, 0) + printingDismiss.suggestions,
     },
   };
+}
+
+export function dismissTargets(
+  details: readonly AdminCardDetailResponse[],
+  sources: readonly SuggestionSource[],
+  hiddenProviders: ReadonlySet<string>,
+): PassDismiss {
+  const sourceRowIds = new Set(
+    details
+      .flatMap((detail) => detail.sources)
+      .filter(
+        (source) =>
+          !hiddenProviders.has(source.provider) && source.provider !== USER_SUBMISSION_PROVIDER,
+      )
+      .map((source) => source.id),
+  );
+  const rows = sources.filter(
+    (source) =>
+      !source.isContributor && source.differences > 0 && sourceRowIds.has(source.candidateCardId),
+  );
+  return {
+    candidateCardIds: [],
+    candidatePrintingIds: [...new Set(rows.map((source) => source.candidatePrintingId))],
+    suggestions: rows.reduce((total, row) => total + row.differences, 0),
+  };
+}
+
+export function showsFaceOnStop(
+  faceCardSlug: string,
+  model: FaceSuggestionModel,
+  reviewedCardSlug?: string,
+): boolean {
+  return model.face !== null && (reviewedCardSlug === faceCardSlug || faceImageWork(model).pending);
+}
+
+export function existingPrintings(detail: AdminCardDetailResponse): AdminPrintingResponse[] {
+  return firstBy(byRank(detail.printings), (row) => row.id);
+}
+
+export interface PlacedNewPrintings<T> {
+  after: Map<string | null, T[]>;
+  ordered: T[];
+}
+
+export function placeNewPrintings<T extends { group: NewPrintingGroup }>(
+  detail: AdminCardDetailResponse,
+  shownRows: readonly PassRow[],
+  newRows: readonly T[],
+): PlacedNewPrintings<T> {
+  const shownIds = new Set(shownRows.map((row) => row.entry.printing.id));
+  const existing = existingPrintings(detail);
+  const after = Map.groupBy(newRows, (row): string | null => {
+    const [lead] = row.group.candidates;
+    if (lead === undefined) {
+      return null;
+    }
+    const match = closestPrintings(lead, existing).matches[0]?.printing.id;
+    if (match !== undefined && shownIds.has(match)) {
+      return match;
+    }
+    return (
+      shownRows.findLast((entry) => entry.entry.printing.shortCode === lead.shortCode)?.entry
+        .printing.id ?? null
+    );
+  });
+  const ordered = [
+    ...(after.get(null) ?? []),
+    ...shownRows.flatMap((row) => after.get(row.entry.printing.id) ?? []),
+  ];
+  return { after, ordered };
 }
 
 export interface NewPrintingGroup {

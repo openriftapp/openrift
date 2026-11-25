@@ -94,6 +94,7 @@ export function FaceImagesSection({
   isAdmin,
   landscape,
   sourceImages,
+  title = "Images",
 }: {
   cardSlug: string;
   face: AdminPrintingResponse;
@@ -104,6 +105,7 @@ export function FaceImagesSection({
   providerSettings: ProviderSettingResponse[];
   isAdmin: boolean;
   landscape: boolean;
+  title?: string;
 }) {
   const queueWrite = useQueueWorkspaceWrite();
   const scope: Scope = [
@@ -182,7 +184,7 @@ export function FaceImagesSection({
 
   return (
     <RecordSection
-      title="Images"
+      title={title}
       actions={
         isAdmin &&
         !adding && (

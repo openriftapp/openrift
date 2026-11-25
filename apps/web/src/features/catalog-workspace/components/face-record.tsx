@@ -42,6 +42,7 @@ import {
 } from "@/features/catalog-workspace/components/face-images-section";
 import { FaceFieldsSection } from "@/features/catalog-workspace/components/record/face-fields-section";
 import { RecordFieldRow } from "@/features/catalog-workspace/components/record/field-row";
+import { RecordDismissAll } from "@/features/catalog-workspace/components/record/record-dismiss-all";
 import {
   RecordBanner,
   PublicPageLink,
@@ -50,9 +51,10 @@ import {
   RecordSection,
   VariantFacts,
 } from "@/features/catalog-workspace/components/record/record-pane";
-import { ReviewStopBar } from "@/features/catalog-workspace/components/record/review-stop-bar";
 import { WorkspaceHistorySection } from "@/features/catalog-workspace/components/record/workspace-history-section";
+import { cardRecordScope } from "@/features/catalog-workspace/hooks/use-card-record-actions";
 import { useValueLabels } from "@/features/catalog-workspace/hooks/use-face-record-actions";
+import { dismissTargets } from "@/features/catalog-workspace/lib/card-pass";
 import {
   buildFaceSuggestions,
   faceCompareCandidates,
@@ -126,13 +128,13 @@ function ReviewFaceRecord({
   }
 
   const landscape = getOrientation(detail.card?.types ?? []) === "landscape";
+  const dismiss = dismissTargets([detail], model.sources, hiddenProviders);
   const activeImage = model.images.find((image) => image.isActive);
   const faceCount = new Set(detail.printings.map((printing) => printing.faceId)).size;
   const printingCount = new Set(detail.printings.map((printing) => printing.id)).size;
 
   return (
     <RecordPane
-      banner={<ReviewStopBar current={{ kind: "face", faceId }} />}
       header={
         <RecordHeader
           thumb={
@@ -155,6 +157,12 @@ function ReviewFaceRecord({
           }
           actions={
             <>
+              <RecordDismissAll
+                scope={cardRecordScope(cardSlug)}
+                record={formatPrintingCode(face.publicCode)}
+                dismiss={dismiss}
+                isAdmin={isAdmin}
+              />
               <PublicPageLink cardSlug={cardSlug} />
               <FaceActionsMenu cardSlug={cardSlug} faceId={faceId} />
             </>

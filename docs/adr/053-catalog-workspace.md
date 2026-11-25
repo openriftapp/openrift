@@ -39,18 +39,19 @@ The surface lives under `/admin/workspace/` behind the `catalog-workspace` featu
 
 ### Card pass
 
-- Opening a card from Review shows everything pending on it in one scroll: Card, New printings, Faces, Printings. Records without pending work collapse to one line.
-- A source suggestion is one button that applies the value. "Dismiss N & next" checks every remaining source row on the card and opens the next card. "Checked" is stored per source row (`checked_at`), so a dismissal covers all fields of that row.
+- Opening a card from Review shows everything pending on it in one scroll: Card, then one Printings list with a row per printing that has pending work on the printing or on one of its faces. A new printing sits in that list after the existing printing it most resembles. Printings without pending work show only in the full grid.
+- Each listed printing is one review stop. The printing page shows the images and face fields of the card's faces on it next to the printing fields, so face and printing suggestions are settled in one place. A face on several printings shows on each of them.
+- A source suggestion is one button that applies the value. "Dismiss all N" checks every remaining source row on the card, or on the printing or face page where it is pressed. "Checked" is stored per source row (`checked_at`), so a dismissal covers all fields of that row.
 - A contribution shows on the field it concerns with the contributor's name and note. It is settled only by Use or by Reject with a reply. Dismissing never settles it, and the card stays in Review while one is open.
 - A new printing is created from its row with the source's values. Linking it to an existing printing and ignoring it sit in the row's menu.
 - An uploaded image waiting on a face is made the main image, kept as an extra, or deleted. Keeping sets `face_images.reviewed_at`, which takes it out of Review.
 - A two-faced printing whose faces belong to two cards shows in the pass of each card. Each pass edits its own card's face.
-- Keys: Enter dismisses and moves on, J and K move between cards, A creates the first new printing, Z undoes.
+- Keys: Enter moves on, J and K move between cards, D dismisses every source suggestion on the card, printing or face page that is open, A creates the first new printing, Z undoes.
 
 ### Record areas
 
-- Cards, Printings and Faces are tables with one record page each. A record page edits its own fields and shows no source suggestions. A record with pending work links to its card's pass.
-- Card fields are edited on the card. Face fields and images are edited on the face. Size, channel, release dates and the pair of faces are edited on the printing.
+- Cards, Printings and Faces are tables with one record page each. A record page edits its own fields and shows the source suggestions for them.
+- Card fields are edited on the card. Face fields and images are edited on the face, and on a printing page for the faces it carries while they have pending work or the printing is a review stop. Size, channel, release dates and the pair of faces are edited on the printing.
 
 ### Grants
 
