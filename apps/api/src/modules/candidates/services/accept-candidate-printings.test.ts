@@ -112,6 +112,18 @@ describe("acceptCandidateGroups", () => {
       skipped: [{ shortCode: "OGN-028", reason: "missing: artist" }],
     });
   });
+
+  it("holds back a group that duplicates a printing it created a moment earlier", async () => {
+    const result = await acceptCandidateGroups(transact, "card-1", [
+      cp("a", { shortCode: "OGN-027a" }),
+      cp("b", { shortCode: "OGN-027a/298" }),
+    ]);
+
+    expect(createNewPrinting).toHaveBeenCalledTimes(1);
+    expect(result.skipped).toEqual([
+      { shortCode: "OGN-027a/298", reason: "possible duplicate of OGN-027a in this batch" },
+    ]);
+  });
 });
 
 describe("finishPrintingAccepts", () => {

@@ -1,6 +1,7 @@
 import { adminPrintingDeskContract } from "@openrift/shared/contracts/admin/printing-desk";
 import { implement } from "@orpc/server";
 
+import { forbidden } from "../../../errors.js";
 import { assertFound } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -86,6 +87,9 @@ export const adminPrintingDeskRouter = {
   }),
 
   create: os.create.handler(async ({ input, context }) => {
+    if (input.rarity !== undefined && context.adminAccess?.isAdmin !== true) {
+      throw forbidden("Only an admin sets the rarity.");
+    }
     const created = await createDeskPrinting(
       context.transact,
       context.repos,

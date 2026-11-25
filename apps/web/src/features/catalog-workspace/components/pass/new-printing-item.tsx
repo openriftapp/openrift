@@ -20,6 +20,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
 import type { AttentionSubmission } from "@/features/admin/lib/attention-items";
 import { PRINTING_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
@@ -115,9 +116,9 @@ function ClosestPrintings({
   const hidden = found.matches.length - SHOWN_MATCHES;
   return (
     <div className="flex flex-col gap-1.5">
-      <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+      <SectionHeading as="h4" size="sm">
         Closest existing printings, same code and language
-      </p>
+      </SectionHeading>
       {found.matches.slice(0, SHOWN_MATCHES).map(({ printing, differs }, index) => {
         const image = imagesOnSide(detail.printingImages, printing).find(
           (candidate) => candidate.isActive,

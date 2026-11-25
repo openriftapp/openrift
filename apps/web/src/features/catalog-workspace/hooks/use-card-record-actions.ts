@@ -1,6 +1,7 @@
 import { isAcceptCardField } from "@openrift/shared/contracts/admin/card-mutations";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 
+import type { FieldAcceptMark } from "@/features/admin/lib/accept-undo";
 import type { AttentionSubmission } from "@/features/admin/lib/attention-items";
 import { buildAcceptSubmissionInput } from "@/features/admin/lib/build-accept-input";
 import {
@@ -8,7 +9,7 @@ import {
   useContributorAccept,
 } from "@/features/catalog-workspace/hooks/use-suggestion-writes";
 import {
-  queuedWorkspaceWrite,
+  queuedFieldWrite,
   useQueueWorkspaceWrite,
 } from "@/features/catalog-workspace/hooks/workspace-writes";
 import { cardRecordScope } from "@/features/catalog-workspace/lib/record-scopes";
@@ -30,7 +31,11 @@ export function useCardRecordActions({
   const queue = useQueueWorkspaceWrite();
   const cardId = detail?.card?.id;
 
-  async function apply(signal: AbortSignal, suggestion: FieldSuggestion): Promise<void> {
+  async function apply(
+    signal: AbortSignal,
+    mark: FieldAcceptMark,
+    suggestion: FieldSuggestion,
+  ): Promise<void> {
     if (suggestion.isContributor) {
       const submission = submissions.find(
         (entry) => entry.candidateCardId === suggestion.candidateCardId,
@@ -53,11 +58,12 @@ export function useCardRecordActions({
       label: suggestion.label,
       sourceLabel: suggestion.sourceLabel,
       previousValue: suggestion.current,
+      mark,
     });
   }
 
   return {
-    apply: queuedWorkspaceWrite(queue, apply),
+    apply: queuedFieldWrite(queue, apply),
     pending: fieldAccept.pending || contributor.pending,
   };
 }

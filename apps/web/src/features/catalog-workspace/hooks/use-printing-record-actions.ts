@@ -2,10 +2,11 @@ import type { AdminPrintingResponse } from "@openrift/shared/types/api/admin";
 
 import { usePrintingSuggestionApply } from "@/features/catalog-workspace/hooks/use-suggestion-writes";
 import {
-  queuedWorkspaceWrite,
+  queuedFieldWrite,
   useQueueWorkspaceWrite,
 } from "@/features/catalog-workspace/hooks/workspace-writes";
 import { printingRecordScope } from "@/features/catalog-workspace/lib/record-scopes";
+import type { PrintingFieldSuggestion } from "@/features/catalog-workspace/lib/suggestion-rows";
 
 export function usePrintingFieldWrites({
   cardSlugs,
@@ -25,5 +26,10 @@ export function usePrintingFieldWrites({
     printing,
     contributorName,
   });
-  return { apply: queuedWorkspaceWrite(queue, fields.apply), pending: fields.pending };
+  return {
+    apply: queuedFieldWrite(queue, (signal, mark, suggestion: PrintingFieldSuggestion) =>
+      fields.apply(signal, suggestion, mark),
+    ),
+    pending: fields.pending,
+  };
 }

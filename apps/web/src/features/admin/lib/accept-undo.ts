@@ -17,6 +17,7 @@ interface FieldHistory {
   inFlight: number;
   tail: Promise<void>;
   valueAfterTail: unknown;
+  lastWrite: number;
   undoable: object[];
 }
 
@@ -28,6 +29,21 @@ function fieldKey(input: AcceptInput): string {
   delete target.value;
   delete target.source;
   return JSON.stringify(Object.entries(target).toSorted(([a], [b]) => a.localeCompare(b)));
+}
+
+let writes = 0;
+
+function nextWrite(): number {
+  writes += 1;
+  return writes;
+}
+
+export interface FieldAcceptMark {
+  write: number;
+}
+
+export function markFieldAccept(): FieldAcceptMark {
+  return { write: writes };
 }
 
 async function runAfter<T>(prior: Promise<void>, next: () => Promise<T>): Promise<T> {
@@ -48,6 +64,7 @@ function historyFor(key: string): FieldHistory {
     inFlight: 0,
     tail: Promise.resolve(),
     valueAfterTail: undefined,
+    lastWrite: 0,
     undoable: [],
   };
   histories.set(key, created);
@@ -102,6 +119,12 @@ export async function revertAcceptedField<TInput extends object>(
   } catch (error) {
     failure = error ?? new Error("Undo failed");
   }
+  const key = pendingUndos.get(revert);
+  const history = key === undefined ? undefined : histories.get(key);
+  if (history !== undefined && failure === null) {
+    history.valueAfterTail = (revert as { value?: unknown }).value;
+    history.lastWrite = nextWrite();
+  }
   if (
     failure === null ||
     isFieldChangedError(failure) ||
@@ -124,6 +147,7 @@ export async function acceptFieldWithUndo<TInput extends AcceptInput>({
   fieldLabel,
   sourceLabel,
   previousValue,
+  mark,
   onAccepted,
 }: {
   accept: (input: TInput) => Promise<AcceptFieldResult>;
@@ -131,6 +155,7 @@ export async function acceptFieldWithUndo<TInput extends AcceptInput>({
   fieldLabel: string;
   sourceLabel: string;
   previousValue: unknown;
+  mark?: FieldAcceptMark;
   onAccepted?: (revert: NoInfer<TInput>) => void;
 }): Promise<boolean> {
   const key = fieldKey(input);
@@ -139,12 +164,16 @@ export async function acceptFieldWithUndo<TInput extends AcceptInput>({
   history.inFlight += 1;
 
   const run = async (): Promise<{ accepted: boolean; undo: NoInfer<TInput> | null }> => {
-    const replaced = followsAnother ? history.valueAfterTail : previousValue;
+    const staleSnapshot = mark !== undefined && history.lastWrite > mark.write;
+    const replaced = followsAnother || staleSnapshot ? history.valueAfterTail : previousValue;
     let result: AcceptFieldResult | undefined;
     const ok = await runReportedMutation(async () => {
       result = await accept(input);
     });
     history.valueAfterTail = ok ? input.value : replaced;
+    if (ok) {
+      history.lastWrite = nextWrite();
+    }
     history.inFlight -= 1;
     if (!ok || !result?.written) {
       forgetIfIdle(key, history);

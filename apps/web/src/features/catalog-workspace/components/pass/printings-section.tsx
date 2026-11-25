@@ -1,4 +1,3 @@
-import { formatPrintingCode } from "@openrift/shared/printing-code";
 import { countNoun } from "@openrift/shared/strings";
 import type { AdminCardDetailResponse } from "@openrift/shared/types/api/admin";
 import { Link } from "@tanstack/react-router";
@@ -8,6 +7,7 @@ import { Fragment } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { SectionHeading } from "@/components/ui/section-heading";
 import { TextLink } from "@/components/ui/text-link";
 import { AdminPrintingMatrix } from "@/features/admin/components/admin-printing-matrix";
 import { PrintingImageBox } from "@/features/admin/components/printing-image-box";
@@ -21,7 +21,7 @@ import type { NewPrintingRow } from "@/features/catalog-workspace/components/pas
 import { NewPrintingItem } from "@/features/catalog-workspace/components/pass/new-printing-item";
 import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
 import type { CardPassModel, PassRow } from "@/features/catalog-workspace/lib/card-pass";
-import { placeNewPrintings } from "@/features/catalog-workspace/lib/card-pass";
+import { passRowCodes, placeNewPrintings } from "@/features/catalog-workspace/lib/card-pass";
 import type { CreationDraft } from "@/features/catalog-workspace/lib/creation-draft";
 import type { ReviewTrail } from "@/features/catalog-workspace/lib/review-stops";
 import { stopNavigation } from "@/features/catalog-workspace/lib/review-stops";
@@ -171,9 +171,9 @@ export function PrintingsSection({
           return (
             <Fragment key={printing.id}>
               {previous?.setId !== printing.setId && (
-                <p className="text-muted-foreground pt-1 text-xs font-medium tracking-wide uppercase">
+                <SectionHeading as="h4" size="sm" className="pt-1">
                   {printing.setName ?? printing.setSlug}
-                </p>
+                </SectionHeading>
               )}
               <PrintingLine
                 row={row}
@@ -221,12 +221,8 @@ function PrintingLine({
   landscape: boolean;
 }) {
   const printing = row.entry.printing;
-  const codes = [
-    ...row.faces.map((entry) => formatPrintingCode(entry.face.publicCode)),
-    ...(printing.otherFace === null ? [] : [formatPrintingCode(printing.otherFace.publicCode)]),
-  ];
   const title = [
-    codes.join(" // "),
+    passRowCodes(row).join(" // "),
     printing.language,
     formatCatalogFieldValue("finish", printing.finish, labels),
     ...variantExtras(printing, labels),

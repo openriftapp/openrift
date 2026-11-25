@@ -311,6 +311,41 @@ describe("buildCardListings strong", () => {
     expect(result.cardmarket.every((m) => m.language === null)).toBe(true);
   });
 
+  it("maps a single-language listing to its best printing only", () => {
+    const normal = printing({ printingId: "p-normal" });
+    const promo = printing({ printingId: "p-promo" });
+    const g = group([normal, promo], {
+      tcgplayer: { staged: [staged({ externalId: 7 })], assigned: [], assignments: [] },
+    });
+    const suggestions = new Map<string, ProductSuggestion[]>([
+      [
+        marketplaceSkuKey("tcgplayer", 7, "normal", "EN"),
+        [
+          { printingId: "p-promo", score: 150 },
+          { printingId: "p-normal", score: 180 },
+        ],
+      ],
+    ]);
+    const result = buildCardListings(g, suggestions).strong;
+    expect(result.tcgplayer.map((m) => m.printingId)).toEqual(["p-normal"]);
+  });
+
+  it("leaves a single-language listing whose two best printings tie for a person", () => {
+    const g = group([printing({ printingId: "p-a" }), printing({ printingId: "p-b" })], {
+      tcgplayer: { staged: [staged({ externalId: 8 })], assigned: [], assignments: [] },
+    });
+    const suggestions = new Map<string, ProductSuggestion[]>([
+      [
+        marketplaceSkuKey("tcgplayer", 8, "normal", "EN"),
+        [
+          { printingId: "p-a", score: 180 },
+          { printingId: "p-b", score: 180 },
+        ],
+      ],
+    ]);
+    expect(buildCardListings(g, suggestions).strong.tcgplayer).toEqual([]);
+  });
+
   it("segregates mappings by marketplace so one bucket can't leak into another", () => {
     const g = group([printing({ printingId: "p-1" })], {
       tcgplayer: { staged: [staged({ externalId: 1 })], assigned: [], assignments: [] },

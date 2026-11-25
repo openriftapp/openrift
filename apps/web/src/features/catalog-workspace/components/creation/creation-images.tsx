@@ -60,10 +60,12 @@ export function CreationImages({
   images,
   onChange,
   disabled = false,
+  allowFiles = true,
 }: {
   images: readonly DraftImage[];
   onChange: (images: DraftImage[]) => void;
   disabled?: boolean;
+  allowFiles?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -105,20 +107,26 @@ export function CreationImages({
           ))}
         </ul>
       )}
-      <Dropzone
-        multiple
-        accept="image/*"
-        disabled={disabled}
-        icon={<UploadIcon className="text-muted-foreground size-5" />}
-        label="Drop images here or click to choose"
-        hint="Uploaded once the printing is created."
-        onFiles={(files) =>
-          onChange([
-            ...images,
-            ...files.map((file): DraftImage => ({ kind: "file", key: crypto.randomUUID(), file })),
-          ])
-        }
-      />
+      {allowFiles && (
+        <Dropzone
+          multiple
+          accept="image/*"
+          disabled={disabled}
+          icon={<UploadIcon className="text-muted-foreground size-5" />}
+          label="Drop images here or click to choose"
+          hint="Uploaded once the printing is created."
+          onFiles={(files) =>
+            onChange([
+              ...images,
+              ...files.map((file): DraftImage => ({
+                kind: "file",
+                key: crypto.randomUUID(),
+                file,
+              })),
+            ])
+          }
+        />
+      )}
     </div>
   );
 }

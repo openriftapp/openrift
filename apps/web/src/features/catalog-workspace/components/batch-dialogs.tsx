@@ -56,18 +56,28 @@ function BatchDialog({
   const { names, keys, ineligible } = preview;
   const run = useBatchRun(KIND);
   const [outcome, setOutcome] = useState<BatchOutcome | null>(null);
+  const [running, setRunning] = useState(false);
 
   async function confirm(signal: AbortSignal) {
     let result: BatchOutcome | undefined;
     const ok = await runReportedMutation(async () => {
       result = await run.mutateAsync(keys, { signal });
     });
+    setRunning(false);
     if (ok && result) {
       setOutcome(result);
     }
   }
 
+  function start() {
+    setRunning(true);
+    void queueWrite(confirm, { limit: "long" });
+  }
+
   function changeOpen(next: boolean) {
+    if (!next && running) {
+      return;
+    }
     if (!next) {
       setOutcome(null);
       run.reset();
@@ -113,12 +123,8 @@ function BatchDialog({
         <DialogFooter>
           {outcome === null ? (
             <>
-              <DialogCancel />
-              <Button
-                disabled={names.length === 0}
-                pending={run.isPending}
-                onClick={() => void queueWrite(confirm, { limit: "long" })}
-              >
+              <DialogCancel disabled={running} />
+              <Button disabled={names.length === 0} pending={running} onClick={start}>
                 {listingsBatchLabel(names.length)}
               </Button>
             </>

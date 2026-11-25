@@ -50,6 +50,7 @@ export function FieldSuggestions<S extends FieldSuggestion>({
         current={current}
         preview={preview ?? undefined}
         source={group.map((suggestion) => suggestion.sourceLabel).join(", ")}
+        pending={pending}
         onUse={() => onUse(first)}
         onDismiss={onDismiss && (() => onDismiss(group))}
       />
@@ -66,7 +67,7 @@ export function FieldSuggestions<S extends FieldSuggestion>({
           key={suggestion.key}
           {...passContributor(detail, submissions, candidateCardId)}
           value={preview ?? value}
-          pending={pending}
+          pending={pending || decisions.markingApplied}
           onUse={() => onUse(suggestion)}
           onReject={() => decisions.onReject(candidateCardId, "Correction")}
           onMove={onMove && (() => onMove(candidateCardId))}

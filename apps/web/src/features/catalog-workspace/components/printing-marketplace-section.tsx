@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TextLink } from "@/components/ui/text-link";
+import { displayedProductLanguage } from "@/features/admin/lib/marketplace-product-entries";
 import { unifiedMappingsForCardQueryOptions } from "@/features/admin/lib/unified-mappings-queries";
 import { usePricesOnDemand } from "@/features/cards/hooks/use-prices";
 import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
@@ -40,12 +41,14 @@ type Mapping = AdminCardDetailResponse["marketplaceMappings"][number];
 export function PrintingMarketplaceSection({
   printingId,
   cardSlug,
+  otherCardSlugs,
   cardName,
   language,
   mappings: mapped,
 }: {
   printingId: string;
   cardSlug: string;
+  otherCardSlugs: readonly string[];
   cardName: string;
   language: string;
   mappings: readonly Mapping[];
@@ -54,7 +57,11 @@ export function PrintingMarketplaceSection({
   const prices = usePricesOnDemand(true);
   const group = mappings?.group ?? null;
   const unassigned =
-    group === null ? [] : buildCardListings(group, computeProductSuggestions(group)).unassigned;
+    mappings === undefined
+      ? null
+      : group === null
+        ? []
+        : buildCardListings(group, computeProductSuggestions(group)).unassigned;
   const rows = marketplaceCoverage(mapped, printingId, language);
 
   return (
@@ -88,7 +95,12 @@ export function PrintingMarketplaceSection({
               printingId={printingId}
               language={language}
               cardSlug={cardSlug}
-              candidates={pickableListings(unassigned, row.marketplace, printingId)}
+              otherCardSlugs={otherCardSlugs}
+              candidates={
+                unassigned === null
+                  ? null
+                  : pickableListings(unassigned, row.marketplace, printingId)
+              }
               cardName={cardName}
             />
             {row.products.length > 0 && (
@@ -108,6 +120,7 @@ function CoverageBody({
   printingId,
   language,
   cardSlug,
+  otherCardSlugs,
   cardName,
   candidates,
 }: {
@@ -115,8 +128,9 @@ function CoverageBody({
   printingId: string;
   language: string;
   cardSlug: string;
+  otherCardSlugs: readonly string[];
   cardName: string;
-  candidates: CardListingRow[];
+  candidates: CardListingRow[] | null;
 }) {
   if (row.products.length > 0) {
     return (
@@ -128,6 +142,7 @@ function CoverageBody({
             printingId={printingId}
             language={language}
             cardSlug={cardSlug}
+            otherCardSlugs={otherCardSlugs}
             cardName={cardName}
           />
         ))}
@@ -139,6 +154,9 @@ function CoverageBody({
       <span className="text-muted-foreground min-w-0 flex-1">Does not sell this language</span>
     );
   }
+  if (candidates === null) {
+    return <span className="text-muted-foreground min-w-0 flex-1">Not mapped</span>;
+  }
   return (
     <>
       <span className="text-muted-foreground min-w-0 flex-1">
@@ -149,6 +167,7 @@ function CoverageBody({
           marketplace={row.marketplace}
           printingId={printingId}
           cardSlug={cardSlug}
+          otherCardSlugs={otherCardSlugs}
           cardName={cardName}
           candidates={candidates}
         />
@@ -161,17 +180,19 @@ function MapListingMenu({
   marketplace,
   printingId,
   cardSlug,
+  otherCardSlugs,
   cardName,
   candidates,
 }: {
   marketplace: Marketplace;
   printingId: string;
   cardSlug: string;
+  otherCardSlugs: readonly string[];
   cardName: string;
   candidates: CardListingRow[];
 }) {
   const { labels } = useEnumOrders();
-  const writes = useListingWrites(cardSlug, cardName);
+  const writes = useListingWrites(cardSlug, cardName, otherCardSlugs);
 
   const map = (listing: CardListingRow) =>
     void writes.map(marketplace, listingAssignment(listing, printingId), "this printing");
@@ -192,7 +213,10 @@ function MapListingMenu({
               #{listing.product.externalId}
             </span>
             <span className="text-muted-foreground text-sm">
-              {[enumLabel(labels.finishes, listing.product.finish), listing.product.language]
+              {[
+                enumLabel(labels.finishes, listing.product.finish),
+                displayedProductLanguage(listing.marketplace, listing.product.language),
+              ]
                 .filter((part) => part !== null)
                 .join(" · ")}
             </span>
@@ -211,16 +235,18 @@ function MappedProduct({
   printingId,
   language,
   cardSlug,
+  otherCardSlugs,
   cardName,
 }: {
   product: Mapping;
   printingId: string;
   language: string;
   cardSlug: string;
+  otherCardSlugs: readonly string[];
   cardName: string;
 }) {
   const { labels } = useEnumOrders();
-  const writes = useListingWrites(cardSlug, cardName);
+  const writes = useListingWrites(cardSlug, cardName, otherCardSlugs);
   const detail = [enumLabel(labels.finishes, product.finish), product.variantLanguage]
     .filter((part) => part !== null)
     .join(" · ");

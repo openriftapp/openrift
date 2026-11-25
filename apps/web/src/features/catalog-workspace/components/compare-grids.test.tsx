@@ -17,6 +17,7 @@ interface ColumnActionProps {
 }
 
 const state = vi.hoisted(() => ({
+  cardSources: [] as { provider: string }[][],
   columnActions: [] as (ReactElement<ColumnActionProps> | undefined)[],
   link: vi.fn(async (..._args: unknown[]) => {}),
   remove: vi.fn(async (..._args: unknown[]) => {}),
@@ -29,6 +30,13 @@ vi.mock("@/features/admin/components/candidate-spreadsheet", () => ({
     columnActions?: ReactElement<ColumnActionProps>;
   }) => {
     state.columnActions.push(columnActions);
+    return null;
+  },
+}));
+
+vi.mock("@/features/admin/components/card-fields-section", () => ({
+  CardFieldsSection: ({ sources }: { sources: { provider: string }[] }) => {
+    state.cardSources.push(sources);
     return null;
   },
 }));
@@ -103,7 +111,7 @@ vi.mock("@/features/catalog-workspace/lib/printing-suggestion-rows", () => ({
   printingCompareGroups: () => [{ detail, face, candidates: [candidate] }],
 }));
 
-const { FaceCompareGrid, PrintingCompareGrid } = await import("./compare-grids");
+const { CardCompareGrid, FaceCompareGrid, PrintingCompareGrid } = await import("./compare-grids");
 
 const queryClient = new QueryClient();
 
@@ -147,6 +155,32 @@ beforeEach(() => {
 
 afterEach(() => {
   resetWorkspaceWriteQueue();
+});
+
+describe("the card compare grid", () => {
+  it("leaves out providers switched off under Show in review", () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <CardCompareGrid
+          card={detail.card as never}
+          sources={
+            [
+              { id: "cc-1", provider: "gallery", checkedAt: null },
+              { id: "cc-2", provider: "hidden", checkedAt: null },
+            ] as never
+          }
+          fields={[]}
+          providerSettings={[]}
+          hiddenProviders={new Set(["hidden"])}
+          invalidates={[]}
+          isAdmin
+          cardDestination={() => ({ to: "/" }) as never}
+        />
+      </QueryClientProvider>,
+    );
+
+    expect(state.cardSources.at(-1)?.map((source) => source.provider)).toEqual(["gallery"]);
+  });
 });
 
 describe.each([

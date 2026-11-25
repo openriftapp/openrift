@@ -45,6 +45,7 @@ import {
   buildCardListings,
   listingAssignment,
 } from "@/features/catalog-workspace/lib/card-listing-rows";
+import { errorText } from "@/lib/error-text";
 
 function ListingActionsCell({
   row,
@@ -255,7 +256,8 @@ export function CardListingsSection({
   defaultOpen?: boolean;
   scrollWhenLoaded?: boolean;
 }) {
-  const { data, isPending } = useQuery(unifiedMappingsForCardQueryOptions(cardSlug));
+  const { data, isPending, error } = useQuery(unifiedMappingsForCardQueryOptions(cardSlug));
+  const loadFailed = error !== null;
   const anchor = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (scrollWhenLoaded && !isPending) {
@@ -365,6 +367,10 @@ export function CardListingsSection({
       >
         {isPending ? (
           <Skeleton className="h-24" />
+        ) : loadFailed ? (
+          <p role="alert" className="text-muted-foreground">
+            The listings could not be loaded. {errorText(error, "Try again later.")}
+          </p>
         ) : listings === null ? (
           <div className="space-y-2">
             <p className="text-muted-foreground">No marketplace listings point at this card.</p>

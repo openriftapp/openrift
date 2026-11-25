@@ -6,8 +6,13 @@ import type { CardListingRow } from "@/features/catalog-workspace/lib/card-listi
 
 import { ListingPrintingDialog, listingHighlight } from "./listing-printing-dialog";
 
+const searched = vi.hoisted(() => ({ language: undefined as string | null | undefined }));
+
 vi.mock("./listing-any-printing-combobox", () => ({
-  ListingAnyPrintingCombobox: () => null,
+  ListingAnyPrintingCombobox: ({ language }: { language: string | null }) => {
+    searched.language = language;
+    return null;
+  },
 }));
 
 function printing(printingId: string, shortCode: string, finish: string) {
@@ -107,6 +112,23 @@ describe("ListingPrintingDialog", () => {
     );
 
     expect(screen.getAllByRole("option")).toHaveLength(2);
+  });
+
+  it("searches every language of other cards for a Cardmarket listing", async () => {
+    const user = userEvent.setup();
+    render(
+      <ListingPrintingDialog
+        row={row({ marketplace: "cardmarket" } as Partial<CardListingRow>)}
+        open
+        pending={false}
+        onOpenChange={vi.fn()}
+        onPick={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Search printings of all cards" }));
+
+    expect(searched.language).toBeNull();
   });
 
   it("picks a printing with a click", async () => {

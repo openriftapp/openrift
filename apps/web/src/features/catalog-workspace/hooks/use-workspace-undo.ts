@@ -67,6 +67,8 @@ const UNDO_TASK = Symbol("workspace-undo");
 
 export const NOTHING_SAVED_NOTICE = "Nothing to undo: the change before it did not save.";
 
+export const NO_UNDO_NOTICE = "Nothing undone: the step before this one has no undo.";
+
 export const NOTHING_KNOWN_NOTICE =
   "Nothing undone: whether the change before it saved is unknown, so the record was reloaded.";
 
@@ -138,7 +140,13 @@ export function undoLatestWorkspaceStep(
     async (signal) => {
       const entry = latestUndo();
       if (entry === undefined || before.has(entry) || !markQueued(entry)) {
-        toast(queue.previousTimedOut() ? NOTHING_KNOWN_NOTICE : NOTHING_SAVED_NOTICE);
+        toast(
+          queue.previousTimedOut()
+            ? NOTHING_KNOWN_NOTICE
+            : queue.previousFailed()
+              ? NOTHING_SAVED_NOTICE
+              : NO_UNDO_NOTICE,
+        );
         return;
       }
       await runQueuedUndo(entry, queryClient, signal);

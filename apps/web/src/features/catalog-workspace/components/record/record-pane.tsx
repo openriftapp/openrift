@@ -155,10 +155,7 @@ export function RecordSection({
   const [open, setOpen] = useState(defaultOpen);
   const expanded = !collapsible || open;
   const heading = (
-    <Heading
-      level={3}
-      className={cn("font-heading font-semibold", titleAction === undefined && "flex-1")}
-    >
+    <Heading level={3} className={cn(titleAction === undefined && "flex-1")}>
       {title}
     </Heading>
   );

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TextLink } from "@/components/ui/text-link";
+import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import {
   useCreateDeskPrinting,
   useDeskCardPrintings,
@@ -171,6 +172,14 @@ function DraftEditor({
     void navigate({ to: "/admin/workspace/printings/$printingId", params: { printingId } });
   }
 
+  function requestCreate() {
+    if (!canCreate) {
+      return;
+    }
+    setPending(true);
+    void queueWrite(create, { limit: "upload" });
+  }
+
   return (
     <RecordPane
       header={
@@ -180,7 +189,7 @@ function DraftEditor({
           actions={
             <HeaderActions
               onCancel={onCancel}
-              onCreate={() => void queueWrite(create, { limit: "upload" })}
+              onCreate={requestCreate}
               canCreate={canCreate}
               pending={pending}
             />
@@ -260,6 +269,7 @@ function PickedCard({
   onCancel: () => void;
 }) {
   const { data } = useDeskCardPrintings(cardSlug);
+  const { data: access } = useAdminAccess();
   const { orders } = useEnumOrders();
   const preferred = useEffectiveLanguageOrder();
   const rows = data.printings;
@@ -308,16 +318,19 @@ function PickedCard({
     );
   const initialDraft =
     copyFrom === null
-      ? draftFromBasePrinting(
-          card,
-          basePrintingForLanguage(rows, language),
-          {
-            language,
-            finish: prefill.finish ?? orders.finishes[0] ?? "",
-            size: orders.cardSizes[0] ?? "",
-          },
-          prefill.finish === undefined ? {} : { finish: prefill.finish },
-        )
+      ? {
+          ...draftFromBasePrinting(
+            card,
+            basePrintingForLanguage(rows, language),
+            {
+              language,
+              finish: prefill.finish ?? orders.finishes[0] ?? "",
+              size: orders.cardSizes[0] ?? "",
+            },
+            prefill.finish === undefined ? {} : { finish: prefill.finish },
+          ),
+          pickRarity: access?.isAdmin === true && rows.length === 0,
+        }
       : draftFromDeskPrinting(card, copyFrom);
 
   return (

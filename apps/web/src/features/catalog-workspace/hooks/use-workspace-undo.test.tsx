@@ -24,6 +24,7 @@ vi.mock("sonner", () => ({
 
 const {
   NOTHING_KNOWN_NOTICE,
+  NO_UNDO_NOTICE,
   NOTHING_SAVED_NOTICE,
   runWorkspaceUndo,
   undoLatestWorkspaceStep,
@@ -246,7 +247,22 @@ describe("useWorkspaceUndo", () => {
     expect(older.undo).not.toHaveBeenCalled();
     expect(stack()).toEqual([older]);
     expect(toast).toHaveBeenCalledOnce();
-    expect(toast).toHaveBeenCalledWith(NOTHING_SAVED_NOTICE);
+    expect(toast).toHaveBeenCalledWith(NO_UNDO_NOTICE);
+  });
+
+  it("does not call a saved change without an undo step unsaved", async () => {
+    const older = entry("Older");
+    const { result } = renderHook(() => useWorkspaceUndo(), { wrapper });
+    act(() => result.current.push(older));
+    void workspaceWriteQueue().enqueue(Symbol("record"), () => Promise.resolve(), { queryClient });
+
+    act(() => {
+      result.current.undoLatest();
+    });
+
+    await vi.waitFor(() => expect(workspaceWriteQueue().idle()).toBe(true));
+    expect(older.undo).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(NO_UNDO_NOTICE);
   });
 
   it("says nothing was undone when Z waited behind a write that failed", async () => {

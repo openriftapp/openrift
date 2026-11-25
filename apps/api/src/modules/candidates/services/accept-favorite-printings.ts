@@ -28,6 +28,7 @@ export async function acceptFavoritePrintingsForCard(
   printingsCreated: number;
   skipped: { shortCode: string; reason: string }[];
   createdPrintingIds: string[];
+  checkedCandidateCardIds: string[];
 }> {
   const mut = repos.catalogMutations;
 
@@ -39,14 +40,24 @@ export async function acceptFavoritePrintingsForCard(
     keys.length > 0 ? await repos.candidateCards.candidateCardsForDetail(keys) : [];
   const favoriteCandidates = allCandidates.filter((cc) => favoriteProviders.has(cc.provider));
   if (favoriteCandidates.length === 0) {
-    return { printingsCreated: 0, skipped: [], createdPrintingIds: [] };
+    return {
+      printingsCreated: 0,
+      skipped: [],
+      createdPrintingIds: [],
+      checkedCandidateCardIds: [],
+    };
   }
 
   const candidates = await repos.candidateCards.acceptableCandidatePrintings(
     favoriteCandidates.map((cc) => cc.id),
   );
   if (candidates.length === 0) {
-    return { printingsCreated: 0, skipped: [], createdPrintingIds: [] };
+    return {
+      printingsCreated: 0,
+      skipped: [],
+      createdPrintingIds: [],
+      checkedCandidateCardIds: [],
+    };
   }
   const groups = trustedPrintingGroups(
     candidates.map((cp) => ({ id: cp.id, cardId: card.id, cardSlug })),
@@ -79,11 +90,12 @@ export async function acceptFavoritePrintingsForCard(
     }
   }
 
-  await markAcceptedCandidateCardsChecked(repos, acceptedGroups);
+  const checkedCandidateCardIds = await markAcceptedCandidateCardsChecked(repos, acceptedGroups);
 
   return {
     printingsCreated: accepted.length,
     skipped,
     createdPrintingIds: accepted.map((printing) => printing.printingId),
+    checkedCandidateCardIds,
   };
 }

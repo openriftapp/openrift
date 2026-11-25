@@ -464,8 +464,9 @@ export function useAcceptCardField(invalidates: Scope = defaultScope) {
   });
 }
 
-export function useAcceptPrintingField(invalidates: Scope = defaultScope) {
+export function useAcceptPrintingField(invalidates: Scope = defaultScope, meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: (
       {
         printingId,
@@ -583,8 +584,9 @@ export function useAcceptFavoriteNewCard() {
   });
 }
 
-export function useLinkCard() {
+export function useLinkCard(meta?: MutationMeta) {
   return useMutationWithInvalidation({
+    meta,
     mutationFn: async (
       { name, cardId }: { name: string; cardId: string; cardSlug: string },
       signal,

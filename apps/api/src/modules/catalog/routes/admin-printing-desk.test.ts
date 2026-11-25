@@ -280,4 +280,31 @@ describe("POST /printing-desk/printings", () => {
     expect(res.status).toBe(201);
     expect(finishPrintingAccepts).toHaveBeenCalledWith(expect.anything(), mockIo, [created]);
   });
+
+  it("403s a rarity from a grant holder", async () => {
+    adminAccess = GRANT_HOLDER;
+    const res = await app.request("/api/admin/v1/printing-desk/printings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cardId: "d0000000-0002-4000-a000-000000000001",
+        setId: "d0000000-0003-4000-a000-000000000001",
+        distributionChannelSlugs: [],
+        markerSlugs: [],
+        codeTba: false,
+        shortCode: "OGN-P01",
+        finish: "foil",
+        language: "EN",
+        size: "standard",
+        rarity: "epic",
+        announcedAt: null,
+        releasedAt: null,
+        releasePrecision: null,
+        comment: null,
+      }),
+    });
+
+    expect(res.status).toBe(403);
+    expect(createDeskPrinting).not.toHaveBeenCalled();
+  });
 });

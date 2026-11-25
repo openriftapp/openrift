@@ -39,7 +39,7 @@ vi.mock("@/features/admin/hooks/use-catalog-review", () => ({
   useAcceptSubmission: vi.fn(),
 }));
 vi.mock("@/features/catalog-workspace/hooks/use-workspace-undo", () => ({
-  useWorkspaceUndo: () => ({ push: mocks.push }),
+  useWorkspaceUndo: () => ({ announce: mocks.push }),
 }));
 vi.mock("@/features/catalog-workspace/lib/creation-draft", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -93,7 +93,7 @@ describe("usePassDismiss", () => {
     expect(mocks.uncheckCandidateCardsFn).not.toHaveBeenCalled();
   });
 
-  it("checks card and printing rows in one write and pushes one undo for both", async () => {
+  it("checks card and printing rows in one write and announces one undo for both", async () => {
     const { result } = renderDismiss({
       candidateCardIds: ["cc-1", "cc-2"],
       candidatePrintingIds: ["cp-1"],

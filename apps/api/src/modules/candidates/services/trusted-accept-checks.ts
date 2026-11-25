@@ -17,7 +17,11 @@ import type {
   TrustedCardDraft,
   TrustedPrintingGroup,
 } from "../lib/workspace-batch.js";
-import { eligibleTrustedCards, findDuplicatePrinting } from "../lib/workspace-batch.js";
+import {
+  eligibleTrustedCards,
+  findDuplicatePrinting,
+  probeOfGroup,
+} from "../lib/workspace-batch.js";
 import type { PrintingProbeRow, TrustedDraftRow } from "../repositories/workspace-batch.js";
 
 type CandidatePrintingRow = Selectable<CandidatePrintingsTable>;
@@ -98,6 +102,18 @@ export async function trustedPrintingRefusals(
   for (const [position, check] of faceChecks.entries()) {
     refusals[check.index] = conflicts[position] ?? null;
   }
+  const kept: PrintingProbeRow[] = [];
+  for (const [index, group] of groups.entries()) {
+    if (refusals[index] !== null) {
+      continue;
+    }
+    const earlier = findDuplicatePrinting(group, kept);
+    if (earlier) {
+      refusals[index] = `possible duplicate of ${earlier.shortCode} in this batch`;
+    } else {
+      kept.push(probeOfGroup(group));
+    }
+  }
   return refusals;
 }
 
@@ -106,11 +122,13 @@ export async function markAcceptedCandidateCardsChecked(
   acceptedGroups: readonly {
     candidates: readonly Pick<CandidatePrintingRow, "candidateCardId">[];
   }[],
-): Promise<void> {
-  const ids = new Set(
-    acceptedGroups.flatMap((group) => group.candidates.map((cp) => cp.candidateCardId)),
-  );
-  if (ids.size > 0) {
-    await repos.candidateCards.checkCandidateCardsByIds([...ids], new Date());
+): Promise<string[]> {
+  const ids = [
+    ...new Set(acceptedGroups.flatMap((group) => group.candidates.map((cp) => cp.candidateCardId))),
+  ];
+  if (ids.length === 0) {
+    return [];
   }
+  const updated = await repos.candidateCards.checkCandidateCardsByIds(ids, new Date());
+  return updated > 0 ? ids : [];
 }

@@ -152,6 +152,7 @@ const deskCreateInputSchema = deskPrintingFieldsSchema.extend({
   cardId: z.uuid(),
   basePrintingId: z.uuid().optional(),
   duplicateFrom: z.uuid().optional(),
+  rarity: printingFieldRules.rarity.optional(),
   artVariant: printingFieldRules.artVariant.optional(),
   isSigned: printingFieldRules.isSigned.optional(),
   isOvernumbered: printingFieldRules.isOvernumbered.optional(),

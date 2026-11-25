@@ -151,6 +151,7 @@ describe("acceptFavoriteNewCard", () => {
       printingsCreated: 1,
       skipped: [{ shortCode: "OGN-002", reason: "missing: artist" }],
       accepted: [ACCEPTED],
+      checkedCandidateCardIds: [],
     });
     expect(created).toEqual([{ printingId: "p-1", imageIds: [] }]);
   });
@@ -242,7 +243,13 @@ describe("acceptFavoriteNewCard", () => {
 describe("favoriteAcceptEvents", () => {
   it("records the card and one printing accept per created printing", () => {
     const events = favoriteAcceptEvents(
-      { cardSlug: "flame-striker", printingsCreated: 1, skipped: [], accepted: [ACCEPTED] },
+      {
+        cardSlug: "flame-striker",
+        printingsCreated: 1,
+        skipped: [],
+        accepted: [ACCEPTED],
+        checkedCandidateCardIds: [],
+      },
       "flamestriker",
     );
 
@@ -262,5 +269,26 @@ describe("favoriteAcceptEvents", () => {
         newValues: { printingFields: { shortCode: "OGN-001" }, candidatePrintingIds: ["cp-1"] },
       },
     ]);
+  });
+
+  it("records the source rows it marked checked", () => {
+    const events = favoriteAcceptEvents(
+      {
+        cardSlug: "flame-striker",
+        printingsCreated: 0,
+        skipped: [],
+        accepted: [],
+        checkedCandidateCardIds: ["cc-1", "cc-2"],
+      },
+      "flamestriker",
+    );
+
+    expect(events).toContainEqual({
+      action: "candidate-card.check",
+      entityType: "candidate-card",
+      entityId: null,
+      cardSlug: "flame-striker",
+      newValues: { candidateCardIds: ["cc-1", "cc-2"] },
+    });
   });
 });

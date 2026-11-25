@@ -30,6 +30,7 @@ import { useSets } from "@/features/cards/hooks/use-sets";
 import { CardThumb } from "@/features/catalog-workspace/components/record/record-thumb";
 import { useValueLabels } from "@/features/catalog-workspace/hooks/use-value-labels";
 import type { WorkspaceRecordsResult } from "@/features/catalog-workspace/hooks/use-workspace-records";
+import { cardPrintingCount } from "@/features/catalog-workspace/lib/card-record-summaries";
 import type { DeskRow, WorkspaceTarget } from "@/features/catalog-workspace/lib/owner-items";
 import {
   cardSummaryKey,
@@ -45,7 +46,7 @@ import {
   reviewCardsQueryOptions,
   summaryReviewKey,
 } from "@/features/catalog-workspace/lib/review-cards";
-import { useEnumOrders, useLanguageLabels } from "@/hooks/use-enums";
+import { useEnumOrders, useLanguageList } from "@/hooks/use-enums";
 import { useScopeEffect } from "@/hooks/use-scope-effect";
 import { formatCount } from "@/lib/format";
 
@@ -185,7 +186,7 @@ function CardPrintingsCell({ row }: AdminCellSlotProps<CandidateCardSummaryRespo
   if (!row) {
     return null;
   }
-  const count = row.cardSlug === null ? row.stagingShortCodes.length : row.shortCodes.length;
+  const count = cardPrintingCount(row);
   return <Muted>{row.cardSlug === null ? `+${count}` : count}</Muted>;
 }
 
@@ -439,7 +440,7 @@ type RowRecords = Extract<WorkspaceRecordsResult, { kind: "face" | "printing" }>
 function CardsTable({ records }: { records: CardRecords }) {
   const { data: setsData } = useSets();
   const { sets } = setsData;
-  const languages = Object.keys(useLanguageLabels());
+  const languages = useLanguageList().map((language) => language.code);
   const rows = sortCardsByCatalogOrder(records.rows, {
     languages,
     sets: sets.map((set) => set.slug),
@@ -466,7 +467,7 @@ function CardsTable({ records }: { records: CardRecords }) {
       id: "printings",
       width: "w-24",
       align: "right",
-      sortValue: (row) => row.shortCodes.length,
+      sortValue: cardPrintingCount,
       sortFirst: "desc",
       cell: <CardPrintingsCell />,
     },

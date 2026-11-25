@@ -224,6 +224,12 @@ describe("createDeskPrinting", () => {
     expect(createNewPrinting.mock.calls[0]?.[2]).toMatchObject({ artist: "Guest Artist" });
   });
 
+  it("takes the given rarity on a card with no printing to copy from", async () => {
+    repos.printingDesk.getBasePrinting.mockResolvedValue(undefined as never);
+    await create(repos, { artist: "Guest Artist", rarity: "epic" });
+    expect(createNewPrinting.mock.calls[0]?.[2]).toMatchObject({ rarity: "epic" });
+  });
+
   it("rejects a card with no base printing when no artist is given", async () => {
     repos.printingDesk.getBasePrinting.mockResolvedValue(undefined as never);
     await expect(create(repos)).rejects.toThrow("artist is required");

@@ -256,7 +256,7 @@ export async function createDeskPrinting(
       artist,
       markerSlugs: fields.markerSlugs,
       distributionChannelSlugs: fields.distributionChannelSlugs,
-      rarity: base?.rarity ?? WellKnown.rarity.COMMON,
+      rarity: fields.rarity ?? base?.rarity ?? WellKnown.rarity.COMMON,
       artVariant: fields.artVariant ?? source?.artVariant ?? WellKnown.artVariant.NORMAL,
       isSigned: fields.isSigned ?? source?.isSigned ?? false,
       isOvernumbered: fields.isOvernumbered ?? source?.isOvernumbered ?? false,

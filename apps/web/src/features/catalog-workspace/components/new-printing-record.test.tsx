@@ -32,6 +32,7 @@ const state = vi.hoisted(() => ({
   desk: null as unknown as FakeMutation,
   navigate: vi.fn(),
   followUpMeta: [] as unknown[],
+  isAdmin: true,
 }));
 
 vi.mock("@/features/catalog-workspace/lib/workspace-queries", () => ({
@@ -52,7 +53,7 @@ vi.mock("@tanstack/react-router", () => ({
   useRouterState: () => RECORD_PATH,
 }));
 vi.mock("@/features/admin/hooks/use-admin", () => ({
-  useAdminAccess: () => ({ data: { isAdmin: true } }),
+  useAdminAccess: () => ({ data: { isAdmin: state.isAdmin } }),
 }));
 vi.mock("@/features/admin/hooks/use-admin-card-mutations", () => ({
   useAcceptPrintingGroup: () => state.accept,
@@ -94,14 +95,20 @@ vi.mock("@/features/catalog-workspace/hooks/use-workspace-undo", () => ({
 vi.mock("@/features/catalog-workspace/components/creation/creation-panel", () => ({
   CreationPanel: ({
     onMergeDuplicate,
+    followUps,
   }: {
     onMergeDuplicate?: (duplicate: { printingId: string }) => void;
-  }) =>
-    onMergeDuplicate ? (
-      <button type="button" onClick={() => onMergeDuplicate({ printingId: "printing-9" })}>
-        Merge duplicate
-      </button>
-    ) : null,
+    followUps?: boolean;
+  }) => (
+    <>
+      {followUps === false && <p>No follow-up editors</p>}
+      {onMergeDuplicate && (
+        <button type="button" onClick={() => onMergeDuplicate({ printingId: "printing-9" })}>
+          Merge duplicate
+        </button>
+      )}
+    </>
+  ),
 }));
 vi.mock("@/features/catalog-workspace/lib/creation-draft", () => ({
   draftFromCandidatePrinting: () => ({ candidatePrintingIds: [] }),
@@ -149,6 +156,7 @@ beforeEach(() => {
   state.desk = fakeMutation();
   state.navigate.mockClear();
   state.followUpMeta = [];
+  state.isAdmin = true;
 });
 
 afterEach(() => {
@@ -156,6 +164,13 @@ afterEach(() => {
 });
 
 describe("NewPrintingRecord", () => {
+  it("hides the editors whose values only an admin saves", async () => {
+    state.isAdmin = false;
+    renderRecord();
+
+    expect(await screen.findByText("No follow-up editors")).toBeTruthy();
+  });
+
   it("ignores every source row of the group, as the card pass does", async () => {
     const other = makeCandidateCard({ provider: "scans", name: card.name });
     const sibling = makeCandidatePrinting({ candidateCardId: other.id });

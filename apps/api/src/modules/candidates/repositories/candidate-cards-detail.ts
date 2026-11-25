@@ -508,6 +508,17 @@ export function candidateCardDetailRepo(db: Kysely<Database>) {
       return rows;
     },
 
+    providersForCandidateCards(ids: string[]): Promise<{ id: string; provider: string }[]> {
+      if (ids.length === 0) {
+        return Promise.resolve([]);
+      }
+      return db
+        .selectFrom("candidateCards")
+        .select(["id", "provider"])
+        .where("id", "in", ids)
+        .execute();
+    },
+
     providersForCandidatePrintings(ids: string[]): Promise<{ id: string; provider: string }[]> {
       if (ids.length === 0) {
         return Promise.resolve([]);

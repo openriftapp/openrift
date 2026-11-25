@@ -88,7 +88,10 @@ export const workspaceRecordsInputSchema = z
     filter: workspaceRecordFilterSchema.optional(),
     set: z.string().min(1).optional(),
     limit: z.coerce.number().int().min(1).max(500).optional(),
-    cursor: z.string().regex(/^\d+$/u).optional(),
+    cursor: z
+      .string()
+      .regex(/^\d{1,9}$/u)
+      .optional(),
     sort: z.enum(WORKSPACE_RECORD_SORTS).optional(),
     direction: z.enum(["asc", "desc"]).optional(),
   })

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict HgItp8xXFnY7TqeIIyoMLf3u9vrHajhGPQcFIqUBWd3UfANZnogSrJcLZt2EcFk
+\restrict NgpC3CzqRPhZchAIOlhQhSAeMYDBewKIGNbH4KfA7915kxrhZzMWIQSN8rg12QD
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -6883,10 +6883,45 @@ CREATE INDEX idx_admin_events_actor ON public.admin_events USING btree (actor_us
 
 
 --
+-- Name: idx_admin_events_candidate_card_ids; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_admin_events_candidate_card_ids ON public.admin_events USING gin (((new_values -> 'candidateCardIds'::text))) WHERE (entity_type = 'candidate-card'::text);
+
+
+--
+-- Name: idx_admin_events_candidate_printing_ids; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_admin_events_candidate_printing_ids ON public.admin_events USING gin (((new_values -> 'candidatePrintingIds'::text))) WHERE (entity_type = 'candidate-printing'::text);
+
+
+--
 -- Name: idx_admin_events_created; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_admin_events_created ON public.admin_events USING btree (created_at DESC, id DESC);
+
+
+--
+-- Name: idx_admin_events_entity; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_admin_events_entity ON public.admin_events USING btree (entity_type, entity_id);
+
+
+--
+-- Name: idx_admin_events_image_new_printing; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_admin_events_image_new_printing ON public.admin_events USING btree (((new_values ->> 'printingId'::text))) WHERE (entity_type = 'image'::text);
+
+
+--
+-- Name: idx_admin_events_image_old_printing; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_admin_events_image_old_printing ON public.admin_events USING btree (((old_values ->> 'printingId'::text))) WHERE (entity_type = 'image'::text);
 
 
 --
@@ -11668,5 +11703,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict HgItp8xXFnY7TqeIIyoMLf3u9vrHajhGPQcFIqUBWd3UfANZnogSrJcLZt2EcFk
+\unrestrict NgpC3CzqRPhZchAIOlhQhSAeMYDBewKIGNbH4KfA7915kxrhZzMWIQSN8rg12QD
 

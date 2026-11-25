@@ -83,6 +83,7 @@ export interface CreationDraft {
   printing: DraftPrintingFields;
   basePrintingId?: string;
   duplicateFrom?: string;
+  pickRarity?: boolean;
   candidatePrintingIds: string[];
 }
 
@@ -202,6 +203,8 @@ export function existingFacesFromDeskRows(rows: readonly DeskPrintingRow[]): Exi
     if (!faces.has(row.faceId)) {
       faces.set(row.faceId, existingFaceFromDeskRow(row));
     }
+  }
+  for (const row of rows) {
     const second = row.secondSide;
     if (second && !faces.has(second.faceId)) {
       const fields = emptyFaceFields({
@@ -367,6 +370,10 @@ export function draftFromCandidatePrinting(
   };
 }
 
+export function picksRarity(draft: CreationDraft): boolean {
+  return draft.target === "accept" || draft.pickRarity === true;
+}
+
 function faceIssues(face: DraftFace, index: number, draft: CreationDraft): DraftIssue[] {
   const path = `faces.${index}`;
   if (face.mode === "existing") {
@@ -393,7 +400,7 @@ function faceIssues(face: DraftFace, index: number, draft: CreationDraft): Draft
   if (fields.finish.length === 0) {
     issues.push({ path: `${path}.finish`, message: "Pick a finish." });
   }
-  if (draft.target === "accept" && fields.rarity.length === 0) {
+  if (picksRarity(draft) && fields.rarity.length === 0) {
     issues.push({ path: `${path}.rarity`, message: "Pick a rarity." });
   }
   const artistOptional = draft.target === "desk" && draft.basePrintingId !== undefined;
@@ -576,6 +583,7 @@ export function toDeskCreateInput(draft: CreationDraft): DeskCreateInput {
     }),
     basePrintingId,
     duplicateFrom: draft.duplicateFrom,
+    ...(picksRarity(draft) ? { rarity: fields.rarity } : {}),
     secondSideFaceId: secondSideFaceId(draft),
   };
 }

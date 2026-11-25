@@ -96,7 +96,12 @@ describe("acceptFavoritePrintingsForCard", () => {
       ["cc-1"],
       expect.any(Date),
     );
-    expect(result).toEqual({ printingsCreated: 1, skipped: [], createdPrintingIds: ["p-1"] });
+    expect(result).toEqual({
+      printingsCreated: 1,
+      skipped: [],
+      createdPrintingIds: ["p-1"],
+      checkedCandidateCardIds: ["cc-1"],
+    });
     expect(created).toEqual([{ printingId: "p-1", imageIds: [] }]);
   });
 

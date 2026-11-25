@@ -415,6 +415,16 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
       limit: number,
       actorUserId?: string,
     ): Promise<WorkspaceEventRow[]> {
+      const printings = [...printingIds];
+      const faces = [...faceIds];
+      const sourceIds = sql`(
+        select lcp.id::text from candidate_printings lcp
+        where lcp.printing_id = any(${printings}::uuid[])
+      )`;
+      const sourceCardIds = sql`(
+        select lcp.candidate_card_id::text from candidate_printings lcp
+        where lcp.printing_id = any(${printings}::uuid[])
+      )`;
       let query = db
         .selectFrom("adminEvents as ae")
         .leftJoin("users as u", "u.id", "ae.actorUserId")
@@ -424,13 +434,24 @@ export function workspaceRecordsRepo(db: Kysely<Database>) {
       }
       return query
         .where(sql<SqlBool>`(
-          (ae.entity_type = 'printing' and ae.entity_id = any(${[...printingIds]}::text[]))
+          (ae.entity_type = 'printing' and ae.entity_id = any(${printings}::text[]))
           or (ae.entity_type = 'image' and (
-            ae.new_values ->> 'printingId' = any(${[...printingIds]}::text[])
-            or ae.entity_id in (
-              select fi.id::text from face_images fi
-              where fi.face_id = any(${[...faceIds]}::uuid[])
-            )
+            ae.new_values ->> 'printingId' = any(${printings}::text[])
+            or ae.old_values ->> 'printingId' = any(${printings}::text[])
+            or ae.entity_id = any(array(
+              select fi.id::text from face_images fi where fi.face_id = any(${faces}::uuid[])
+              union all
+              select fi.image_file_id::text from face_images fi
+              where fi.face_id = any(${faces}::uuid[])
+            ))
+          ))
+          or (ae.entity_type = 'candidate-printing' and (
+            ae.entity_id = any(array${sourceIds})
+            or ae.new_values -> 'candidatePrintingIds' ?| array${sourceIds}
+          ))
+          or (ae.entity_type = 'candidate-card' and (
+            ae.entity_id = any(array${sourceCardIds})
+            or ae.new_values -> 'candidateCardIds' ?| array${sourceCardIds}
           ))
         )`)
         .orderBy("ae.createdAt", "desc")

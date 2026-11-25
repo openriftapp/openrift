@@ -62,6 +62,7 @@ vi.mock("@/hooks/use-enums", () => ({
   useLanguageLabels: () => ({}),
 }));
 vi.mock("@/features/admin/lib/accept-undo", () => ({
+  markFieldAccept: () => ({ write: 0 }),
   acceptFieldWithUndo: mocks.toast,
   revertAcceptedField: (revert: unknown, write: (revert: unknown) => Promise<unknown>) =>
     write(revert),

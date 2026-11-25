@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const run = vi.hoisted(() => ({
   mutateAsync: vi.fn(() => Promise.resolve({ done: 2, skipped: [] })),
@@ -22,7 +22,33 @@ vi.mock("@/features/catalog-workspace/hooks/use-workspace-batch", async (importO
 
 const { AssignSuggestedListingsButton } = await import("./batch-dialogs");
 
+const { resetWorkspaceWriteQueue } =
+  await import("@/features/catalog-workspace/lib/workspace-write-queue");
+
 describe("AssignSuggestedListingsButton", () => {
+  beforeEach(() => {
+    resetWorkspaceWriteQueue();
+    run.mutateAsync.mockImplementation(() => Promise.resolve({ done: 2, skipped: [] }));
+  });
+
+  it("stays open while its run is in flight", async () => {
+    run.mutateAsync.mockImplementation(() => new Promise(() => {}));
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <AssignSuggestedListingsButton />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Map 2 listings by suggestion" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Map 2 listings by suggestion" }));
+    await waitFor(() => expect(run.mutateAsync).toHaveBeenCalled());
+    fireEvent.keyDown(dialog, { key: "Escape" });
+
+    expect(screen.getByRole("dialog")).toBeVisible();
+    expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeDisabled();
+  });
+
   it("offers the confirm button again after Done closes a finished run", async () => {
     render(
       <QueryClientProvider client={new QueryClient()}>

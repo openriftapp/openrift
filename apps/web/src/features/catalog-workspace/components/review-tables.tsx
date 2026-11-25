@@ -32,6 +32,7 @@ import {
   reviewSources,
   selectReviewCards,
 } from "@/features/catalog-workspace/lib/review-cards";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 function CardCell({ row }: AdminCellSlotProps<ReviewCard>) {
   if (!row) {
@@ -174,6 +175,8 @@ const readyColumns: AdminColumnDef<ReadyRow>[] = [
   },
 ];
 
+const PAGE_BUTTON_META = {};
+
 export function ReadyTable({
   reviewCards,
   query,
@@ -186,8 +189,8 @@ export function ReadyTable({
   const queueWrite = useQueueWorkspaceWrite();
   const previewQuery = useQuery(readyPreviewQueryOptions());
   const preview = previewQuery.data;
-  const acceptCards = useBatchRun("trusted-cards");
-  const acceptPrintings = useBatchRun("trusted-printings");
+  const acceptCards = useBatchRun("trusted-cards", PAGE_BUTTON_META);
+  const acceptPrintings = useBatchRun("trusted-printings", PAGE_BUTTON_META);
   const [result, setResult] = useState<{ done: number; skipped: BatchReason[] } | null>(null);
 
   const all = preview ? buildReadyRows(reviewCards, preview.cards, preview.printings) : [];
@@ -198,17 +201,25 @@ export function ReadyTable({
   const pending = acceptCards.isPending || acceptPrintings.isPending;
 
   async function accept(signal: AbortSignal) {
+    setResult(null);
     let done = 0;
     const skipped: BatchReason[] = [];
-    if (keys.cards.length > 0) {
-      const outcome = await acceptCards.mutateAsync(keys.cards, { signal });
-      done += outcome.done;
-      skipped.push(...outcome.skipped);
-    }
-    if (keys.printings.length > 0) {
-      const outcome = await acceptPrintings.mutateAsync(keys.printings, { signal });
-      done += outcome.done;
-      skipped.push(...outcome.skipped);
+    const runs = [
+      { run: acceptCards, keys: keys.cards },
+      { run: acceptPrintings, keys: keys.printings },
+    ];
+    for (const { run, keys: batch } of runs) {
+      if (batch.length === 0) {
+        continue;
+      }
+      let outcome: Awaited<ReturnType<typeof run.mutateAsync>> | undefined;
+      const ok = await runReportedMutation(async () => {
+        outcome = await run.mutateAsync(batch, { signal });
+      });
+      if (ok && outcome) {
+        done += outcome.done;
+        skipped.push(...outcome.skipped);
+      }
     }
     setResult({ done, skipped });
   }

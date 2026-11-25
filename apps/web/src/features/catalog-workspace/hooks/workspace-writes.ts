@@ -1,6 +1,8 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 
+import type { FieldAcceptMark } from "@/features/admin/lib/accept-undo";
+import { markFieldAccept } from "@/features/admin/lib/accept-undo";
 import type {
   WorkspaceWriteTask,
   WriteLimit,
@@ -33,10 +35,12 @@ export function useQueueWorkspaceWrite(): QueueWorkspaceWrite {
   return (task, options) => queueWorkspaceWrite(queryClient, task, options);
 }
 
-/** Wraps a write that takes its task's signal first, so each call queues it. */
-export function queuedWorkspaceWrite<A extends unknown[]>(
+export function queuedFieldWrite<A extends unknown[]>(
   queue: QueueWorkspaceWrite,
-  write: (signal: AbortSignal, ...args: A) => unknown,
+  write: (signal: AbortSignal, mark: FieldAcceptMark, ...args: A) => unknown,
 ): (...args: A) => Promise<boolean> {
-  return (...args) => queue((signal) => write(signal, ...args));
+  return (...args) => {
+    const mark = markFieldAccept();
+    return queue((signal) => write(signal, mark, ...args));
+  };
 }

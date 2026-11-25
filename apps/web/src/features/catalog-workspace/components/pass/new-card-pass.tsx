@@ -19,7 +19,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TextLink } from "@/components/ui/text-link";
@@ -48,7 +47,6 @@ import { readCreatedCardId } from "@/features/admin/lib/created-card-id";
 import { formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
 import { ignorableSources } from "@/features/admin/lib/ignorable-sources";
 import { buildSetReleaseYears } from "@/features/admin/lib/set-release-years";
-import { CardSearchDropdown } from "@/features/cards/components/card-search-dropdown";
 import { useAdminCardSearch } from "@/features/cards/hooks/use-card-search";
 import { setsQueryOptions } from "@/features/cards/lib/sets-queries";
 import { CreationPanel } from "@/features/catalog-workspace/components/creation/creation-panel";
@@ -60,6 +58,7 @@ import {
   PassTopBar,
   SourceUse,
 } from "@/features/catalog-workspace/components/pass/pass-parts";
+import { PickCardDialog } from "@/features/catalog-workspace/components/pass/pick-card-dialog";
 import { RecordFieldRow } from "@/features/catalog-workspace/components/record/field-row";
 import { Kbd } from "@/features/catalog-workspace/components/record/kbd";
 import { RecordSection } from "@/features/catalog-workspace/components/record/record-pane";
@@ -199,7 +198,7 @@ function NewCardPassBody({
   const { providerSettings, newCardFields } = useCardDetailData(scope);
   const acceptNewCard = useAcceptNewCard({ inlineError: true });
   const printingCreator = useAcceptPrintingDrafts(scope);
-  const linkCard = useLinkCard();
+  const linkCard = useLinkCard({ inlineError: true });
   const ignoreDrafts = useIgnoreNewCardDrafts(scope);
   const { announce } = useWorkspaceUndo();
   const { data: allCards } = useAllCards();
@@ -213,8 +212,6 @@ function NewCardPassBody({
   const [picks, setPicks] = useState<ReadonlyMap<string, boolean>>(new Map());
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerSearch, setPickerSearch] = useState("");
-  const [pickerTarget, setPickerTarget] = useState("");
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [failures, setFailures] = useState<readonly string[]>([]);
   const [createdSlug, setCreatedSlug] = useState<string | null>(null);
@@ -222,7 +219,6 @@ function NewCardPassBody({
 
   const { displayName, sources } = detail;
   const similar = useAdminCardSearch(allCards, nameHead(displayName)).slice(0, 3);
-  const pickerResults = useAdminCardSearch(allCards, pickerSearch);
   const compareProviders = sortByProviderOrder(providerSettings);
   const orderedSources = sources.toSorted((a, b) => compareProviders(a.provider, b.provider));
   const activeCard = edits ?? buildPreseededActiveCard(sources, newCardFields, providerSettings);
@@ -597,29 +593,19 @@ function NewCardPassBody({
         )}
       </RecordSection>
 
-      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Pick the card</DialogTitle>
-          </DialogHeader>
-          <CardSearchDropdown
-            results={pickerResults}
-            onSearch={(query) => {
-              setPickerSearch(query);
-              setPickerTarget("");
-            }}
-            onSelect={(targetId) => setPickerTarget(targetId)}
-            placeholder="Search by name…"
-          />
-          <Button
-            disabled={pickerTarget.length === 0}
-            pending={linkCard.isPending}
-            onClick={() => void queueWrite((signal) => linkTo(signal, pickerTarget))}
-          >
-            It is this card
-          </Button>
-        </DialogContent>
-      </Dialog>
+      <PickCardDialog
+        open={pickerOpen}
+        cards={allCards}
+        pending={linkCard.isPending}
+        error={linkCard.error}
+        onOpenChange={(open) => {
+          setPickerOpen(open);
+          if (!open) {
+            linkCard.reset();
+          }
+        }}
+        onPick={(targetId) => void queueWrite((signal) => linkTo(signal, targetId))}
+      />
       <RejectSubmissionDialog
         candidateCardId={rejectingId}
         submitterName={rejecting === undefined ? null : sourceDisplayName(rejecting)}

@@ -9,6 +9,7 @@ import type {
 import { adminCatalogWorkspaceBatchContract } from "@openrift/shared/contracts/admin/catalog-workspace-batch";
 import { MINUTE_MS } from "@openrift/shared/format-date";
 import { pluralize } from "@openrift/shared/strings";
+import type { MutationMeta } from "@tanstack/react-query";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 
@@ -180,16 +181,20 @@ async function runBatch(
   }
 }
 
-export function useBatchRun(kind: BatchKind) {
+export function batchInvalidates(kind: BatchKind): readonly (readonly string[])[] {
+  return [
+    adminKeys.workspace,
+    adminKeys.cards.all,
+    adminKeys.reviewQueue,
+    ...(kind === "suggested-listings" ? [adminKeys.unifiedMappings.all] : []),
+  ];
+}
+
+export function useBatchRun(kind: BatchKind, meta: MutationMeta = { inlineError: true }) {
   return useMutationWithInvalidation({
-    meta: { inlineError: true },
+    meta,
     mutationFn: (keys: string[], signal) => runBatch(kind, keys, signal),
-    invalidates: [
-      adminKeys.workspace,
-      adminKeys.cards.list,
-      adminKeys.reviewQueue,
-      ...(kind === "suggested-listings" ? [adminKeys.unifiedMappings.all] : []),
-    ],
+    invalidates: batchInvalidates(kind),
   });
 }
 

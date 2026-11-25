@@ -10,6 +10,7 @@ import { useAcceptSubmission } from "@/features/admin/hooks/use-catalog-review";
 import type { AttentionSubmission } from "@/features/admin/lib/attention-items";
 import { useQueueWorkspaceWrite } from "@/features/catalog-workspace/hooks/workspace-writes";
 import { passContributor } from "@/features/catalog-workspace/lib/card-pass";
+import { runReportedMutation } from "@/lib/run-reported-mutation";
 
 export const workspaceCardDestination: MovedCardDestination = (cardSlug) => ({
   to: "/admin/workspace/cards/$cardSlug",
@@ -21,6 +22,7 @@ export interface SubmissionDecisions {
   onReject: (candidateCardId: string, kindLabel: string) => void;
   onMove?: (candidateCardId: string) => void;
   onMarkApplied: (candidateCardId: string) => void;
+  markingApplied: boolean;
   dialogs: ReactNode;
 }
 
@@ -41,17 +43,29 @@ export function useSubmissionDecisions({
     null,
   );
   const [movingId, setMovingId] = useState<string | null>(null);
+  const [markingId, setMarkingId] = useState<string | null>(null);
   const nameOf = (candidateCardId: string) =>
     passContributor(detail, submissions, candidateCardId).name;
 
   return {
     onReject: (candidateCardId, kindLabel) => setRejecting({ candidateCardId, kindLabel }),
     onMove: isAdmin ? (candidateCardId) => setMovingId(candidateCardId) : undefined,
-    onMarkApplied: (candidateCardId) =>
+    onMarkApplied: (candidateCardId) => {
+      if (markingId !== null) {
+        return;
+      }
+      setMarkingId(candidateCardId);
       void queueWrite(async (signal) => {
-        await markApplied.mutateAsync({ candidateCardId, markApplied: true }, { signal });
-        toast.success(`Marked ${nameOf(candidateCardId)}'s contribution as applied`);
-      }),
+        const ok = await runReportedMutation(() =>
+          markApplied.mutateAsync({ candidateCardId, markApplied: true }, { signal }),
+        );
+        setMarkingId(null);
+        if (ok) {
+          toast.success(`Marked ${nameOf(candidateCardId)}'s contribution as applied`);
+        }
+      });
+    },
+    markingApplied: markingId !== null,
     dialogs: (
       <>
         <RejectSubmissionDialog

@@ -75,7 +75,12 @@ vi.mock("@/hooks/use-session", () => ({ useSession: () => ({ data: null }) }));
 vi.mock("@/hooks/use-keyword-styles", () => ({ useCostKeywords: () => [] }));
 vi.mock("@/features/admin/lib/attention-items", () => ({ buildAttentionSubmissions: () => [] }));
 vi.mock("@/features/catalog-workspace/components/pass/submission-decisions", () => ({
-  useSubmissionDecisions: () => ({ onReject: vi.fn(), onMarkApplied: vi.fn(), dialogs: null }),
+  useSubmissionDecisions: () => ({
+    onReject: vi.fn(),
+    onMarkApplied: vi.fn(),
+    markingApplied: false,
+    dialogs: null,
+  }),
 }));
 vi.mock("@/features/catalog-workspace/hooks/use-face-record-actions", () => ({
   useFaceSuggestionWrites: () => ({ apply: vi.fn(), pending: false }),

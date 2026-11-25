@@ -13,6 +13,7 @@ import {
 } from "../../candidates/lib/card-review-scope.js";
 import { finishPrintingAccepts } from "../../candidates/services/accept-candidate-printings.js";
 import { acceptFavoritePrintingsForCard } from "../../candidates/services/accept-favorite-printings.js";
+import { recordCandidateChecks } from "../../candidates/services/check-card-candidates.js";
 import { recordAdminEvent, recordAdminEvents } from "../../system/services/record-admin-event.js";
 import type { NewPrinting } from "../services/printing-admin.js";
 import {
@@ -201,6 +202,10 @@ export const adminCardMutationsPrintingsRouter = {
         skipped: result.skipped.length,
         createdPrintingIds: result.createdPrintingIds,
       },
+    });
+    await recordCandidateChecks(context.repos, context.userId, "candidate-card.check", {
+      ids: result.checkedCandidateCardIds,
+      cardSlug: input.cardSlug,
     });
 
     return { printingsCreated: result.printingsCreated, skipped: result.skipped };

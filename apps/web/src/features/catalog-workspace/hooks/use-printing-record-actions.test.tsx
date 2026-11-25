@@ -36,6 +36,7 @@ vi.mock("@/features/admin/hooks/use-catalog-review", () => ({
   useAcceptSubmission: () => mocks.generic.current,
 }));
 vi.mock("@/features/admin/lib/accept-undo", () => ({
+  markFieldAccept: () => ({ write: 0 }),
   acceptFieldWithUndo: vi.fn(async () => true),
   revertAcceptedField: (revert: unknown, write: (revert: unknown) => Promise<unknown>) =>
     write(revert),

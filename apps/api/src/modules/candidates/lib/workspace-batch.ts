@@ -191,8 +191,22 @@ function sameSlugSet(a: readonly string[], b: readonly string[]): boolean {
   return a.length === b.length && a.toSorted().every((slug, index) => slug === sortedB[index]);
 }
 
+export function probeOfGroup(
+  group: Pick<TrustedPrintingGroup, "cardId" | "first">,
+): PrintingProbeRow {
+  return {
+    printingId: group.first.id,
+    cardId: group.cardId,
+    shortCode: group.first.shortCode,
+    finish: resolveFinish(group.first.finish, group.first.rarity) ?? "",
+    language: group.first.language ?? WellKnown.language.EN,
+    size: group.first.size ?? WellKnown.cardSize.STANDARD,
+    distributionChannelSlugs: [...group.first.distributionChannelSlugs],
+  };
+}
+
 export function findDuplicatePrinting(
-  group: TrustedPrintingGroup,
+  group: Pick<TrustedPrintingGroup, "cardId" | "first">,
   probes: readonly PrintingProbeRow[],
 ): PrintingProbeRow | undefined {
   const code = variantCode(group.first.shortCode);

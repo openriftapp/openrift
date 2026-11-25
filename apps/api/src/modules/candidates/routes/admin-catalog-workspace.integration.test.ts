@@ -533,6 +533,76 @@ describe.skipIf(!adminCtx)("Admin catalog workspace routes (integration)", () =>
       const res = await adminApp.fetch(adminReq("GET", "/catalog/workspace/history"));
       expect(res.status).toBe(400);
     });
+
+    it("lists deleted images, image credits and source row checks of the printing", async () => {
+      const { db } = adminCtx!;
+      const promoSource = await db
+        .selectFrom("candidatePrintings")
+        .select(["id", "candidateCardId"])
+        .where("printingId", "=", promoPrintingId)
+        .executeTakeFirstOrThrow();
+      const actions = [
+        "image.delete",
+        "image.add-url",
+        "image.credit",
+        "candidate-printing.check",
+        "candidate-printing.dismiss-value",
+        "candidate-card.check",
+      ] as const;
+      await db
+        .insertInto("adminEvents")
+        .values([
+          {
+            actorUserId: ADMIN_ID,
+            action: "image.delete",
+            entityType: "image",
+            entityId: "0197a1b2-0000-7000-a000-0000000000aa",
+            oldValues: { printingId: promoPrintingId },
+          },
+          {
+            actorUserId: ADMIN_ID,
+            action: "image.add-url",
+            entityType: "image",
+            entityId: null,
+            newValues: { printingId: promoPrintingId },
+          },
+          {
+            actorUserId: ADMIN_ID,
+            action: "image.credit",
+            entityType: "image",
+            entityId: imageFileId,
+          },
+          {
+            actorUserId: ADMIN_ID,
+            action: "candidate-printing.check",
+            entityType: "candidate-printing",
+            entityId: null,
+            newValues: { candidatePrintingIds: [promoSource.id, newCandidatePrintingId] },
+          },
+          {
+            actorUserId: ADMIN_ID,
+            action: "candidate-printing.dismiss-value",
+            entityType: "candidate-printing",
+            entityId: promoSource.id,
+          },
+          {
+            actorUserId: ADMIN_ID,
+            action: "candidate-card.check",
+            entityType: "candidate-card",
+            entityId: null,
+            newValues: { candidateCardIds: [promoSource.candidateCardId] },
+          },
+        ])
+        .execute();
+
+      const res = await adminApp.fetch(
+        adminReq("GET", `/catalog/workspace/history?printingId=${promoPrintingId}`),
+      );
+      expect(res.status).toBe(200);
+      const json = await readJson(res);
+      const listed = (json.events as { action: string }[]).map((event) => event.action);
+      expect(listed).toEqual(expect.arrayContaining([...actions]));
+    });
   });
 
   describe("GET /catalog/workspace/records", () => {

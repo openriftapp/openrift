@@ -7,6 +7,7 @@ import type { AcceptSubmissionInput } from "@openrift/shared/contracts/admin/cat
 import { isPrintingLevelField } from "@openrift/shared/printing-field-level";
 import { pluralize } from "@openrift/shared/strings";
 import type { AdminPrintingResponse } from "@openrift/shared/types/api/admin";
+import type { MutationMeta } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -17,6 +18,7 @@ import {
   useAcceptPrintingField,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useAcceptSubmission } from "@/features/admin/hooks/use-catalog-review";
+import type { FieldAcceptMark } from "@/features/admin/lib/accept-undo";
 import { acceptFieldWithUndo, revertAcceptedField } from "@/features/admin/lib/accept-undo";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import type { PrintingFieldSuggestion } from "@/features/catalog-workspace/lib/suggestion-rows";
@@ -33,6 +35,7 @@ interface FieldAccept<TInput> {
   label: string;
   sourceLabel: string;
   previousValue: unknown;
+  mark?: FieldAcceptMark;
   undoText?: WorkspaceUndoText;
 }
 
@@ -51,13 +54,13 @@ interface CardFieldInput {
   source: "provider" | "manual";
 }
 
-export function usePrintingFieldAccept(scope: QueryScope, record: string) {
-  const acceptField = useAcceptPrintingField(scope);
+export function usePrintingFieldAccept(scope: QueryScope, record: string, meta?: MutationMeta) {
+  const acceptField = useAcceptPrintingField(scope, meta);
   const { announce } = useWorkspaceUndo();
 
   function accept(
     signal: AbortSignal,
-    { input, label, sourceLabel, previousValue, undoText }: FieldAccept<PrintingFieldInput>,
+    { input, label, sourceLabel, previousValue, mark, undoText }: FieldAccept<PrintingFieldInput>,
   ): Promise<boolean> {
     return acceptFieldWithUndo<PrintingFieldInput>({
       accept: withSignal(acceptField.mutateAsync, signal),
@@ -65,6 +68,7 @@ export function usePrintingFieldAccept(scope: QueryScope, record: string) {
       fieldLabel: label,
       sourceLabel,
       previousValue,
+      mark,
       onAccepted: (revert) =>
         announce({
           ...(undoText ?? usedUndoText({ field: label, source: sourceLabel, record })),
@@ -79,7 +83,12 @@ export function usePrintingFieldAccept(scope: QueryScope, record: string) {
     });
   }
 
-  return { accept, pending: acceptField.isPending };
+  return {
+    accept,
+    pending: acceptField.isPending,
+    error: acceptField.error,
+    reset: acceptField.reset,
+  };
 }
 
 export function useCardFieldAccept(scope: QueryScope, record: string) {
@@ -88,7 +97,7 @@ export function useCardFieldAccept(scope: QueryScope, record: string) {
 
   function accept(
     signal: AbortSignal,
-    { input, label, sourceLabel, previousValue, undoText }: FieldAccept<CardFieldInput>,
+    { input, label, sourceLabel, previousValue, mark, undoText }: FieldAccept<CardFieldInput>,
   ): Promise<boolean> {
     return acceptFieldWithUndo<CardFieldInput>({
       accept: withSignal(acceptField.mutateAsync, signal),
@@ -96,6 +105,7 @@ export function useCardFieldAccept(scope: QueryScope, record: string) {
       fieldLabel: label,
       sourceLabel,
       previousValue,
+      mark,
       onAccepted: (revert) =>
         announce({
           ...(undoText ?? usedUndoText({ field: label, source: sourceLabel, record })),
@@ -172,7 +182,11 @@ export function usePrintingSuggestionApply({
   const fieldAccept = usePrintingFieldAccept(scope, record);
   const contributor = useContributorAccept(scope, cardSlug);
 
-  async function apply(signal: AbortSignal, suggestion: PrintingFieldSuggestion): Promise<void> {
+  async function apply(
+    signal: AbortSignal,
+    suggestion: PrintingFieldSuggestion,
+    mark?: FieldAcceptMark,
+  ): Promise<void> {
     if (!isAcceptPrintingField(suggestion.field)) {
       return;
     }
@@ -198,6 +212,7 @@ export function usePrintingSuggestionApply({
       label: suggestion.label,
       sourceLabel: suggestion.sourceLabel,
       previousValue,
+      mark,
     });
   }
 

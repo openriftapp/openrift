@@ -473,6 +473,7 @@ function PrintingRecordBody({
         <PrintingMarketplaceSection
           printingId={printingId}
           cardSlug={printing.cardSlug}
+          otherCardSlugs={slugs}
           cardName={first?.card ? legendDisplayName(first.card) : printing.cardName}
           language={printing.language}
           mappings={details.flatMap((detail) => detail.marketplaceMappings)}

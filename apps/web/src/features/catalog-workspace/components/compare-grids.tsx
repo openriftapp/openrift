@@ -41,7 +41,7 @@ import {
   useUncheckCandidatePrinting,
 } from "@/features/admin/hooks/use-admin-card-mutations";
 import { useIgnoreCandidatePrinting } from "@/features/admin/hooks/use-ignored-candidates";
-import { revertAcceptedField } from "@/features/admin/lib/accept-undo";
+import { markFieldAccept, revertAcceptedField } from "@/features/admin/lib/accept-undo";
 import { IMAGE_FILE_SCOPE } from "@/features/admin/lib/admin-query-keys";
 import { getProviderLabel } from "@/features/admin/lib/candidate-rows";
 import { PRINTING_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
@@ -63,9 +63,10 @@ import { withWriteSignal } from "@/lib/write-signal";
 
 export function CardCompareGrid({
   card,
-  sources,
+  sources: allSources,
   fields,
   providerSettings,
+  hiddenProviders,
   invalidates,
   isAdmin,
   cardDestination,
@@ -74,6 +75,7 @@ export function CardCompareGrid({
   sources: CandidateCardResponse[];
   fields: FieldDef<CandidateCardFieldKey>[];
   providerSettings: ProviderSettingResponse[];
+  hiddenProviders: ReadonlySet<string>;
   invalidates: readonly (readonly unknown[])[];
   isAdmin: boolean;
   cardDestination: MovedCardDestination;
@@ -81,6 +83,7 @@ export function CardCompareGrid({
   const queueWrite = useQueueWorkspaceWrite();
   const checkCandidateCards = useCheckCandidateCards(invalidates);
   const { announce } = useWorkspaceUndo();
+  const sources = allSources.filter((source) => !hiddenProviders.has(source.provider));
   const openSourceIds = sources
     .filter((source) => source.provider !== USER_SUBMISSION_PROVIDER && source.checkedAt === null)
     .map((source) => source.id);
@@ -335,8 +338,10 @@ function SourceSpreadsheet({
         const fieldLabel = PRINTING_FIELD_LABELS[field];
         const sourceLabel = row === undefined ? "this source" : getProviderLabel(row, labels);
         const paired = field === "releasedAt" && row !== undefined;
+        const mark = markFieldAccept();
         void queueWrite((signal) =>
           fieldAccept.accept(signal, {
+            mark,
             input: {
               printingId,
               faceId: face.faceId,

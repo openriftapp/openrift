@@ -66,6 +66,8 @@ vi.mock("@/hooks/use-enums", () => ({
 }));
 
 const { NewManualCardRecord } = await import("./new-manual-card-record");
+const { resetWorkspaceWriteQueue, workspaceWriteQueue } =
+  await import("@/features/catalog-workspace/lib/workspace-write-queue");
 
 function renderRecord() {
   const client = new QueryClient();
@@ -81,6 +83,22 @@ describe("NewManualCardRecord", () => {
     mocks.navigate.mockReset();
     mocks.createCard.mockReset();
     mocks.createPrinting.mockReset();
+    resetWorkspaceWriteQueue();
+  });
+
+  it("holds Create once clicked while an earlier write is still queued", async () => {
+    const user = userEvent.setup();
+    void workspaceWriteQueue().enqueue(Symbol("earlier"), () => new Promise(() => {}), {
+      queryClient: new QueryClient(),
+    });
+    renderRecord();
+
+    await user.type(screen.getByLabelText("Name *"), "Jinx, Rebel");
+    await user.click(screen.getByRole("button", { name: "Unit" }));
+    await user.click(screen.getByRole("button", { name: "Fury" }));
+    await user.click(screen.getByRole("button", { name: "Create card" }));
+
+    expect(screen.getByRole("button", { name: "Create card" })).toBeDisabled();
   });
 
   it("stays on the record and says why the first printing failed", async () => {

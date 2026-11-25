@@ -30,7 +30,9 @@ vi.mock("@/features/admin/hooks/use-unified-mappings", () => {
     }),
   };
 });
-vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn() }) }));
+vi.mock("sonner", () => ({
+  toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
+}));
 
 const { useListingWrites } = await import("./use-listing-writes");
 
@@ -45,6 +47,8 @@ beforeEach(() => {
   resetStore = createStoreResetter(useWorkspaceUndoStore);
   mocks.unmapFn.mockClear();
   mocks.saveFn.mockClear();
+  mocks.unmap.mockReset();
+  mocks.unmap.mockImplementation(() => Promise.resolve());
 });
 
 afterEach(() => {
@@ -77,5 +81,36 @@ describe("useListingWrites", () => {
     const { signal } = new AbortController();
     await entry?.undo(signal);
     expect(mocks.saveFn).toHaveBeenCalledWith("cardmarket", [assignment], signal);
+  });
+
+  it("keeps an undo for the mappings that were removed when another one fails", async () => {
+    const other = { ...assignment, printingId: "p-2" };
+    mocks.unmap.mockImplementation((input: unknown) =>
+      (input as { printingId: string }).printingId === "p-2"
+        ? Promise.reject(new Error("Server error"))
+        : Promise.resolve(),
+    );
+    const { result } = renderHook(() => useListingWrites("jinx", "Jinx"), { wrapper });
+
+    await act(() => result.current.unmap("cardmarket", [assignment, other]));
+
+    const [entry] = useWorkspaceUndoStore.getState().undoStack;
+    const { signal } = new AbortController();
+    await entry?.undo(signal);
+    expect(mocks.saveFn).toHaveBeenCalledWith("cardmarket", [assignment], signal);
+  });
+
+  it("refreshes every card a two-card printing's mappings show on", async () => {
+    const client = new QueryClient();
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    const { result } = renderHook(() => useListingWrites("jinx", "Jinx", ["vi"]), {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      ),
+    });
+
+    await act(() => result.current.map("tcgplayer", assignment, "OGN-030"));
+
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["admin", "cards", "detail", "vi"] });
   });
 });

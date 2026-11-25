@@ -1,9 +1,11 @@
 import { adminCardMutationsContract } from "@openrift/shared/contracts/admin/card-mutations";
+import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import { JOB_KIND } from "@openrift/shared/job-run-kinds";
 import { implement } from "@orpc/server";
 import type { Updateable } from "kysely";
 
 import type { CandidatePrintingsTable } from "../../../db/tables/candidates.js";
+import { badRequest } from "../../../errors.js";
 import { assertExisted, assertFound, assertUpdated } from "../../../lib/assertions.js";
 import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
@@ -200,6 +202,14 @@ export const adminCardMutationsCandidatesRouter = {
   }),
 
   checkPass: os.checkPass.handler(async ({ input, context }) => {
+    const { candidateCards } = context.repos;
+    const sources = [
+      ...(await candidateCards.providersForCandidateCards(input.candidateCardIds)),
+      ...(await candidateCards.providersForCandidatePrintings(input.candidatePrintingIds)),
+    ];
+    if (sources.some((source) => source.provider === USER_SUBMISSION_PROVIDER)) {
+      throw badRequest("A contribution is settled by its own decision, not by dismissing.");
+    }
     const result = await checkCardCandidates(checkContext(context), input);
     return { cardsUpdated: result.cardsUpdated, printingsUpdated: result.printingsUpdated };
   }),

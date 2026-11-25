@@ -40,6 +40,23 @@ describe("sourceImageUndo", () => {
     );
   });
 
+  it("puts the earlier main image back when a retry finds the new one already deleted", async () => {
+    mocks.remove.mockRejectedValueOnce(Object.assign(new Error("Not found"), { status: 404 }));
+    const entry = sourceImageUndo(
+      { imageId: "new", replacedImageId: "old", restorable: true },
+      "main",
+      "OGN-001",
+      [],
+    );
+
+    await entry?.undo(signal);
+
+    expect(mocks.activate).toHaveBeenCalledWith({
+      data: { imageId: "old", active: true },
+      signal,
+    });
+  });
+
   it("only deletes an image stored beside the main one", async () => {
     const entry = sourceImageUndo(
       { imageId: "new", replacedImageId: null, restorable: true },

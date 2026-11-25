@@ -147,7 +147,7 @@ export function usePassDismiss({
 }) {
   const checkPass = useCheckPass(scope);
   const checkPrintings = useCheckAllCandidatePrintings(scope);
-  const { push } = useWorkspaceUndo();
+  const { announce } = useWorkspaceUndo();
 
   async function run(signal: AbortSignal, target: PassDismiss = dismiss) {
     const cardIds = [...target.candidateCardIds];
@@ -167,7 +167,7 @@ export function usePassDismiss({
       sources: cardIds.length + printingIds.length,
       record,
     });
-    push({
+    announce({
       ...text,
       invalidates: undoScope(scope),
       undo: async (undoSignal) => {

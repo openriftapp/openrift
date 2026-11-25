@@ -76,6 +76,7 @@ export function FaceFieldEditor({
   def,
   value,
   pending,
+  error = null,
   onSave,
   onCancel,
 }: {
@@ -83,6 +84,7 @@ export function FaceFieldEditor({
   def: FieldDef | undefined;
   value: unknown;
   pending: boolean;
+  error?: string | null;
   onSave: (value: unknown) => void;
   onCancel: () => void;
 }) {
@@ -212,6 +214,7 @@ export function FaceFieldEditor({
         </Button>
         <span className="text-muted-foreground text-sm">Goes live as soon as you save.</span>
       </div>
+      {error !== null && <p className="text-destructive text-sm">{error}</p>}
     </div>
   );
 }

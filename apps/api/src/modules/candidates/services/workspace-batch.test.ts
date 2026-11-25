@@ -181,6 +181,7 @@ describe("trusted cards", () => {
       printingsCreated: 0,
       skipped: [],
       accepted: [],
+      checkedCandidateCardIds: [],
     });
     const repos = makeRepos({ printings });
 
@@ -189,6 +190,24 @@ describe("trusted cards", () => {
     expect(result).toEqual({ accepted: 1, skipped: [] });
     expect(acceptFavoriteNewCard).toHaveBeenCalledOnce();
     expect(repos.providerSettings.favoriteProviders).toHaveBeenCalledOnce();
+  });
+
+  it("reports the printings a created card could not take", async () => {
+    vi.mocked(acceptFavoriteNewCard).mockResolvedValue({
+      cardSlug: "poro-herder",
+      printingsCreated: 0,
+      skipped: [{ shortCode: "OGN-027", reason: "conflict" }],
+      accepted: [],
+      checkedCandidateCardIds: [],
+    });
+    const repos = makeRepos({ printings });
+
+    const result = await acceptTrustedCards(asRepos(repos), context(), ["Poro Herder"]);
+
+    expect(result).toEqual({
+      accepted: 1,
+      skipped: [{ name: "Poro Herder OGN-027", reason: "conflict" }],
+    });
   });
 
   it("previews complete drafts", async () => {
@@ -218,6 +237,7 @@ describe("trusted cards", () => {
               candidatePrintingIds: ["p1"],
             },
           ],
+          checkedCandidateCardIds: [],
         };
       });
     const repos = makeRepos({ printings });
@@ -270,6 +290,7 @@ describe("trusted cards", () => {
       printingsCreated: 0,
       skipped: [],
       accepted: [],
+      checkedCandidateCardIds: [],
     });
     const repos = makeRepos({ printings });
 
@@ -356,6 +377,23 @@ describe("trusted printings", () => {
     });
   });
 
+  it("holds back a later group that duplicates an earlier group of the same batch", async () => {
+    const repos = makeRepos({
+      printings: [
+        printing("p1", { shortCode: "OGN-027a" }),
+        printing("p2", { shortCode: "OGN-027a/298" }),
+      ],
+      probes,
+    });
+    expect(await previewTrustedPrintings(asRepos(repos), ADMIN)).toMatchObject({
+      count: 1,
+      items: [{ candidatePrintingId: "p1" }],
+      ineligible: [
+        { candidatePrintingId: "p2", reason: "possible duplicate of OGN-027a in this batch" },
+      ],
+    });
+  });
+
   it("accepts each group as new, records events and finishes once", async () => {
     const created = { printingId: "printing-1", imageIds: [] };
     vi.mocked(acceptCandidateGroup).mockResolvedValueOnce({
@@ -400,12 +438,20 @@ describe("trusted printings", () => {
     });
     const repos = makeRepos({ printings, probes });
 
+    repos.candidateCards.checkCandidateCardsByIds.mockResolvedValue(1);
+
     await acceptTrustedPrintings(asRepos(repos), context(), PRINTING_IDS);
 
     expect(repos.candidateCards.checkCandidateCardsByIds).toHaveBeenCalledWith(
       ["cc-1"],
       expect.any(Date),
     );
+    expect(repos.adminEvents.insertMany).toHaveBeenCalledWith([
+      expect.objectContaining({
+        action: "candidate-card.check",
+        newValues: { candidateCardIds: ["cc-1"] },
+      }),
+    ]);
   });
 
   describe("an oversized candidate next to the standard printing", () => {

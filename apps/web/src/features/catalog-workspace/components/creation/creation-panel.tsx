@@ -42,6 +42,7 @@ import type {
 import {
   faceToNew,
   MAX_DRAFT_FACES,
+  picksRarity,
   removeFace,
   updateFace,
 } from "@/features/catalog-workspace/lib/creation-draft";
@@ -66,12 +67,14 @@ function FaceEditor({
   idPrefix,
   fields,
   target,
+  pickRarity,
   disabled,
   onChange,
 }: {
   idPrefix: string;
   fields: DraftFaceFields;
   target: CreationDraft["target"];
+  pickRarity: boolean;
   disabled: boolean;
   onChange: (fields: DraftFaceFields) => void;
 }) {
@@ -160,7 +163,7 @@ function FaceEditor({
           />
         </Field>
 
-        {target === "accept" ? (
+        {pickRarity ? (
           <Field>
             <FieldLabel htmlFor={`${idPrefix}-rarity`}>Rarity</FieldLabel>
             <SimpleSelect
@@ -216,10 +219,12 @@ function FaceEditor({
 function PrintingEditor({
   printing,
   disabled,
+  followUps,
   onChange,
 }: {
   printing: DraftPrintingFields;
   disabled: boolean;
+  followUps: boolean;
   onChange: (printing: DraftPrintingFields) => void;
 }) {
   const { orders, labels } = useEnumOrders();
@@ -252,49 +257,53 @@ function PrintingEditor({
           />
         </Field>
 
-        <Field>
-          <FieldLabel htmlFor="creation-announced-at">Announced on</FieldLabel>
-          <DatePicker
-            id="creation-announced-at"
-            className="w-44"
-            value={printing.announcedAt}
-            disabled={disabled}
-            onValueChange={(announcedAt) => onChange({ ...printing, announcedAt })}
-            onClear={() => onChange({ ...printing, announcedAt: null })}
-          />
-        </Field>
+        {followUps && (
+          <>
+            <Field>
+              <FieldLabel htmlFor="creation-announced-at">Announced on</FieldLabel>
+              <DatePicker
+                id="creation-announced-at"
+                className="w-44"
+                value={printing.announcedAt}
+                disabled={disabled}
+                onValueChange={(announcedAt) => onChange({ ...printing, announcedAt })}
+                onClear={() => onChange({ ...printing, announcedAt: null })}
+              />
+            </Field>
 
-        <Field className="@2xl/printing-form:col-span-2">
-          <FieldLabel htmlFor="creation-released-at">Available from</FieldLabel>
-          <div className="flex flex-wrap items-center gap-2">
-            <DatePicker
-              id="creation-released-at"
-              className="w-44"
-              value={printing.releasedAt}
-              disabled={disabled}
-              onValueChange={(releasedAt) => onChange({ ...printing, releasedAt })}
-              onClear={() => onChange({ ...printing, releasedAt: null })}
-            />
-            <DatePrecisionControl
-              value={printing.releasePrecision}
-              disabled={disabled}
-              onChange={(releasePrecision) => onChange({ ...printing, releasePrecision })}
-            />
-          </div>
-          {release.releasedAt !== null && release.precision !== "day" && (
-            <FieldDescription>{formatReleasePeriod(release)}</FieldDescription>
-          )}
-        </Field>
+            <Field className="@2xl/printing-form:col-span-2">
+              <FieldLabel htmlFor="creation-released-at">Available from</FieldLabel>
+              <div className="flex flex-wrap items-center gap-2">
+                <DatePicker
+                  id="creation-released-at"
+                  className="w-44"
+                  value={printing.releasedAt}
+                  disabled={disabled}
+                  onValueChange={(releasedAt) => onChange({ ...printing, releasedAt })}
+                  onClear={() => onChange({ ...printing, releasedAt: null })}
+                />
+                <DatePrecisionControl
+                  value={printing.releasePrecision}
+                  disabled={disabled}
+                  onChange={(releasePrecision) => onChange({ ...printing, releasePrecision })}
+                />
+              </div>
+              {release.releasedAt !== null && release.precision !== "day" && (
+                <FieldDescription>{formatReleasePeriod(release)}</FieldDescription>
+              )}
+            </Field>
 
-        <Field className="@2xl/printing-form:col-span-2">
-          <FieldLabel htmlFor="creation-note">Note</FieldLabel>
-          <Textarea
-            id="creation-note"
-            value={printing.comment}
-            placeholder="Handed out at the door, one per player."
-            onChange={(event) => onChange({ ...printing, comment: event.target.value })}
-          />
-        </Field>
+            <Field className="@2xl/printing-form:col-span-2">
+              <FieldLabel htmlFor="creation-note">Note</FieldLabel>
+              <Textarea
+                id="creation-note"
+                value={printing.comment}
+                placeholder="Handed out at the door, one per player."
+                onChange={(event) => onChange({ ...printing, comment: event.target.value })}
+              />
+            </Field>
+          </>
+        )}
       </FieldGroup>
     </fieldset>
   );
@@ -395,6 +404,7 @@ export function CreationPanel({
   onChangeCard,
   onMergeDuplicate,
   disabled = false,
+  followUps = true,
 }: {
   draft: CreationDraft;
   onChange: (draft: CreationDraft) => void;
@@ -403,6 +413,7 @@ export function CreationPanel({
   onChangeCard?: () => void;
   onMergeDuplicate?: (candidate: DuplicateCandidate) => void;
   disabled?: boolean;
+  followUps?: boolean;
 }) {
   const [editing, setEditing] = useState<EditingRow | null>(null);
   const [pickerFor, setPickerFor] = useState<number | null>(null);
@@ -479,6 +490,7 @@ export function CreationPanel({
         idPrefix={`creation-face-${index}`}
         fields={face.fields}
         target={draft.target}
+        pickRarity={picksRarity(draft)}
         disabled={disabled}
         onChange={(fields) => setFaceFields(index, fields)}
       />
@@ -556,6 +568,7 @@ export function CreationPanel({
                 <CreationImages
                   images={face.images}
                   disabled={disabled}
+                  allowFiles={followUps}
                   onChange={(images) => setFaceImages(index, images)}
                 />
               </div>
@@ -566,6 +579,7 @@ export function CreationPanel({
           <PrintingEditor
             printing={draft.printing}
             disabled={disabled}
+            followUps={followUps}
             onChange={(printing) => onChange({ ...draft, printing })}
           />
         </RecordSection>
@@ -645,6 +659,8 @@ export function CreationPanel({
                     )}
                     <CreationImages
                       images={face.images}
+                      disabled={disabled}
+                      allowFiles={followUps}
                       onChange={(images) => setFaceImages(index, images)}
                     />
                   </div>
@@ -664,6 +680,7 @@ export function CreationPanel({
                 <PrintingEditor
                   printing={draft.printing}
                   disabled={disabled}
+                  followUps={followUps}
                   onChange={(printing) => onChange({ ...draft, printing })}
                 />
                 <div>{done}</div>

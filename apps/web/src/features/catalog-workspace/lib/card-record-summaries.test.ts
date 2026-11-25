@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { historySummary, newestFirst } from "./card-record-summaries";
+import { cardPrintingCount, historySummary, newestFirst } from "./card-record-summaries";
 
 describe("historySummary", () => {
   const now = new Date("2026-10-26T12:00:00.000Z");
@@ -39,5 +39,19 @@ describe("newestFirst", () => {
       { id: "c", createdAt: "2026-10-26T09:00:00.000Z" },
     ];
     expect(newestFirst(events).map((event) => event.id)).toEqual(["b", "c", "a"]);
+  });
+});
+
+describe("cardPrintingCount", () => {
+  it("counts a new card by the printings its sources list", () => {
+    expect(
+      cardPrintingCount({ cardSlug: null, shortCodes: [], stagingShortCodes: ["OGN-1", "OGN-2"] }),
+    ).toBe(2);
+  });
+
+  it("counts a catalog card by its own printings", () => {
+    expect(
+      cardPrintingCount({ cardSlug: "poro", shortCodes: ["OGN-1"], stagingShortCodes: ["X", "Y"] }),
+    ).toBe(1);
   });
 });

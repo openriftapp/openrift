@@ -15,11 +15,22 @@ import {
   buildCardPass,
   imageOrigin,
   newPrintingGroups,
+  passRowCodes,
   placeNewPrintings,
   seededPrintingDraft,
   showsFaceOnStop,
 } from "./card-pass";
 import { buildFaceSuggestions } from "./face-suggestion-rows";
+
+function otherFaceOf(face: ReturnType<typeof makeAdminPrinting>) {
+  return {
+    faceId: face.faceId,
+    cardName: "Poro",
+    cardSlug: "poro",
+    publicCode: face.publicCode,
+    imageUrl: null,
+  };
+}
 
 const OPTIONS = { providerSettings: [], submissions: [], costKeywords: [], isAdmin: true };
 
@@ -238,6 +249,43 @@ describe("buildCardPass rows", () => {
     expect(summary(buildCardPass(detail, OPTIONS).rows)).toEqual([
       { printing: "printing-1", faces: ["f1", "f2"], pending: true },
     ]);
+  });
+
+  it("names each face of a two-faced printing once, front first", () => {
+    const front = makeAdminPrinting({ id: "printing-1", faceId: "f1", side: 1, publicCode: "A" });
+    const back = makeAdminPrinting({ id: "printing-1", faceId: "f2", side: 2, publicCode: "B" });
+    const detail = makeAdminCardDetail({
+      printings: [
+        { ...front, otherFace: { ...otherFaceOf(back) } },
+        { ...back, otherFace: { ...otherFaceOf(front) } },
+      ],
+    });
+
+    const [row] = buildCardPass(detail, OPTIONS).rows;
+
+    expect(row && passRowCodes(row)).toEqual(["A", "B"]);
+  });
+
+  it("puts another card's front before this card's back", () => {
+    const back = makeAdminPrinting({ id: "printing-1", faceId: "f2", side: 2, publicCode: "B" });
+    const detail = makeAdminCardDetail({
+      printings: [
+        {
+          ...back,
+          otherFace: {
+            faceId: "f-gold",
+            cardName: "Gold",
+            cardSlug: "gold",
+            publicCode: "A",
+            imageUrl: null,
+          },
+        },
+      ],
+    });
+
+    const [row] = buildCardPass(detail, OPTIONS).rows;
+
+    expect(row && passRowCodes(row)).toEqual(["A", "B"]);
   });
 
   it("shows a shared face on every printing that carries it", () => {

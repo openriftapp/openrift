@@ -1,12 +1,26 @@
 import { describe, expect, it } from "vitest";
 
+import { adminKeys } from "@/features/admin/lib/admin-query-keys";
+
 import {
+  batchInvalidates,
   batchOutcomeText,
   batchPreviewQueryKey,
   suggestedListingsPreview,
   listingsBatchLabel,
   toBatchOutcome,
 } from "./use-workspace-batch";
+
+describe("batch invalidation", () => {
+  it("refreshes an open card's detail, which a batch can change", () => {
+    const detail = adminKeys.cards.detail("poro");
+    expect(
+      batchInvalidates("trusted-printings").some((key) =>
+        key.every((part, index) => detail[index] === part),
+      ),
+    ).toBe(true);
+  });
+});
 
 describe("batch previews", () => {
   it("keys suggested listings by listing", () => {

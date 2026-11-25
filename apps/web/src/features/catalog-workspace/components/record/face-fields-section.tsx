@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { useCardDetailData } from "@/features/admin/components/card-detail-shared";
+import { markFieldAccept } from "@/features/admin/lib/accept-undo";
 import { buildAttentionSubmissions } from "@/features/admin/lib/attention-items";
 import { PRINTING_FIELD_LABELS } from "@/features/admin/lib/catalog-field-labels";
 import { formatCatalogFieldValue } from "@/features/admin/lib/field-value-text";
@@ -33,6 +34,7 @@ import { FACE_FIELDS_FOR_READING } from "@/features/catalog-workspace/lib/face-s
 import { cardRecordScope } from "@/features/catalog-workspace/lib/record-scopes";
 import type { PrintingFieldSuggestion } from "@/features/catalog-workspace/lib/suggestion-rows";
 import { useCostKeywords } from "@/hooks/use-keyword-styles";
+import { errorText } from "@/lib/error-text";
 
 export function FaceFieldsSection({
   cardSlug,
@@ -72,7 +74,7 @@ export function FaceFieldsSection({
     contributorName: (candidateCardId) =>
       passContributor(detail, submissions, candidateCardId).name,
   });
-  const fieldAccept = usePrintingFieldAccept(scope, record);
+  const fieldAccept = usePrintingFieldAccept(scope, record, { inlineError: true });
   const dismissValue = useDismissSuggestion(scope, record);
 
   const stored = (field: ComparablePrintingField) =>
@@ -81,8 +83,10 @@ export function FaceFieldsSection({
   async function save(field: ComparablePrintingField, value: unknown) {
     const label = PRINTING_FIELD_LABELS[field];
     let accepted = false;
+    const mark = markFieldAccept();
     await queueWrite(async (signal) => {
       accepted = await fieldAccept.accept(signal, {
+        mark,
         input: { printingId: face.id, faceId: face.faceId, field, value, source: "manual" },
         label,
         sourceLabel: "your edit",
@@ -118,7 +122,14 @@ export function FaceFieldsSection({
             key={field}
             label={PRINTING_FIELD_LABELS[field]}
             value={<FaceFieldValue field={field} value={face[field]} labels={labels} />}
-            onEdit={canEdit && editing === null ? () => setEditing(field) : undefined}
+            onEdit={
+              canEdit && editing === null
+                ? () => {
+                    fieldAccept.reset();
+                    setEditing(field);
+                  }
+                : undefined
+            }
             suggestions={
               suggestions.some((suggestion) => suggestion.field === field) ? (
                 <FieldSuggestions
@@ -160,6 +171,11 @@ export function FaceFieldsSection({
                   def={printingSourceFields.find((def) => def.key === field)}
                   value={stored(field)}
                   pending={fieldAccept.pending}
+                  error={
+                    fieldAccept.error === null
+                      ? null
+                      : errorText(fieldAccept.error, "Could not save the field.")
+                  }
                   onSave={(value) => void save(field, value)}
                   onCancel={() => setEditing(null)}
                 />

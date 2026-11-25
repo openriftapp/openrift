@@ -2,6 +2,7 @@ import type { AdminPrintingResponse } from "@openrift/shared/types/api/admin";
 
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { useSetCandidatePrintingImage } from "@/features/admin/hooks/use-admin-image-mutations";
+import type { FieldAcceptMark } from "@/features/admin/lib/accept-undo";
 import { IMAGE_FILE_SCOPE } from "@/features/admin/lib/admin-query-keys";
 import type { StoredSourceImage } from "@/features/catalog-workspace/hooks/source-image-undo";
 import { sourceImageUndo } from "@/features/catalog-workspace/hooks/source-image-undo";
@@ -11,7 +12,7 @@ import {
 } from "@/features/catalog-workspace/hooks/use-suggestion-writes";
 import { useWorkspaceUndo } from "@/features/catalog-workspace/hooks/use-workspace-undo";
 import {
-  queuedWorkspaceWrite,
+  queuedFieldWrite,
   useQueueWorkspaceWrite,
 } from "@/features/catalog-workspace/hooks/workspace-writes";
 import type { SourceImageCandidate } from "@/features/catalog-workspace/lib/face-suggestion-rows";
@@ -80,14 +81,14 @@ export function useFaceSuggestionWrites({
     }
   }
 
-  function applyChip(signal: AbortSignal, chip: FaceChip): Promise<void> {
+  function applyChip(signal: AbortSignal, mark: FieldAcceptMark, chip: FaceChip): Promise<void> {
     return chip.kind === "image"
       ? applyImage(signal, chip.image)
-      : fields.apply(signal, chip.suggestion);
+      : fields.apply(signal, chip.suggestion, mark);
   }
 
   return {
-    apply: queuedWorkspaceWrite(queue, applyChip),
+    apply: queuedFieldWrite(queue, applyChip),
     pending: fields.pending || contributor.pending || setCandidateImage.isPending,
   };
 }

@@ -115,7 +115,7 @@ export const adminCardImagesRouter = {
       action: "image.delete",
       entityType: "image",
       entityId: imageId,
-      oldValues: { rehostedUrl: image.rehostedUrl, imageFileId },
+      oldValues: { rehostedUrl: image.rehostedUrl, imageFileId, printingId: image.printingId },
     });
   }),
 
@@ -399,8 +399,8 @@ export const adminCardImagesRouter = {
     await recordAdminEvent(context.repos, context.userId, {
       action: "image.add-url",
       entityType: "image",
-      entityId: printingId,
-      newValues: { url, mode },
+      entityId: imageId ?? null,
+      newValues: { url, mode, printingId: printing.id },
     });
   }),
 

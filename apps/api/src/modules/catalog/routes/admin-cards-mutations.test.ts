@@ -1,3 +1,4 @@
+import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
 import { appendSetTotal, fixTypography } from "@openrift/shared/fix-typography";
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -130,6 +131,8 @@ const mockSets = { getBySlug: vi.fn() };
 const mockRefreshCatalogViews = vi.fn();
 const mockCandidateCards = {
   cardNameKeys: vi.fn(),
+  providersForCandidateCards: vi.fn(),
+  providersForCandidatePrintings: vi.fn(),
   checkCandidateCard: vi.fn(),
   uncheckCandidateCard: vi.fn(),
   uncheckCandidateCards: vi.fn(),
@@ -643,7 +646,21 @@ describe("POST /cards/:cardId/check-pass", () => {
       slug: "fire-dragon",
     });
     mockCandidateCards.cardNameKeys.mockResolvedValue(["firedragon"]);
+    mockCandidateCards.providersForCandidateCards.mockResolvedValue([]);
+    mockCandidateCards.providersForCandidatePrintings.mockResolvedValue([]);
     mockResolveCheckedSubmissions.mockResolvedValue([]);
+  });
+
+  it("refuses a contributor source and checks nothing", async () => {
+    mockCandidateCards.providersForCandidatePrintings.mockResolvedValue([
+      { id: CP_ID, provider: USER_SUBMISSION_PROVIDER },
+    ]);
+
+    const res = await post({ candidateCardIds: [CARD_ID], candidatePrintingIds: [CP_ID] });
+
+    expect(res.status).toBe(400);
+    expect(mockTransact).not.toHaveBeenCalled();
+    expect(mockResolveCheckedSubmissions).not.toHaveBeenCalled();
   });
 
   it("checks the card and printing sources in one transaction and records both", async () => {
@@ -1863,6 +1880,7 @@ describe("POST /cards/new/:name/accept-favorites", () => {
             candidatePrintingIds: [CP_ID],
           },
         ],
+        checkedCandidateCardIds: [],
       };
     });
 
@@ -1927,6 +1945,7 @@ describe("POST /cards/new/:name/accept-favorites", () => {
       printingsCreated: 0,
       skipped: [],
       accepted: [],
+      checkedCandidateCardIds: [],
     });
 
     const res = await app.request("/api/admin/v1/cards/new/Fire%20Dragon/accept-favorites", {
@@ -2234,7 +2253,12 @@ describe("POST /cards/:cardSlug/accept-favorite-printings", () => {
     ];
     mockAcceptFavoritePrintingsForCard.mockImplementation(async (_t, _r, _s, _p, sink) => {
       sink.push(...created);
-      return { printingsCreated: 2, skipped, createdPrintingIds: ["p-1", "p-2"] };
+      return {
+        printingsCreated: 2,
+        skipped,
+        createdPrintingIds: ["p-1", "p-2"],
+        checkedCandidateCardIds: [],
+      };
     });
 
     const res = await app.request("/api/admin/v1/cards/fire-dragon/accept-favorite-printings", {

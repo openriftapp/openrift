@@ -60,7 +60,7 @@ export function ListingPrintingDialog({
         {anyCard ? (
           <Suspense fallback={<Skeleton className="h-9" />}>
             <ListingAnyPrintingCombobox
-              language={row.product.language}
+              language={highlight.language ?? null}
               disabled={pending}
               onPick={pick}
             />

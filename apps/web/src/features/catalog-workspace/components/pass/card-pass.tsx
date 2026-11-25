@@ -369,6 +369,7 @@ function CardPassBody({
             sources={detail.sources}
             fields={candidateCardFields}
             providerSettings={providerSettings}
+            hiddenProviders={pass.hiddenProviders}
             invalidates={scope}
             isAdmin={isAdmin}
             cardDestination={workspaceCardDestination}
@@ -443,7 +444,7 @@ function CardPassBody({
         labels={valueLabels}
         submissions={submissions}
         substituteFailures={substituteFailures}
-        creating={creator.pending}
+        creating={creator.pending || decisions.markingApplied}
         onCreate={(drafts) => void queueWrite((signal) => creator.create(signal, drafts))}
         onReject={handleReject}
         onMove={handleMove}

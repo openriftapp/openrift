@@ -34,7 +34,7 @@ The surface lives under `/admin/workspace/` behind the `catalog-workspace` featu
 ### Review
 
 - Review is a segment of Cards. Cards has the segments All, Needs review, New images, Ready to create and Listings to map, and each segment is its own list of cards.
-- Needs review lists every card with pending work: source differences on the card, its faces or its printings, new printings, new source images, uploads waiting for a decision, open contributions, and new cards. Contributions come first, then the longest wait.
+- Needs review lists every card with pending work other than images: source differences on the card, its faces or its printings, new printings, open contributions, and new cards. New images lists every card with new or failed images. A card whose only open work is images, an image contribution included, shows under New images only. Contributions come first, then the longest wait.
 - Sources switched off under "Show in review" never put a card in Review. Grant holders see the sources marked "Helpers can review".
 - Listings to map lists cards with unmapped marketplace listings. Listings are mapped on the card and on the printing record.
 

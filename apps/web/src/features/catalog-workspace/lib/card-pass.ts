@@ -1,4 +1,5 @@
 import { USER_SUBMISSION_PROVIDER } from "@openrift/shared/contracts/card-submissions";
+import { formatPrintingCode } from "@openrift/shared/printing-code";
 import type {
   AdminCardDetailResponse,
   AdminPrintingImageResponse,
@@ -206,6 +207,19 @@ export function dismissTargets(
   };
 }
 
+export function passRowCodes(row: PassRow): string[] {
+  const { printing } = row.entry;
+  const faces = row.faces.map((entry) => ({
+    side: entry.face.side,
+    code: formatPrintingCode(entry.face.publicCode),
+  }));
+  const other = printing.otherFace;
+  if (other !== null && !row.faces.some((entry) => entry.face.faceId === other.faceId)) {
+    faces.push({ side: printing.side === 1 ? 2 : 1, code: formatPrintingCode(other.publicCode) });
+  }
+  return faces.toSorted((a, b) => a.side - b.side).map((face) => face.code);
+}
+
 export function showsFaceOnStop(
   faceCardSlug: string,
   model: FaceSuggestionModel,
@@ -324,7 +338,6 @@ export function seededPrintingDraft(
   };
 }
 
-/** Where an image came from: the source that listed its URL, the URL's host, or an upload. */
 export function imageOrigin(
   detail: AdminCardDetailResponse,
   image: Pick<AdminPrintingImageResponse, "originalUrl" | "uploadedByName">,

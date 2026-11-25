@@ -6,7 +6,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { statusErrorAdapter } from "@/lib/server-fns/status-error-adapter";
 
-import { acceptFieldWithUndo, isFieldChangedError, revertAcceptedField } from "./accept-undo";
+import {
+  acceptFieldWithUndo,
+  isFieldChangedError,
+  markFieldAccept,
+  revertAcceptedField,
+} from "./accept-undo";
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
@@ -144,22 +149,24 @@ describe("acceptFieldWithUndo", () => {
   it.each([
     ["text over an empty string", "", null],
     ["a number over its text form", "4", 4],
-  ])("offers undo when the API wrote %s", async (_case, previousValue, value) => {
-    const accept = vi.fn(async (_input: { value: unknown; source?: "provider" | "manual" }) => ({
-      written: true,
-    }));
+  ])("offers undo when the API wrote %s", async (label, previousValue, value) => {
+    const accept = vi.fn(
+      async (_input: { field: string; value: unknown; source?: "provider" | "manual" }) => ({
+        written: true,
+      }),
+    );
     const onAccepted = vi.fn();
 
     await acceptFieldWithUndo({
       accept,
-      input: { value, source: "provider" },
+      input: { field: `toast-${label}`, value, source: "provider" },
       fieldLabel: "Rarity",
       sourceLabel: "Provider A",
       previousValue,
     });
     await acceptFieldWithUndo({
       accept,
-      input: { value, source: "provider" },
+      input: { field: `callback-${label}`, value, source: "provider" },
       fieldLabel: "Rarity",
       sourceLabel: "Provider A",
       previousValue,
@@ -168,6 +175,7 @@ describe("acceptFieldWithUndo", () => {
 
     expect(toast.success).toHaveBeenCalledOnce();
     expect(onAccepted).toHaveBeenCalledWith({
+      field: `callback-${label}`,
       value: previousValue,
       source: "manual",
       expected: value,
@@ -211,6 +219,57 @@ describe("acceptFieldWithUndo", () => {
       "common",
       "rare",
     ]);
+  });
+
+  it("undoes a queued accept to the value the accept ahead of it wrote", async () => {
+    const accept = vi.fn(
+      async (_input: {
+        printingId: string;
+        field: string;
+        value: unknown;
+        source?: "provider" | "manual";
+      }) => ({ written: true }),
+    );
+    const reverts: { value: unknown }[] = [];
+    const marks = [markFieldAccept(), markFieldAccept()];
+    for (const [index, value] of ["rare", "epic"].entries()) {
+      await acceptFieldWithUndo({
+        accept,
+        input: { printingId: "p-queued", field: "rarity", value, source: "provider" },
+        fieldLabel: "Rarity",
+        sourceLabel: "Provider A",
+        previousValue: "common",
+        mark: marks[index],
+        onAccepted: (revert) => reverts.push(revert),
+      });
+    }
+
+    expect(reverts.map((revert) => revert.value)).toEqual(["common", "rare"]);
+  });
+
+  it("undoes to the value on screen when the field went back to it after the earlier accept", async () => {
+    const accept = vi.fn(
+      async (_input: {
+        printingId: string;
+        field: string;
+        value: unknown;
+        source?: "provider" | "manual";
+      }) => ({ written: true }),
+    );
+    const reverts: { value: unknown }[] = [];
+    for (const value of ["rare", "epic"]) {
+      await acceptFieldWithUndo({
+        accept,
+        input: { printingId: "p-reset", field: "rarity", value, source: "provider" },
+        fieldLabel: "Rarity",
+        sourceLabel: "Provider A",
+        previousValue: "common",
+        mark: markFieldAccept(),
+        onAccepted: (revert) => reverts.push(revert),
+      });
+    }
+
+    expect(reverts.map((revert) => revert.value)).toEqual(["common", "common"]);
   });
 
   it("refuses to undo an accept while a later accept on the same field can still be undone", async () => {

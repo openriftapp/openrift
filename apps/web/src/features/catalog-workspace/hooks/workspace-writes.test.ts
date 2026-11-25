@@ -8,7 +8,7 @@ import {
 import { useWorkspaceActionsStore } from "@/features/catalog-workspace/stores/workspace-actions-store";
 import { createStoreResetter } from "@/test/store-helpers";
 
-import { queuedWorkspaceWrite, queueWorkspaceWrite } from "./workspace-writes";
+import { queuedFieldWrite, queueWorkspaceWrite } from "./workspace-writes";
 
 let resetActions: () => void;
 const queryClient = new QueryClient();
@@ -54,15 +54,22 @@ describe("queueWorkspaceWrite", () => {
   });
 });
 
-describe("queuedWorkspaceWrite", () => {
-  it("passes the task's signal and each call's arguments through the queue", async () => {
-    const write = vi.fn((_signal: AbortSignal, id: string, count: number) => `${id}:${count}`);
-    const queued = queuedWorkspaceWrite(
+describe("queuedFieldWrite", () => {
+  it("passes the task's signal, the call's mark and its arguments through the queue", async () => {
+    const write = vi.fn(
+      (_signal: AbortSignal, _mark: unknown, id: string, count: number) => `${id}:${count}`,
+    );
+    const queued = queuedFieldWrite(
       (task, options) => queueWorkspaceWrite(queryClient, task, options),
       write,
     );
 
     expect(await queued("ekko", 2)).toBe(true);
-    expect(write).toHaveBeenCalledWith(expect.any(AbortSignal), "ekko", 2);
+    expect(write).toHaveBeenCalledWith(
+      expect.any(AbortSignal),
+      { write: expect.any(Number) },
+      "ekko",
+      2,
+    );
   });
 });

@@ -15,6 +15,7 @@ interface FavoriteNewCardResult {
   printingsCreated: number;
   skipped: { shortCode: string; reason: string }[];
   accepted: AcceptedCandidateGroup[];
+  checkedCandidateCardIds: string[];
 }
 
 export async function acceptFavoriteNewCard(
@@ -79,16 +80,15 @@ export async function acceptFavoriteNewCard(
   const accepted = await acceptCandidateGroups(transact, cardId, candidates);
   created.push(...accepted.created);
 
-  await repos.candidateCards.checkCandidateCardsByIds(
-    favoriteCandidates.map((cc) => cc.id),
-    new Date(),
-  );
+  const favoriteIds = favoriteCandidates.map((cc) => cc.id);
+  const checked = await repos.candidateCards.checkCandidateCardsByIds(favoriteIds, new Date());
 
   return {
     cardSlug,
     printingsCreated: accepted.created.length,
     skipped: accepted.skipped,
     accepted: accepted.accepted,
+    checkedCandidateCardIds: checked > 0 ? favoriteIds : [],
   };
 }
 
@@ -117,5 +117,16 @@ export function favoriteAcceptEvents(
       cardSlug: result.cardSlug,
       newValues: { printingFields: entry.fields, candidatePrintingIds: entry.candidatePrintingIds },
     })),
+    ...(result.checkedCandidateCardIds.length === 0
+      ? []
+      : [
+          {
+            action: "candidate-card.check" as const,
+            entityType: "candidate-card" as const,
+            entityId: null,
+            cardSlug: result.cardSlug,
+            newValues: { candidateCardIds: result.checkedCandidateCardIds },
+          },
+        ]),
   ];
 }

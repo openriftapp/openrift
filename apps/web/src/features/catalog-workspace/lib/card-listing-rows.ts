@@ -6,7 +6,12 @@ import type {
   UnifiedMappingGroupResponse,
   UnifiedMappingPrintingResponse,
 } from "@openrift/shared/types/api/admin";
-import { ALL_MARKETPLACES, marketplaceCarriesLanguage } from "@openrift/shared/types/pricing";
+import {
+  ALL_MARKETPLACES,
+  LANGUAGE_KEYED_MARKETPLACES,
+  MARKETPLACE_PRINTING_LANGUAGES,
+  marketplaceCarriesLanguage,
+} from "@openrift/shared/types/pricing";
 
 import type { TableEntry } from "@/features/admin/lib/marketplace-product-entries";
 import { collectEntries } from "@/features/admin/lib/marketplace-product-entries";
@@ -50,6 +55,13 @@ export function listingAssignment(
     language: row.product.language,
     printingId,
   };
+}
+
+function spansLanguages(marketplace: AdminMarketplaceName): boolean {
+  return (
+    MARKETPLACE_PRINTING_LANGUAGES[marketplace] === null &&
+    !LANGUAGE_KEYED_MARKETPLACES.has(marketplace)
+  );
 }
 
 function countAssignments(byMarketplace: Record<AdminMarketplaceName, PrintingAssignment[]>) {
@@ -111,7 +123,14 @@ export function buildCardListings(
     if (row.isAssigned) {
       continue;
     }
-    for (const suggestion of row.suggestions) {
+    const [best, runnerUp] = row.suggestions.toSorted((a, b) => b.score - a.score);
+    const tied = best !== undefined && runnerUp !== undefined && runnerUp.score === best.score;
+    const candidates = spansLanguages(row.marketplace)
+      ? row.suggestions
+      : best === undefined || tied
+        ? []
+        : [best];
+    for (const suggestion of candidates) {
       const strength = suggestionStrength(suggestion);
       if (strength !== "possible") {
         (strength === "strong" ? strong : weak)[row.marketplace].push(

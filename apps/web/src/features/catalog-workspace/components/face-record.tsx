@@ -329,7 +329,14 @@ function DeskFaceRows({ cardSlug, faceId }: { cardSlug: string; faceId: string }
       <p className="text-muted-foreground p-4">This face is not on a printing you can open.</p>
     );
   }
-  return <DeskFaceBody printingId={row.printingId} faceId={faceId} cardRows={data.printings} />;
+  return (
+    <DeskFaceBody
+      key={row.printingId}
+      printingId={row.printingId}
+      faceId={faceId}
+      cardRows={data.printings}
+    />
+  );
 }
 
 function DeskFaceBody({

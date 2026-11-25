@@ -1,5 +1,5 @@
 import { labelMapOf } from "@openrift/shared/enum-label";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { draftFromBasePrinting } from "@/features/catalog-workspace/lib/creation-draft";
@@ -37,8 +37,14 @@ vi.mock("@/features/admin/components/printing-desk-marker-picker", () => ({
 vi.mock("@/features/admin/components/printing-desk-channel-picker", () => ({
   PrintingDeskChannelPicker: () => <input aria-label="Channels" />,
 }));
+const images = vi.hoisted(() => ({ props: [] as { disabled?: boolean; allowFiles?: boolean }[] }));
+
 vi.mock("@/features/catalog-workspace/components/creation/creation-images", () => ({
-  CreationImages: () => null,
+  CreationImages: (props: { disabled?: boolean; allowFiles?: boolean }) => {
+    images.props.push(props);
+    return null;
+  },
+  CreationImagesSummary: () => null,
 }));
 vi.mock("@/features/catalog-workspace/components/creation/face-picker", () => ({
   FacePicker: () => null,
@@ -71,5 +77,22 @@ describe("CreationPanel", () => {
 
     expect(screen.getByRole("textbox", { name: /Card code/u })).toBeEnabled();
     expect(screen.getByRole("textbox", { name: /Note/u })).toBeEnabled();
+  });
+
+  it("locks the open Images editor once the create starts", () => {
+    const { rerender } = render(<CreationPanel draft={draft} onChange={vi.fn()} />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Edit" })[1] as HTMLElement);
+    rerender(<CreationPanel draft={draft} onChange={vi.fn()} disabled />);
+
+    expect(images.props.at(-1)?.disabled).toBe(true);
+  });
+
+  it("leaves out the dates, the note and file drops when an admin saves those later", () => {
+    render(<CreationPanel draft={draft} onChange={vi.fn()} layout="steps" followUps={false} />);
+
+    expect(screen.queryByLabelText("Note")).toBeNull();
+    expect(screen.queryByLabelText("Announced on")).toBeNull();
+    expect(images.props.at(-1)?.allowFiles).toBe(false);
   });
 });

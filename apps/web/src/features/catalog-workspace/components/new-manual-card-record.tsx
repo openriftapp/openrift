@@ -1,3 +1,4 @@
+import { WellKnown } from "@openrift/shared/well-known";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -58,11 +59,14 @@ export function NewManualCardRecord() {
 
   useRegisterRecordActions({});
 
-  const baseDraft = draftFromBasePrinting({ id: "", slug: "", name: "" }, undefined, {
-    language: preferredLanguages.at(0) ?? "en",
-    finish: orders.finishes[0] ?? "",
-    size: orders.cardSizes[0] ?? "",
-  });
+  const baseDraft: CreationDraft = {
+    ...draftFromBasePrinting({ id: "", slug: "", name: "" }, undefined, {
+      language: preferredLanguages.at(0) ?? WellKnown.language.EN,
+      finish: orders.finishes[0] ?? "",
+      size: orders.cardSizes[0] ?? "",
+    }),
+    pickRarity: true,
+  };
   const draft: CreationDraft = {
     ...(draftEdit ?? baseDraft),
     card: { mode: "new", slug, name: name.trim(), summary: "" },
@@ -130,6 +134,14 @@ export function NewManualCardRecord() {
     void navigate({ to: "/admin/workspace/cards/$cardSlug", params: { cardSlug } });
   }
 
+  function requestCreate() {
+    if (!canCreate) {
+      return;
+    }
+    setPending(true);
+    void queueWrite(create, { limit: "upload" });
+  }
+
   return (
     <RecordPane
       header={
@@ -144,11 +156,7 @@ export function NewManualCardRecord() {
               >
                 Cancel
               </Button>
-              <Button
-                disabled={!canCreate}
-                pending={pending}
-                onClick={() => void queueWrite(create, { limit: "upload" })}
-              >
+              <Button disabled={!canCreate} pending={pending} onClick={requestCreate}>
                 Create card
               </Button>
             </>

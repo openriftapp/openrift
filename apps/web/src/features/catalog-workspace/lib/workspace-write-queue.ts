@@ -43,6 +43,7 @@ export interface WorkspaceWriteQueue {
   holds: (record: symbol | null) => boolean;
   holdsOnly: (record: symbol | null) => boolean;
   previousTimedOut: () => boolean;
+  previousFailed: () => boolean;
   enqueue: (
     record: symbol | null,
     task: WorkspaceWriteTask,
@@ -70,17 +71,21 @@ export function createWorkspaceWriteQueue(
   const waiting: (symbol | null)[] = [];
   let lastTimedOut = false;
   let previousTimedOut = false;
+  let lastFailed = false;
+  let previousFailed = false;
   return {
     idle: () => waiting.length === 0,
     holds: (record) => waiting.includes(record),
     holdsOnly: (record) => waiting.every((held) => held === record),
     previousTimedOut: () => previousTimedOut,
+    previousFailed: () => previousFailed,
     enqueue: (record, task, { queryClient, limit = "write" }) => {
       waiting.push(record);
       const ahead = tail;
       const run = (async () => {
         await ahead;
         previousTimedOut = lastTimedOut;
+        previousFailed = lastFailed;
         const signal = timeoutSignal(LIMITS[limit].ms);
         const ok = await settledOrAborted(
           runReportedMutation(async () => {
@@ -94,6 +99,7 @@ export function createWorkspaceWriteQueue(
           toast.error(LIMITS[limit].notice, PERSISTENT_ERROR_TOAST);
         }
         lastTimedOut = timedOut;
+        lastFailed = ok !== true;
         waiting.splice(waiting.indexOf(record), 1);
         return ok === true && !timedOut;
       })();

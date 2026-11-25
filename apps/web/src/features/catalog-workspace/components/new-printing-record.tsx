@@ -368,6 +368,7 @@ function NewPrintingBody({
             : undefined
         }
         disabled={working}
+        followUps={isAdmin}
       />
       {issues.length > 0 && (
         <p className="text-muted-foreground text-sm">

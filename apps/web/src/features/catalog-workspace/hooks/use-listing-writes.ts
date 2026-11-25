@@ -17,11 +17,18 @@ import { undoScope } from "@/features/catalog-workspace/lib/workspace-undo";
 import { runReportedMutation } from "@/lib/run-reported-mutation";
 import { withWriteSignal } from "@/lib/write-signal";
 
-export function useListingWrites(cardSlug: string, record: string) {
+export function useListingWrites(
+  cardSlug: string,
+  record: string,
+  otherCardSlugs: readonly string[] = [],
+) {
   const queueWrite = useQueueWorkspaceWrite();
   const queryClient = useQueryClient();
   const { announce } = useWorkspaceUndo();
-  const scope = [adminKeys.cards.detail(cardSlug), adminKeys.unifiedMappings.all];
+  const scope = [
+    ...[...new Set([cardSlug, ...otherCardSlugs])].map((slug) => adminKeys.cards.detail(slug)),
+    adminKeys.unifiedMappings.all,
+  ];
   const saves = useSaveMappingsByMarketplace();
   const unmapPrinting = useUnmapMarketplacePrinting(scope);
 
@@ -52,30 +59,40 @@ export function useListingWrites(cardSlug: string, record: string) {
     );
   }
 
-  function unmap(marketplace: Marketplace, assignments: readonly PrintingAssignment[]) {
-    const [first] = assignments;
+  function announceUnmap(marketplace: Marketplace, landed: readonly PrintingAssignment[]) {
+    const [first] = landed;
     if (first === undefined) {
+      return;
+    }
+    announce({
+      label: `Unmapped #${first.externalId} on ${record}`,
+      undoneLabel: `Undone: #${first.externalId} is mapped again on ${record}`,
+      invalidates: undoScope(scope),
+      undo: async (signal) => {
+        await withWriteSignal(signal, () => saveUnifiedMappings(marketplace, [...landed], signal));
+      },
+    });
+  }
+
+  function unmap(marketplace: Marketplace, assignments: readonly PrintingAssignment[]) {
+    if (assignments.length === 0) {
       return Promise.resolve(false);
     }
-    return done(
-      (signal) =>
-        Promise.all(
-          assignments.map(({ printingId, ...sku }) =>
-            unmapPrinting.mutateAsync({ marketplace, printingId, ...sku }, { signal }),
-          ),
+    return done(async (signal) => {
+      const results = await Promise.allSettled(
+        assignments.map(({ printingId, ...sku }) =>
+          unmapPrinting.mutateAsync({ marketplace, printingId, ...sku }, { signal }),
         ),
-      () =>
-        announce({
-          label: `Unmapped #${first.externalId} on ${record}`,
-          undoneLabel: `Undone: #${first.externalId} is mapped again on ${record}`,
-          invalidates: undoScope(scope),
-          undo: async (signal) => {
-            await withWriteSignal(signal, () =>
-              saveUnifiedMappings(marketplace, [...assignments], signal),
-            );
-          },
-        }),
-    );
+      );
+      announceUnmap(
+        marketplace,
+        assignments.filter((_, index) => results[index]?.status === "fulfilled"),
+      );
+      const failed = results.find((result) => result.status === "rejected");
+      if (failed !== undefined) {
+        throw failed.reason;
+      }
+    });
   }
 
   return {

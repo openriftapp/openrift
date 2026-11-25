@@ -5,7 +5,10 @@ import { InboxIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAdminAccess } from "@/features/admin/hooks/use-admin";
 import { hasAdminSection } from "@/features/admin/lib/admin-sections";
-import { reviewCardsQueryOptions } from "@/features/catalog-workspace/lib/review-cards";
+import {
+  reviewCardsQueryOptions,
+  selectReviewQueue,
+} from "@/features/catalog-workspace/lib/review-cards";
 import { formatCount } from "@/lib/format";
 
 export function CatalogWorkTile() {
@@ -33,7 +36,9 @@ export function CatalogWorkTile() {
           >
             <span className="text-sm font-medium">Cards with pending work</span>
             <span className="font-heading text-2xl font-bold">
-              {data === undefined ? "…" : formatCount(data.cards.length)}
+              {data === undefined
+                ? "…"
+                : formatCount(selectReviewQueue(data.cards, "review").length)}
             </span>
           </Link>
         ) : (

@@ -314,6 +314,32 @@ describe("existingFacesFromDeskRows", () => {
       "face-gold",
     ]);
   });
+
+  it("builds a face from its own printing when a pair printing lists it first", () => {
+    const own = {
+      faceId: "face-1",
+      cardName: CARD.name,
+      cardSlug: CARD.slug,
+      setId: "set-uuid",
+      setName: "Origins",
+      shortCode: "OGN-066",
+      publicCode: "OGN-066/298",
+      rarity: "rare",
+      finish: "normal",
+      language: "EN",
+      artist: "Kudos",
+      markerSlugs: [],
+      sharedWith: [],
+    };
+    const faces = existingFacesFromDeskRows([
+      deskRow({ printingId: "pair", faceId: "face-gold", cardSlug: "gold", secondSide: own }),
+      deskRow({ printingId: "own" }),
+    ]);
+
+    expect(
+      faces.find((face) => face.mode === "existing" && face.faceId === "face-1"),
+    ).toMatchObject({ printingId: "own", fields: { setSlug: "OGN" } });
+  });
 });
 
 describe("faceToNew", () => {
@@ -459,6 +485,32 @@ describe("toDeskCreateInput", () => {
 
   it("throws without an existing card", () => {
     expect(() => toDeskCreateInput(promoDraft({ card: null }))).toThrow();
+  });
+
+  it("sends the picked rarity only when the draft asks for one", () => {
+    const draft = promoDraft();
+    const face = draft.faces[0] as DraftFace;
+    const withRarity = {
+      ...draft,
+      faces: [{ ...face, fields: { ...face.fields, rarity: "epic" } }],
+    };
+
+    expect(toDeskCreateInput(withRarity)).not.toHaveProperty("rarity");
+    expect(toDeskCreateInput({ ...withRarity, pickRarity: true })).toMatchObject({
+      rarity: "epic",
+    });
+  });
+
+  it("requires a rarity when the draft asks for one", () => {
+    const draft = promoDraft();
+    const face = draft.faces[0] as DraftFace;
+    const issues = validateDraft({
+      ...draft,
+      pickRarity: true,
+      faces: [{ ...face, fields: { ...face.fields, rarity: "" } }],
+    });
+
+    expect(issues).toContainEqual({ path: "faces.0.rarity", message: "Pick a rarity." });
   });
 });
 

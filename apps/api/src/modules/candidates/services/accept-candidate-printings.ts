@@ -15,6 +15,8 @@ import {
   acceptFieldsFromCandidate,
   groupCandidatePrintings,
 } from "../lib/candidate-printing-accept.js";
+import { findDuplicatePrinting, probeOfGroup } from "../lib/workspace-batch.js";
+import type { PrintingProbeRow } from "../repositories/workspace-batch.js";
 import { relinkCandidatePrintings } from "./relink-candidates.js";
 
 type CandidatePrintingRow = Selectable<CandidatePrintingsTable>;
@@ -80,10 +82,24 @@ export async function acceptCandidateGroups(
 }> {
   const accepted: AcceptedCandidateGroup[] = [];
   const skipped: SkippedCandidateGroup[] = [];
+  const createdHere: PrintingProbeRow[] = [];
   for (const group of groupCandidatePrintings(candidates)) {
+    const [first] = group;
+    const earlier =
+      first === undefined ? undefined : findDuplicatePrinting({ cardId, first }, createdHere);
+    if (earlier !== undefined) {
+      skipped.push({
+        shortCode: first?.shortCode ?? "",
+        reason: `possible duplicate of ${earlier.shortCode} in this batch`,
+      });
+      continue;
+    }
     const outcome = await acceptCandidateGroup(transact, cardId, group);
     if ("printing" in outcome) {
       accepted.push({ ...outcome, candidatePrintingIds: group.map((cp) => cp.id) });
+      if (first !== undefined) {
+        createdHere.push(probeOfGroup({ cardId, first }));
+      }
     } else {
       skipped.push({ shortCode: group[0]?.shortCode ?? "", reason: outcome.reason });
     }

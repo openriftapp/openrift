@@ -33,6 +33,7 @@ import type {
 } from "../lib/workspace-batch.js";
 import { acceptCandidateGroup, finishPrintingAccepts } from "./accept-candidate-printings.js";
 import { acceptFavoriteNewCard, favoriteAcceptEvents } from "./accept-gallery.js";
+import { recordCandidateChecks } from "./check-card-candidates.js";
 import {
   loadPrintingRefs,
   markAcceptedCandidateCardsChecked,
@@ -115,6 +116,12 @@ export async function acceptTrustedCards(
         created,
       );
       accepted++;
+      skipped.push(
+        ...result.skipped.map((entry) => ({
+          name: `${draft.name} ${entry.shortCode}`,
+          reason: entry.reason,
+        })),
+      );
       await recordAdminEvents(repos, context.userId, () =>
         Promise.resolve(favoriteAcceptEvents(result, draft.normName)),
       );
@@ -264,7 +271,8 @@ export async function acceptTrustedPrintings(
         },
       });
     }
-    await markAcceptedCandidateCardsChecked(repos, acceptedGroups);
+    const checked = await markAcceptedCandidateCardsChecked(repos, acceptedGroups);
+    await recordCandidateChecks(repos, context.userId, "candidate-card.check", { ids: checked });
   } finally {
     await finishPrintingAccepts(repos, context.io, created);
   }
