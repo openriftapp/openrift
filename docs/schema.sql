@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict NgpC3CzqRPhZchAIOlhQhSAeMYDBewKIGNbH4KfA7915kxrhZzMWIQSN8rg12QD
+\restrict uQL4WJ8OE9cRQGQYOz3EjgxT3hk5zuR0AYHCurMhp3kFRAbQ0VnKmmyNfLVYryr
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -8083,7 +8083,7 @@ CREATE UNIQUE INDEX uq_collections_user_purpose ON public.collections USING btre
 -- Name: uq_deck_cards; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_deck_cards ON public.deck_cards USING btree (deck_id, card_id, zone, preferred_printing_id) NULLS NOT DISTINCT;
+CREATE UNIQUE INDEX uq_deck_cards ON public.deck_cards USING btree (deck_id, zone, card_id, preferred_printing_id) NULLS NOT DISTINCT;
 
 
 --
@@ -11703,5 +11703,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict NgpC3CzqRPhZchAIOlhQhSAeMYDBewKIGNbH4KfA7915kxrhZzMWIQSN8rg12QD
+\unrestrict uQL4WJ8OE9cRQGQYOz3EjgxT3hk5zuR0AYHCurMhp3kFRAbQ0VnKmmyNfLVYryr
 

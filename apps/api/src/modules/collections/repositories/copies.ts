@@ -650,16 +650,20 @@ export function copiesRepo(db: Kysely<Database>) {
         .leftJoin("collectionDeckbuildingPrefs as pref", (join) =>
           join.onRef("pref.collectionId", "=", "col.id").on("pref.userId", "=", userId),
         )
+        // UNIQUE copy_id on both: a copy has at most one live loan and one live trade.
+        .leftJoin("loanCopies as lc", "lc.copyId", "cp.id")
+        .leftJoin("cardTradeCopies as ctc", "ctc.copyId", "cp.id")
         .select((eb) => [
           "cp.collectionId" as const,
           "p.cardId" as const,
-          eb.not(eb.and([notPinnedToLoan(eb), notReservedByTrade(eb)])).as("held"),
+          eb.or([eb("lc.copyId", "is not", null), eb("ctc.copyId", "is not", null)]).as("held"),
           eb.cast<number>(eb.fn.count("cp.id").distinct(), "integer").as("count"),
         ])
         .where((eb) => eb.or([eb("col.userId", "=", userId), eb("gm.userId", "=", userId)]))
         .where((eb) =>
           eb.or([
-            eb.not(eb.and([notPinnedToLoan(eb), notReservedByTrade(eb)])),
+            eb("lc.copyId", "is not", null),
+            eb("ctc.copyId", "is not", null),
             eb.and([eb(deckbuildingAvailableSql(), "=", false), eb("col.groupId", "is", null)]),
           ]),
         )

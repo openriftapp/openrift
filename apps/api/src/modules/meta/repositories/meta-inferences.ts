@@ -230,7 +230,34 @@ export function metaInferencesRepo(db: Kysely<Database>) {
         .innerJoin("metaEventPlayers as p", "p.deckId", "d.id")
         .innerJoin("metaEvents as me", "me.id", "p.metaEventId")
         .leftJoin("uvsgamesPlayers as up", "up.id", "p.uvsgamesPlayerId")
-        .select((eb) => [
+        .innerJoinLateral(
+          (eb) =>
+            eb
+              .selectFrom("deckCards as dc")
+              .innerJoin("cards as c", "c.id", "dc.cardId")
+              .select([
+                sql<
+                  string | null
+                >`(array_agg(dc.card_id order by dc.id) filter (where dc.zone = ${WellKnown.deckZone.CHAMPION}))[1]`.as(
+                  "championCardId",
+                ),
+                sql<
+                  string | null
+                >`(array_agg(c.name order by dc.id) filter (where dc.zone = ${WellKnown.deckZone.CHAMPION}))[1]`.as(
+                  "championName",
+                ),
+                sql<
+                  string[]
+                >`coalesce(array_agg(c.name order by c.name) filter (where dc.zone = ${WellKnown.deckZone.BATTLEFIELD}), '{}')`.as(
+                  "battlefieldNames",
+                ),
+              ])
+              .whereRef("dc.deckId", "=", "d.id")
+              .where("dc.zone", "in", [WellKnown.deckZone.CHAMPION, WellKnown.deckZone.BATTLEFIELD])
+              .as("z"),
+          (join) => join.onTrue(),
+        )
+        .select([
           "n.zone",
           "n.shared",
           "d.shareToken",
@@ -241,26 +268,9 @@ export function metaInferencesRepo(db: Kysely<Database>) {
           "p.wins",
           "p.losses",
           "p.draws",
-          eb
-            .selectFrom("deckCards as dc")
-            .select("dc.cardId")
-            .whereRef("dc.deckId", "=", "d.id")
-            .where("dc.zone", "=", WellKnown.deckZone.CHAMPION)
-            .limit(1)
-            .as("championCardId"),
-          eb
-            .selectFrom("deckCards as dc")
-            .innerJoin("cards as c", "c.id", "dc.cardId")
-            .select("c.name")
-            .whereRef("dc.deckId", "=", "d.id")
-            .where("dc.zone", "=", WellKnown.deckZone.CHAMPION)
-            .limit(1)
-            .as("championName"),
-          sql<string[]>`coalesce((
-            select array_agg(bc.name order by bc.name)
-            from deck_cards bdc join cards bc on bc.id = bdc.card_id
-            where bdc.deck_id = d.id and bdc.zone = ${WellKnown.deckZone.BATTLEFIELD}
-          ), '{}')`.as("battlefieldNames"),
+          "z.championCardId",
+          "z.championName",
+          "z.battlefieldNames",
         ])
         .where("n.deckId", "=", deckId)
         .where("d.shareToken", "is not", null)

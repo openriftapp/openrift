@@ -187,23 +187,29 @@ export function marketplacePricesRepo(db: Kysely<Database>) {
     ): Promise<Map<string, { totalValueCents: number; unpricedCount: number }>> {
       const preferredLanguages = [...(languages ?? [])];
       const rows = await sql<{ deckId: string; totalValueCents: number; unpricedCount: number }>`
-        WITH priced AS (
-          SELECT dc.deck_id, dc.card_id, dc.quantity, cheapest.printing_id, cheapest.headline_cents
+        WITH deck_rows AS (
+          SELECT dc.deck_id, dc.card_id, dc.quantity
           FROM deck_cards dc
           INNER JOIN decks d ON d.id = dc.deck_id AND d.user_id = ${userId}
-          LEFT JOIN LATERAL (
-            SELECT p.printing_id, mvp.headline_cents
-            FROM printing_sides_ordered p
-            INNER JOIN mv_latest_printing_prices mvp
-              ON mvp.printing_id = p.printing_id AND mvp.marketplace = ${marketplace}
-            WHERE p.card_id = dc.card_id
-            ORDER BY
-              (p.language = ANY(${preferredLanguages}::text[])) DESC,
-              mvp.headline_cents,
-              p.printing_id
-            LIMIT 1
-          ) cheapest ON true
           WHERE dc.zone <> ${WellKnown.deckZone.OVERFLOW}
+        ),
+        cheapest AS (
+          SELECT DISTINCT ON (p.card_id) p.card_id, p.printing_id, mvp.headline_cents
+          FROM printing_sides_ordered p
+          INNER JOIN mv_latest_printing_prices mvp
+            ON mvp.printing_id = p.printing_id AND mvp.marketplace = ${marketplace}
+          WHERE p.card_id IN (SELECT card_id FROM deck_rows)
+          ORDER BY
+            p.card_id,
+            (p.language = ANY(${preferredLanguages}::text[])) DESC,
+            mvp.headline_cents,
+            p.printing_id
+        ),
+        priced AS (
+          SELECT deck_rows.deck_id, deck_rows.card_id, deck_rows.quantity,
+            cheapest.printing_id, cheapest.headline_cents
+          FROM deck_rows
+          LEFT JOIN cheapest ON cheapest.card_id = deck_rows.card_id
         ),
         per_card AS (
           SELECT deck_id, printing_id, card_id, SUM(quantity) AS quantity,
