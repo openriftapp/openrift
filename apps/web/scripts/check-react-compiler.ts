@@ -46,7 +46,7 @@ for (const filename of files) {
     babelrc: false,
     configFile: false,
     code: false,
-    parserOpts: { plugins: ["typescript", "jsx"] },
+    parserOpts: { plugins: filename.endsWith(".tsx") ? ["typescript", "jsx"] : ["typescript"] },
     plugins: [[reactCompiler, { logger: bailouts.logger }]],
   });
 }
