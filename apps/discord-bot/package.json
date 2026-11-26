@@ -14,16 +14,16 @@
   },
   "dependencies": {
     "@openrift/shared": "workspace:*",
-    "@orpc/client": "1.16.2",
-    "@orpc/contract": "1.16.2",
-    "@orpc/openapi-client": "1.16.2",
+    "@orpc/client": "1.16.5",
+    "@orpc/contract": "1.16.5",
+    "@orpc/openapi-client": "1.16.5",
     "discord.js": "14.28.1"
   },
   "devDependencies": {
-    "@types/bun": "1.4.4",
+    "@types/bun": "1.4.5",
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
-    "@vitest/coverage-v8": "5.1.0",
+    "@vitest/coverage-v8": "5.1.1",
     "typescript": "6.0.3",
-    "vitest": "5.1.0"
+    "vitest": "5.1.1"
   }
 }
