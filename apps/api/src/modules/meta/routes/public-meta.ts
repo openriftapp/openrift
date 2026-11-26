@@ -391,10 +391,9 @@ export const metaRouter = {
   legends: os.legends.handler(async ({ input, context }): Promise<MetaLegendListResponse> => {
     const { meta, canonicalPrintings } = context.repos;
 
-    const [rows, total, archiveTotal, countries] = await Promise.all([
+    const [rows, archiveLegends, countries] = await Promise.all([
       meta.scopedLegendRecords(input),
-      meta.scopedLegendCount(input),
-      meta.scopedLegendCount({}),
+      meta.cachedArchiveLegends(),
       meta.scopedLegendCountries(input),
     ]);
     const [images, events] = await Promise.all([
@@ -414,8 +413,9 @@ export const metaRouter = {
         })
         // Sorted here: the repo groups by the stored epithet, which files Azir under E.
         .toSorted((a, b) => a.legend.name.localeCompare(b.legend.name)),
-      total,
-      archiveTotal,
+      total: rows.length,
+      // The archive list is cached for minutes, so a legend added since can outnumber it.
+      archiveTotal: Math.max(archiveLegends.length, rows.length),
       countries,
     };
   }),
@@ -426,7 +426,7 @@ export const metaRouter = {
 
       // The route key is composed from the card's champion tag and slug, so it
       // can't be looked up by a column; the archive holds only a few dozen legends.
-      const legends = await meta.archiveLegends();
+      const legends = await meta.cachedArchiveLegends();
       const row = legends.find((candidate) => archiveLegendSlug(candidate) === input.slug);
       if (!row) {
         throw errors.NOT_FOUND({ message: "Legend not found" });

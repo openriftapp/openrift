@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict WQzDP1KOp8wdLKdRNNwOx9tdAKbqeTpL8ADvlk8DPLonU0wg1HAFkb0gJrvdctx
+\restrict ax2CBE33cWR081csi9y74YG1LajygfpectB5tLmw7gS8VuJFwbVSLrE8y04nEes
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -7650,6 +7650,13 @@ CREATE INDEX idx_meta_event_player_overlays_player ON public.meta_event_player_o
 
 
 --
+-- Name: idx_meta_event_players_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_meta_event_players_created_at ON public.meta_event_players USING btree (created_at);
+
+
+--
 -- Name: idx_meta_event_players_event; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -11777,5 +11784,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict WQzDP1KOp8wdLKdRNNwOx9tdAKbqeTpL8ADvlk8DPLonU0wg1HAFkb0gJrvdctx
+\unrestrict ax2CBE33cWR081csi9y74YG1LajygfpectB5tLmw7gS8VuJFwbVSLrE8y04nEes
 

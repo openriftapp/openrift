@@ -31,8 +31,8 @@ const mockMeta = {
   deckFacetCounts: vi.fn(),
   allDeckCards: vi.fn(),
   archiveLegends: vi.fn(),
+  cachedArchiveLegends: vi.fn(),
   scopedLegendRecords: vi.fn(),
-  scopedLegendCount: vi.fn(),
   scopedLegendCountries: vi.fn(),
   finishesForLegend: vi.fn(),
   bestFinishesForLegend: vi.fn(),
@@ -227,8 +227,8 @@ beforeEach(() => {
   });
   mockMeta.allDeckCards.mockResolvedValue([]);
   mockMeta.archiveLegends.mockResolvedValue([]);
+  mockMeta.cachedArchiveLegends.mockResolvedValue([]);
   mockMeta.scopedLegendRecords.mockResolvedValue([]);
-  mockMeta.scopedLegendCount.mockResolvedValue(0);
   mockMeta.scopedLegendCountries.mockResolvedValue([]);
   mockMeta.eventIndex.mockResolvedValue({ rows: [], total: 0 });
   mockMeta.eventsByIds.mockResolvedValue([]);
@@ -1229,7 +1229,6 @@ describe("GET /meta/legends", () => {
       legendIndexRow({ finishes: 7, decklists: 3, eventWins: 1, bestRank: 1 }),
     ]);
     mockMeta.eventsByIds.mockResolvedValue([eventRow()]);
-    mockMeta.scopedLegendCount.mockResolvedValue(12);
     mockMeta.scopedLegendCountries.mockResolvedValue(["DE", "FR"]);
 
     const json = await readJson(await app.request("/api/v1/meta/legends?tiers[0]=premier"));
@@ -1244,7 +1243,7 @@ describe("GET /meta/legends", () => {
         event: { slug: "summoner-skirmish-2026", playerCount: 64 },
       },
     });
-    expect(json.total).toBe(12);
+    expect(json.total).toBe(1);
     expect(json.countries).toEqual(["DE", "FR"]);
     expect(mockMeta.scopedLegendRecords).toHaveBeenCalledWith({ tiers: ["premier"] });
   });
@@ -1252,27 +1251,31 @@ describe("GET /meta/legends", () => {
   it("counts the legends the scope matched, and the archive's own beside them", async () => {
     mockMeta.scopedLegendRecords.mockResolvedValue([legendIndexRow()]);
     mockMeta.eventsByIds.mockResolvedValue([eventRow()]);
-    mockMeta.scopedLegendCount.mockImplementation((scope: Record<string, unknown>) =>
-      Promise.resolve(Object.keys(scope).length === 0 ? 217 : 1),
-    );
+    mockMeta.cachedArchiveLegends.mockResolvedValue([legendRow(), legendRow(), legendRow()]);
 
     const json = await readJson(await app.request("/api/v1/meta/legends?tiers[0]=premier"));
 
-    expect(json).toMatchObject({ total: 1, archiveTotal: 217 });
-    expect(mockMeta.scopedLegendCount).toHaveBeenCalledWith({ tiers: ["premier"] });
-    expect(mockMeta.scopedLegendCount).toHaveBeenCalledWith({});
+    expect(json).toMatchObject({ total: 1, archiveTotal: 3 });
+  });
+
+  it("never reports an archive smaller than the scope a stale archive list missed", async () => {
+    mockMeta.scopedLegendRecords.mockResolvedValue([legendIndexRow(), legendIndexRow()]);
+    mockMeta.eventsByIds.mockResolvedValue([eventRow()]);
+    mockMeta.cachedArchiveLegends.mockResolvedValue([legendRow()]);
+
+    const json = await readJson(await app.request("/api/v1/meta/legends"));
+
+    expect(json).toMatchObject({ total: 2, archiveTotal: 2 });
   });
 
   it("reports a total of zero for a scope no legend matched, the archive's size aside", async () => {
     mockMeta.scopedLegendRecords.mockResolvedValue([]);
-    mockMeta.scopedLegendCount.mockImplementation((scope: Record<string, unknown>) =>
-      Promise.resolve(Object.keys(scope).length === 0 ? 217 : 0),
-    );
+    mockMeta.cachedArchiveLegends.mockResolvedValue([legendRow(), legendRow()]);
 
     const json = await readJson(await app.request("/api/v1/meta/legends?countries[0]=FR"));
 
     expect(json.legends).toEqual([]);
-    expect(json).toMatchObject({ total: 0, archiveTotal: 217 });
+    expect(json).toMatchObject({ total: 0, archiveTotal: 2 });
   });
 
   it("drops a legend whose best event went missing between the two reads", async () => {
@@ -1293,7 +1296,7 @@ describe("GET /meta/legends", () => {
 
 describe("GET /meta/legends/{slug}", () => {
   it("returns one page of the record, the best placings and the scoped counts", async () => {
-    mockMeta.archiveLegends.mockResolvedValue([legendRow()]);
+    mockMeta.cachedArchiveLegends.mockResolvedValue([legendRow()]);
     mockMeta.finishesForLegend.mockResolvedValue({
       rows: [
         finishRow({ shareToken: "tok-1", listStatus: "full" }),
@@ -1340,7 +1343,7 @@ describe("GET /meta/legends/{slug}", () => {
   });
 
   it("forwards the scope facets and the page the request asked for", async () => {
-    mockMeta.archiveLegends.mockResolvedValue([legendRow()]);
+    mockMeta.cachedArchiveLegends.mockResolvedValue([legendRow()]);
 
     const res = await app.request(
       "/api/v1/meta/legends/kennen-heart-of-the-tempest" +
@@ -1365,7 +1368,7 @@ describe("GET /meta/legends/{slug}", () => {
   });
 
   it("rejects a page that is not a positive whole number", async () => {
-    mockMeta.archiveLegends.mockResolvedValue([legendRow()]);
+    mockMeta.cachedArchiveLegends.mockResolvedValue([legendRow()]);
 
     const res = await app.request("/api/v1/meta/legends/kennen-heart-of-the-tempest?page=0");
 
@@ -1374,7 +1377,7 @@ describe("GET /meta/legends/{slug}", () => {
   });
 
   it("separates two legends of one champion by their card slugs", async () => {
-    mockMeta.archiveLegends.mockResolvedValue([
+    mockMeta.cachedArchiveLegends.mockResolvedValue([
       legendRow({ name: "Wuju Master", slug: "wuju-master", tags: ["Master Yi"] }),
       legendRow({
         cardId: "f0000000-0001-4000-a000-000000000003",
@@ -1397,7 +1400,7 @@ describe("GET /meta/legends/{slug}", () => {
   });
 
   it("404s a slug no archived legend answers to", async () => {
-    mockMeta.archiveLegends.mockResolvedValue([legendRow()]);
+    mockMeta.cachedArchiveLegends.mockResolvedValue([legendRow()]);
 
     const res = await app.request("/api/v1/meta/legends/teemo-swift-scout");
 
@@ -1418,7 +1421,7 @@ describe("GET /meta/legends/{slug}", () => {
         }),
       ]),
     );
-    mockMeta.archiveLegends.mockResolvedValue([legendRow()]);
+    mockMeta.cachedArchiveLegends.mockResolvedValue([legendRow()]);
 
     const standings = await readJson(
       await app.request("/api/v1/meta/events/summoner-skirmish-2026"),
@@ -1432,7 +1435,7 @@ describe("GET /meta/legends/{slug}", () => {
   });
 
   it("returns a legend with no finishes rather than 404ing it", async () => {
-    mockMeta.archiveLegends.mockResolvedValue([legendRow({ deckCount: 0 })]);
+    mockMeta.cachedArchiveLegends.mockResolvedValue([legendRow({ deckCount: 0 })]);
 
     const res = await app.request("/api/v1/meta/legends/kennen-heart-of-the-tempest");
 

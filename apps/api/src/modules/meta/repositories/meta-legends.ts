@@ -1,8 +1,10 @@
+import { MINUTE_MS } from "@openrift/shared/format-date";
 import type { CardType, MetaEventTier, MetaListStatus } from "@openrift/shared/types/enums";
 import type { Kysely } from "kysely";
 import { sql } from "kysely";
 
 import type { Database } from "../../../db/tables.js";
+import { ttlCached } from "../../../lib/ttl-cached.js";
 import { offsetPage } from "../../../repositories/query-helpers.js";
 import type { MetaScopeFilters } from "./meta-shared.js";
 import {
@@ -95,6 +97,8 @@ export interface MetaLegendRecordCounts {
   decklists: number;
 }
 
+const ARCHIVE_LEGENDS_TTL_MS = 10 * MINUTE_MS;
+
 export function metaLegendsRepo(db: Kysely<Database>) {
   function finishBase() {
     return db
@@ -142,22 +146,25 @@ export function metaLegendsRepo(db: Kysely<Database>) {
     return query;
   }
 
+  /**
+   * Every legend the archive holds a standings row for, with the newest
+   * change to those rows. Grouped by the card, not the champion: two legends
+   * of one champion are two entries.
+   */
+  function archiveLegends(): Promise<MetaLegendSitemapRow[]> {
+    return db
+      .selectFrom("metaEventPlayers as p")
+      .innerJoin("cards as lc", "lc.id", "p.legendCardId")
+      .leftJoin("mvCardAggregates as lmca", "lmca.cardId", "lc.id")
+      .select([...ARCHIVE_LEGEND_COLUMNS, sql<Date>`max(p.updated_at)`.as("updatedAt")])
+      .groupBy([...ARCHIVE_LEGEND_GROUP])
+      .orderBy("lc.name", "asc")
+      .execute();
+  }
+
   return {
-    /**
-     * Every legend the archive holds a standings row for, with the newest
-     * change to those rows. Grouped by the card, not the champion: two legends
-     * of one champion are two entries.
-     */
-    archiveLegends(): Promise<MetaLegendSitemapRow[]> {
-      return db
-        .selectFrom("metaEventPlayers as p")
-        .innerJoin("cards as lc", "lc.id", "p.legendCardId")
-        .leftJoin("mvCardAggregates as lmca", "lmca.cardId", "lc.id")
-        .select([...ARCHIVE_LEGEND_COLUMNS, sql<Date>`max(p.updated_at)`.as("updatedAt")])
-        .groupBy([...ARCHIVE_LEGEND_GROUP])
-        .orderBy("lc.name", "asc")
-        .execute();
-    },
+    archiveLegends,
+    cachedArchiveLegends: ttlCached(ARCHIVE_LEGENDS_TTL_MS, archiveLegends),
 
     /**
      * One row per legend in scope. A legend with no standings row is absent.
@@ -186,20 +193,6 @@ export function metaLegendsRepo(db: Kysely<Database>) {
         query = query.where(condition);
       }
       return query.execute();
-    },
-
-    /** How many legends `scopedLegendRecords` returns for the same scope. */
-    async scopedLegendCount(scope: MetaScopeFilters = {}): Promise<number> {
-      let query = db
-        .selectFrom("metaEventPlayers as p")
-        .innerJoin("metaEvents as me", "me.id", "p.metaEventId")
-        .select(sql<number>`count(distinct p.legend_card_id)::int`.as("total"))
-        .where("p.legendCardId", "is not", null);
-      for (const condition of scopeConditions(scope)) {
-        query = query.where(condition);
-      }
-      const row = await query.executeTakeFirstOrThrow();
-      return row.total;
     },
 
     async scopedLegendCountries(scope: MetaScopeFilters = {}): Promise<string[]> {
