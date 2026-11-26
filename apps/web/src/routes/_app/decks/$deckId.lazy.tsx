@@ -1,4 +1,4 @@
-import { createLazyFileRoute } from "@tanstack/react-router";
+import { Navigate, createLazyFileRoute } from "@tanstack/react-router";
 
 import { FilterSearchProvider } from "@/features/cards/hooks/use-filter-search";
 import { useSearchWithDefaultLanguages } from "@/features/cards/hooks/use-search-with-default-languages";
@@ -13,6 +13,14 @@ export const Route = createLazyFileRoute("/_app/decks/$deckId")({
 });
 
 function DeckEditor() {
+  const signIn = Route.useLoaderData({ select: (data) => data?.signIn });
+  if (signIn) {
+    return <Navigate to="/login" search={signIn} replace />;
+  }
+  return <DeckEditorBody />;
+}
+
+function DeckEditorBody() {
   const { deckId } = Route.useParams();
   const search = Route.useSearch();
   const shownSearch = useSearchWithDefaultLanguages(search);

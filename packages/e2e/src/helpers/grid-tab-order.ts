@@ -36,9 +36,14 @@ function collectGridPrintingIds(page: Page): Promise<string[]> {
         }
       }
     };
+    const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+    const rowsPending = () => document.querySelector(`${rowSelector} [aria-busy="true"]`) !== null;
     globalThis.scrollTo({ top: 0 });
     for (;;) {
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      await nextFrame();
+      for (let frame = 0; frame < 600 && rowsPending(); frame++) {
+        await nextFrame();
+      }
       collect();
       const max = document.documentElement.scrollHeight - globalThis.innerHeight;
       if (globalThis.scrollY >= max - 2) {

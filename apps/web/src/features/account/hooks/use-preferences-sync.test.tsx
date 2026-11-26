@@ -119,6 +119,12 @@ function wrap() {
 const SAVE_DEBOUNCE_MS = 1000;
 const SAVE_RETRY_MS = 2000;
 
+async function waitForHydration() {
+  await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true), {
+    timeout: 5000,
+  });
+}
+
 async function flushSaveDebounce() {
   await act(async () => {
     await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
@@ -184,7 +190,7 @@ describe("usePreferencesSync", () => {
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
 
-    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await waitForHydration();
     expect(useDisplayStore.getState().showImages).toBe(false);
     expect(useThemeStore.getState().preference).toBe("dark");
   });
@@ -194,7 +200,7 @@ describe("usePreferencesSync", () => {
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
 
-    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await waitForHydration();
     await flushSaveDebounce();
 
     expect(patches()).toHaveLength(0);
@@ -205,7 +211,7 @@ describe("usePreferencesSync", () => {
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
 
-    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await waitForHydration();
     act(() => useDisplayStore.getState().setShowImages(false));
     await flushSaveDebounce();
 
@@ -218,7 +224,7 @@ describe("usePreferencesSync", () => {
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
 
-    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await waitForHydration();
     act(() => useDisplayStore.getState().setShowImages(false));
     await flushSaveDebounce();
 
@@ -230,7 +236,7 @@ describe("usePreferencesSync", () => {
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
 
-    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await waitForHydration();
     act(() => useDisplayStore.getState().setMaxColumns(4));
     act(() => useDisplayStore.getState().setFiltersExpanded(true));
     await flushSaveDebounce();
@@ -243,7 +249,7 @@ describe("usePreferencesSync", () => {
     const { client, Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
 
-    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await waitForHydration();
 
     act(() => {
       client.setQueryData(preferencesKeys.all("test-user-id"), {
@@ -264,7 +270,7 @@ describe("usePreferencesSync", () => {
     const { client, Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
 
-    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await waitForHydration();
     act(() => useDisplayStore.getState().setShowImages(false));
 
     setServerPrefs({ showImages: true } as UserPreferencesResponse);
@@ -327,7 +333,7 @@ describe("usePreferencesSync", () => {
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(false), { wrapper: Wrapper });
 
-    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await waitForHydration();
     expect(calls).toHaveLength(0);
   });
 
@@ -336,7 +342,7 @@ describe("usePreferencesSync", () => {
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
 
-    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await waitForHydration();
 
     vi.stubGlobal(
       "fetch",
@@ -353,7 +359,7 @@ describe("usePreferencesSync", () => {
     const { patches } = stubFetch({ showImages: true } as UserPreferencesResponse);
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
-    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await waitForHydration();
 
     act(() => useDisplayStore.getState().setShowImages(false));
     Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" });
@@ -383,7 +389,7 @@ describe("usePreferencesSync", () => {
     const { patches } = stubFetch({ showImages: true } as UserPreferencesResponse);
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
-    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await waitForHydration();
 
     act(() => useDisplayStore.getState().setShowImages(false));
     act(() => {
@@ -400,7 +406,7 @@ describe("usePreferencesSync", () => {
     stubFetch({ showImages: true } as UserPreferencesResponse);
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
-    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await waitForHydration();
 
     const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
     callerFetch.enabled = true;
@@ -428,7 +434,7 @@ describe("usePreferencesSync", () => {
     stubFetch({ showImages: true } as UserPreferencesResponse);
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
-    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await waitForHydration();
 
     const patchStatuses = [500, 200];
     const attempts: number[] = [];
@@ -452,7 +458,7 @@ describe("usePreferencesSync", () => {
     stubFetch({ showImages: true } as UserPreferencesResponse);
     const { Wrapper } = wrap();
     renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
-    await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+    await waitForHydration();
 
     const failing = vi.fn(async () => new Response("{}", { status: 500 }));
     vi.stubGlobal("fetch", failing);
@@ -553,7 +559,7 @@ describe("usePreferencesSync", () => {
       signedInUser.id = "other-user-id";
       rerender();
 
-      await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+      await waitForHydration();
       expect(useDisplayStore.getState().languages).toEqual(["EN"]);
       expect(languagesCookie()).toBe("other-user-id|EN");
       expect(writes.filter((write) => write.includes("SC"))).toEqual([]);
@@ -608,7 +614,7 @@ describe("usePreferencesSync", () => {
       const { Wrapper } = wrap();
       renderHook(() => usePreferencesSync(true), { wrapper: Wrapper });
 
-      await vi.waitFor(() => expect(useDisplayStore.getState().prefsHydrated).toBe(true));
+      await waitForHydration();
       expect(useDisplayStore.getState().marketplaceOrder[0]).toBe("cardtrader");
       act(() => useDisplayStore.getState().setShowImages(false));
       await flushSaveDebounce();

@@ -6,7 +6,7 @@ import { customTagsQueryOptions } from "@/features/cards/lib/custom-tags-queries
 import { cleanedSearchForRedirect } from "@/features/cards/lib/search-schemas";
 import { loadCollection } from "@/features/collections/lib/collection-load";
 import { deckEditorSearchSchema } from "@/features/decks/lib/deck-editor-search";
-import { requireSession } from "@/lib/auth-session";
+import { sessionQueryOptions, signInSearch } from "@/lib/auth-session";
 import { initQueryOptions } from "@/lib/init-queries";
 import { privateSeoHead } from "@/lib/seo";
 
@@ -29,7 +29,7 @@ export const Route = createFileRoute("/_app/decks/$deckId")({
   head: () => privateSeoHead("Deck Editor"),
   staticData: { hideFooter: true },
   // Auth is optional: a browser-local deck needs no server fetch; a server id
-  // with no session redirects to /login, preserving `redirect` for the return.
+  // with no session sends the visitor to /login, preserving `redirect` for the return.
   loader: async ({ context, params, location }) => {
     const { isLocalDeck, preloadLocalDecks } =
       await import("@/features/decks/lib/local-decks-collection");
@@ -41,7 +41,15 @@ export const Route = createFileRoute("/_app/decks/$deckId")({
       ]);
       return;
     }
-    const { userId } = await requireSession({ context, location });
+    const session = await context.queryClient.query({
+      ...sessionQueryOptions(),
+      staleTime: "static",
+    });
+    if (!session?.user) {
+      // The page redirects after hydration: a loader redirect lands before it and the header mismatches.
+      return { signIn: signInSearch(location) };
+    }
+    const userId = session.user.id;
     const { deckInStore, getDeckCardsCollection, getDecksCollection, refreshDeckStores } =
       await import("@/features/decks/lib/decks-collection");
     await Promise.all([

@@ -179,7 +179,7 @@ const CardRowContent = memo(function CardRowContent({
   // A placeholder has no tab stops, so keyboard focus would leave the grid at the first one.
   if (deferred && !keyboardInGrid) {
     return (
-      <div style={gridStyle}>
+      <div style={gridStyle} aria-busy="true">
         {row.items.map((item) => (
           <div key={item.id} className={cn("rounded-lg", BUTTON_PAD_CLASS)}>
             {addStripHeight > 0 && <div style={{ height: addStripHeight }} />}

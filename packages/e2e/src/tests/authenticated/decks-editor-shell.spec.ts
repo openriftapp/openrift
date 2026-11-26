@@ -3,6 +3,8 @@ import type { APIRequestContext, Page } from "@playwright/test";
 import { expect, test } from "../../fixtures/test.js";
 import { isApiCall } from "../../helpers/api-endpoint.js";
 import { API_BASE_URL, WEB_BASE_URL } from "../../helpers/constants.js";
+import { waitForFormReady } from "../../helpers/hydration.js";
+import { menuSettled, openSubmenu } from "../../helpers/menu.js";
 
 async function createDeckViaApi(
   request: APIRequestContext,
@@ -28,13 +30,26 @@ function kebabTrigger(page: Page) {
   return page.locator("main").locator('button[aria-haspopup="menu"]').first();
 }
 
+/** Retries and repeats share the fixture user, so each attempt names its deck apart. */
+function deckName(base: string): string {
+  return `${base} ${crypto.randomUUID().slice(0, 8)}`;
+}
+
 test.describe("deck editor shell", () => {
   test.describe("auth gate", () => {
     test("redirects anonymous users from /decks/<id> to /login", async ({ page }) => {
+      const hydrationErrors: string[] = [];
+      page.on("console", (message) => {
+        if (/Hydration failed|error #418/u.test(message.text())) {
+          hydrationErrors.push(message.text());
+        }
+      });
       await page.goto(`/decks/${BOGUS_DECK_ID}`);
       await expect(page).toHaveURL(/\/login\b/u);
       const url = new URL(page.url());
       expect(url.searchParams.get("redirect") ?? "").toContain(`/decks/${BOGUS_DECK_ID}`);
+      await waitForFormReady(page.getByRole("button", { name: /^sign in$/iu }));
+      expect(hydrationErrors).toEqual([]);
     });
   });
 
@@ -58,14 +73,12 @@ test.describe("deck editor shell", () => {
       authenticatedPage,
     }) => {
       const page = authenticatedPage;
-      const deckId = await createDeckViaApi(page.request, {
-        name: "Shell Test Deck",
-        format: "constructed",
-      });
+      const name = deckName("Shell Test Deck");
+      const deckId = await createDeckViaApi(page.request, { name, format: "constructed" });
 
       await page.goto(`/decks/${deckId}`);
 
-      await expect(page.getByRole("heading", { name: "Shell Test Deck" }).first()).toBeVisible({
+      await expect(page.getByRole("heading", { name }).first()).toBeVisible({
         timeout: 15_000,
       });
 
@@ -81,17 +94,23 @@ test.describe("deck editor shell", () => {
       // Renaming a server deck opens the name-and-description dialog, not a
       // bare "Rename" item (that wording is local-deck-only).
       await kebabTrigger(page).click();
-      await expect(page.getByRole("menuitem", { name: "Text list" })).toBeVisible();
-      await expect(page.getByRole("menuitem", { name: "Proxies…" })).toBeVisible();
-      await page.getByRole("menuitem", { name: "Details" }).click();
-      await expect(page.getByRole("menuitem", { name: "Name & description" })).toBeVisible();
+      const menu = page.getByRole("menu", { name: "Deck actions" });
+      await menuSettled(menu);
+      await expect(menu.getByRole("menuitem", { name: "Text list" })).toBeVisible();
+      await expect(menu.getByRole("menuitem", { name: "Proxies…" })).toBeVisible();
+      const details = await openSubmenu(page, "Details");
+      await expect(details.getByRole("menuitem", { name: "Name & description" })).toBeVisible();
 
+      // Escape closes the innermost open menu only.
       await page.keyboard.press("Escape");
+      await expect(details).toBeHidden();
+      await page.keyboard.press("Escape");
+      await expect(menu).toBeHidden();
 
       await backLink.click();
       await expect(page).toHaveURL(/\/decks$/u, { timeout: 15_000 });
       // The list reloads from the server after client-side back navigation.
-      await expect(page.getByRole("heading", { level: 3, name: /Shell Test Deck/u })).toBeVisible({
+      await expect(page.getByRole("heading", { level: 3, name })).toBeVisible({
         timeout: 15_000,
       });
     });
@@ -102,29 +121,28 @@ test.describe("deck editor shell", () => {
       authenticatedPage,
     }) => {
       const page = authenticatedPage;
-      const deckId = await createDeckViaApi(page.request, {
-        name: "Rename Me",
-        format: "constructed",
-      });
+      const name = deckName("Rename Me");
+      const renamed = deckName("Renamed");
+      const deckId = await createDeckViaApi(page.request, { name, format: "constructed" });
 
       await page.goto(`/decks/${deckId}`);
       // Top bar renders two copies of the heading (mobile + desktop); .first()
       // picks one.
-      await expect(page.getByRole("heading", { name: "Rename Me" }).first()).toBeVisible({
+      await expect(page.getByRole("heading", { name }).first()).toBeVisible({
         timeout: 15_000,
       });
 
       await kebabTrigger(page).click();
-      await page.getByRole("menuitem", { name: "Details" }).click();
-      await page.getByRole("menuitem", { name: "Name & description" }).click();
+      const details = await openSubmenu(page, "Details");
+      await details.getByRole("menuitem", { name: "Name & description" }).click();
 
       // The "Deck details" dialog has other textboxes (description/links); target Name explicitly.
       const dialog = page.getByRole("dialog");
       await expect(dialog.getByRole("heading", { name: "Deck details" })).toBeVisible();
       const input = dialog.getByLabel("Name", { exact: true });
-      await expect(input).toHaveValue("Rename Me");
+      await expect(input).toHaveValue(name);
 
-      await input.fill("Renamed");
+      await input.fill(renamed);
 
       const updateRequest = page.waitForRequest((request) =>
         isApiCall(request, "PATCH", "/api/v1/decks/{id}"),
@@ -133,12 +151,12 @@ test.describe("deck editor shell", () => {
       await updateRequest;
 
       await expect(dialog).toBeHidden();
-      await expect(page.getByRole("heading", { name: "Renamed" }).first()).toBeVisible({
+      await expect(page.getByRole("heading", { name: renamed }).first()).toBeVisible({
         timeout: 15_000,
       });
 
       await page.goto("/decks");
-      await expect(page.getByRole("heading", { level: 3, name: "Renamed" })).toBeVisible({
+      await expect(page.getByRole("heading", { level: 3, name: renamed })).toBeVisible({
         timeout: 15_000,
       });
     });

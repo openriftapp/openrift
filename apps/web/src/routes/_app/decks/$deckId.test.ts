@@ -32,11 +32,11 @@ type LoaderFn = (ctx: {
   };
   params: { deckId: string };
   location: { href: string };
-}) => Promise<void>;
+}) => Promise<unknown>;
 
 const queried: (readonly unknown[])[] = [];
 
-function runLoader(deckId: string, session: SessionUser): Promise<void> {
+function runLoader(deckId: string, session: SessionUser): Promise<unknown> {
   return (Route.options.loader as unknown as LoaderFn)({
     context: {
       queryClient: {
@@ -51,7 +51,7 @@ function runLoader(deckId: string, session: SessionUser): Promise<void> {
   });
 }
 
-async function thrownBy(promise: Promise<void>): Promise<unknown> {
+async function thrownBy(promise: Promise<unknown>): Promise<unknown> {
   try {
     await promise;
   } catch (error) {
@@ -69,10 +69,11 @@ describe("/decks/$deckId loader", () => {
     refreshDeckStores.mockClear();
   });
 
-  it("sends a signed-out visitor to sign in for a bare id", async () => {
-    const thrown = await thrownBy(runLoader(DECK_ID, null));
-
-    expect(thrown).toMatchObject({ options: { to: "/login" } });
+  it("asks the page to send a signed-out visitor to sign in for a bare id", async () => {
+    await expect(runLoader(DECK_ID, null)).resolves.toEqual({
+      signIn: { redirect: `/decks/${DECK_ID}`, email: undefined },
+    });
+    expect(deckInStore).not.toHaveBeenCalled();
   });
 
   it("loads the deck when the store holds it", async () => {

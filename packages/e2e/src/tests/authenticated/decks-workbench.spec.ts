@@ -189,9 +189,8 @@ test.describe("deck builder beta", () => {
     await expect(detail).toBeHidden();
 
     await expect(garen).toBeInViewport();
-    await expect(
-      garen.getByRole("button", { name: "Garen, Commander", exact: true }),
-    ).toBeFocused();
+    // Without art the drawn placeholder appends its stats to the name.
+    await expect(garen.getByRole("button", { name: /^Garen, Commander/u })).toBeFocused();
 
     await page.context().close();
   });

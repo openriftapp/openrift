@@ -95,12 +95,17 @@ export async function requireSession({
     staleTime: "static",
   });
   if (!session?.user) {
-    throw redirect({
-      to: "/login",
-      search: { redirect: withoutSubmittedFields(location.href) || undefined, email: undefined },
-    });
+    throw redirect({ to: "/login", search: signInSearch(location) });
   }
   return { userId: session.user.id };
+}
+
+/** The /login search that brings a visitor back to `location.href` after signing in. */
+export function signInSearch(location: { href: string }): {
+  redirect: string | undefined;
+  email: undefined;
+} {
+  return { redirect: withoutSubmittedFields(location.href) || undefined, email: undefined };
 }
 
 export const SIGNED_IN_HOME = "/collections";

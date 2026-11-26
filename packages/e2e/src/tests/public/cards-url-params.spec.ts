@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { cardImage } from "../../helpers/catalog.js";
+import { cardImage, urlWithLanguagesDefault } from "../../helpers/catalog.js";
 import { scrollUntilVisible } from "../../helpers/virtualized.js";
 
 // Seed data comes from apps/api/src/test/fixtures/seed.sql (set OGS
@@ -81,7 +81,7 @@ test.describe("card browser URL params", () => {
     await page.goto("/cards?groupBy=garbage");
 
     await scrollUntilVisible(page, cardImage(page, "Annie, Fiery"));
-    await expect(page).toHaveURL(/\/cards$/u);
+    await expect(page).toHaveURL(urlWithLanguagesDefault("/cards"));
   });
 
   test("?banned=true shows only banned cards", async ({ page }) => {
