@@ -40,8 +40,8 @@ export interface MetaEventsTable {
   country: string | null;
   location: string | null;
   sourceCheckedAt: Date | null;
-  playerRowCount: ColumnType<number, never, never>;
-  deckCount: ColumnType<number, never, never>;
+  playerRowCount: ColumnType<number, undefined, never>;
+  deckCount: ColumnType<number, undefined, never>;
   createdAt: CreatedAt;
   updatedAt: UpdatedAt;
 }
