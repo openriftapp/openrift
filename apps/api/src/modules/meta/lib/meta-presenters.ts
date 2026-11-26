@@ -47,7 +47,6 @@ import type {
   MetaEventMatchRow,
   MetaEventPhaseRow,
   MetaEventRow,
-  MetaEventWithCounts,
 } from "../repositories/meta-events.js";
 import type { ListShapeRow } from "../repositories/meta-inferences.js";
 import type {
@@ -211,7 +210,7 @@ function rowLegendRef(
  * here re-formats it. The timestamptz columns never reach the wire — the
  * archive's public shapes carry no `createdAt` / `updatedAt`.
  */
-function lifecycleOf(row: MetaEventWithCounts): MetaEventLifecycle {
+function lifecycleOf(row: MetaEventRow): MetaEventLifecycle {
   return {
     recordedStatus: row.status,
     eventDate: row.eventDate,
@@ -220,7 +219,7 @@ function lifecycleOf(row: MetaEventWithCounts): MetaEventLifecycle {
 }
 
 export function toMetaEventSummary(
-  row: MetaEventWithCounts,
+  row: MetaEventRow,
   topFinishes: readonly MetaEventFinish[] = [],
   today = todayUtc(),
 ): MetaEventSummary {
@@ -290,7 +289,7 @@ export function toMetaEventSource(row: MetaEventSourceRow): MetaEventSourceRespo
  * behind it.
  */
 export function toMetaEventDetail(
-  row: MetaEventWithCounts,
+  row: MetaEventRow,
   options: {
     sources: readonly MetaEventSourceRow[];
     contributors: readonly MetaContributorRow[];
@@ -719,7 +718,7 @@ export function toMetaDeckContext(
 }
 
 export function toAdminMetaEvent(
-  row: MetaEventWithCounts,
+  row: MetaEventRow,
   sources: readonly MetaEventSourceRow[],
   today = todayUtc(),
 ): AdminMetaEvent {

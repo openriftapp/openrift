@@ -2401,6 +2401,43 @@ describe.skipIf(!ctx)("metaRepo", () => {
       expect(latest !== null && latest >= "2026-06-15" && latest <= "2026-06-30").toBe(true);
     });
 
+    it("keeps the event's stored counts in step with its standings rows", async () => {
+      const first = await seedEvent(repo, "mta-counts-first");
+      const second = await seedEvent(repo, "mta-counts-second");
+      const counts = async (id: string) => {
+        const event = await repo.eventById(id);
+        return [event?.playerRowCount, event?.deckCount];
+      };
+
+      await seedListedPlayer(repo, first, { playerName: "MTA Counts A", rank: 1 });
+      const decklessId = await seedDecklessPlayer(repo, first, {
+        playerName: "MTA Counts B",
+        rank: 2,
+      });
+      expect(await counts(first)).toEqual([2, 1]);
+
+      await db
+        .updateTable("metaEventPlayers")
+        .set({ rank: 3 })
+        .where("id", "=", decklessId)
+        .execute();
+      expect(await counts(first)).toEqual([2, 1]);
+
+      await db
+        .updateTable("metaEventPlayers")
+        .set({ metaEventId: second })
+        .where("metaEventId", "=", first)
+        .where("deckId", "is not", null)
+        .execute();
+      expect(await counts(first)).toEqual([1, 0]);
+      expect(await counts(second)).toEqual([1, 1]);
+
+      await db.deleteFrom("metaEventPlayers").where("id", "=", decklessId).execute();
+      expect(await counts(first)).toEqual([0, 0]);
+      const totals = await repo.eventTotals({ slug: "mta-counts-second" });
+      expect(totals.decks).toBe(1);
+    });
+
     it("scopes by the event's format, not the deck's", async () => {
       // `meta_events.format` is a foreign key, so the scope can only name a
       // real format; the assertion is on the movement this test causes.

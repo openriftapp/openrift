@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { Repos } from "../../../deps.js";
-import type { MetaEventWithCounts } from "../repositories/meta-events.js";
+import type { MetaEventRow } from "../repositories/meta-events.js";
 import type { AdminMetaPlayerRow } from "../repositories/meta-players.js";
 import {
   MAX_EVENT_MATCH_DAY_DELTA,
@@ -15,7 +15,7 @@ import {
   summarizePlayerMatch,
 } from "./meta-match-suggestions.js";
 
-function event(overrides: Partial<MetaEventWithCounts> = {}): MetaEventWithCounts {
+function event(overrides: Partial<MetaEventRow> = {}): MetaEventRow {
   return {
     id: "3f7a1c2e-0000-7000-8000-000000000001",
     slug: "summoner-skirmish-berlin",
@@ -424,7 +424,7 @@ describe("summarizePlayerMatch", () => {
 describe("suggestMetaEventMatches", () => {
   const CANDIDATE_ID = "3f7a1c2e-0000-7000-8000-0000000000ca";
 
-  function repos(candidate: Record<string, unknown> | undefined, rows: MetaEventWithCounts[] = []) {
+  function repos(candidate: Record<string, unknown> | undefined, rows: MetaEventRow[] = []) {
     const eventIdentitiesInWindow = vi.fn().mockResolvedValue(rows);
     const eventsByIds = vi
       .fn()

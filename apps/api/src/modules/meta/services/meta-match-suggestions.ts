@@ -12,7 +12,7 @@ import type {
 } from "@openrift/shared/types/api/meta";
 
 import type { Repos } from "../../../deps.js";
-import type { MetaEventWithCounts } from "../repositories/meta-events.js";
+import type { MetaEventRow } from "../repositories/meta-events.js";
 import type { AdminMetaPlayerRow } from "../repositories/meta-players.js";
 
 export interface MetaEventMatchInput {
@@ -174,7 +174,7 @@ function topEventMatches<T extends { id: string; name: string; eventDate: string
 
 export function rankEventMatches(
   candidate: MetaEventMatchInput,
-  events: readonly MetaEventWithCounts[],
+  events: readonly MetaEventRow[],
   currentMetaEventId: string | null = null,
 ): MetaEventMatchSuggestion[] {
   return topEventMatches(candidate, events, currentMetaEventId).map((row) => ({

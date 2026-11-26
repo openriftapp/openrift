@@ -11,13 +11,9 @@ export const META_ARCHIVE_USER_ID = "meta-archive";
 
 export const TODAY = sql<string>`(now() at time zone 'UTC')::date`;
 
-export const HAS_STANDINGS = sql<SqlBool>`exists (
-  select 1 from meta_event_players p where p.meta_event_id = me.id
-)`;
+export const HAS_STANDINGS = sql<SqlBool>`me.player_row_count > 0`;
 
-export const HAS_DECKS = sql<SqlBool>`exists (
-  select 1 from meta_event_players p where p.meta_event_id = me.id and p.deck_id is not null
-)`;
+export const HAS_DECKS = sql<SqlBool>`me.deck_count > 0`;
 
 export const HAS_LIST = sql<SqlBool>`p.deck_id is not null`;
 

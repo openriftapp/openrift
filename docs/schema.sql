@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict uQL4WJ8OE9cRQGQYOz3EjgxT3hk5zuR0AYHCurMhp3kFRAbQ0VnKmmyNfLVYryr
+\restrict WQzDP1KOp8wdLKdRNNwOx9tdAKbqeTpL8ADvlk8DPLonU0wg1HAFkb0gJrvdctx
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -77,6 +77,55 @@ CREATE TYPE public.set_type AS ENUM (
     'main',
     'supplemental'
 );
+
+
+--
+-- Name: apply_meta_event_count_deltas(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.apply_meta_event_count_deltas() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+      DECLARE
+        event_ids uuid[];
+        player_deltas integer[];
+        deck_deltas integer[];
+      BEGIN
+        IF TG_OP = 'INSERT' THEN
+          SELECT array_agg(id), array_agg(players), array_agg(decks)
+            INTO event_ids, player_deltas, deck_deltas
+            FROM (SELECT meta_event_id AS id, count(*)::int AS players, count(deck_id)::int AS decks
+                    FROM new_rows GROUP BY meta_event_id) d;
+        ELSIF TG_OP = 'DELETE' THEN
+          SELECT array_agg(id), array_agg(players), array_agg(decks)
+            INTO event_ids, player_deltas, deck_deltas
+            FROM (SELECT meta_event_id AS id, -count(*)::int AS players, -count(deck_id)::int AS decks
+                    FROM old_rows GROUP BY meta_event_id) d;
+        ELSE
+          SELECT array_agg(id), array_agg(players), array_agg(decks)
+            INTO event_ids, player_deltas, deck_deltas
+            FROM (SELECT id, sum(players)::int AS players, sum(decks)::int AS decks
+                    FROM (SELECT meta_event_id AS id, 1 AS players, (deck_id IS NOT NULL)::int AS decks
+                            FROM new_rows
+                          UNION ALL
+                          SELECT meta_event_id, -1, -(deck_id IS NOT NULL)::int FROM old_rows) changes
+                   GROUP BY id
+                  HAVING sum(players) <> 0 OR sum(decks) <> 0) d;
+        END IF;
+
+        IF event_ids IS NULL THEN
+          RETURN NULL;
+        END IF;
+
+        PERFORM 1 FROM meta_events WHERE id = ANY(event_ids) ORDER BY id FOR NO KEY UPDATE;
+        UPDATE meta_events me
+          SET player_row_count = me.player_row_count + d.players,
+              deck_count = me.deck_count + d.decks
+          FROM unnest(event_ids, player_deltas, deck_deltas) AS d(id, players, decks)
+          WHERE me.id = d.id;
+        RETURN NULL;
+      END;
+      $$;
 
 
 --
@@ -3307,12 +3356,16 @@ CREATE TABLE public.meta_events (
     location text,
     status text DEFAULT 'complete'::text NOT NULL,
     source_checked_at timestamp with time zone,
+    player_row_count integer DEFAULT 0 NOT NULL,
+    deck_count integer DEFAULT 0 NOT NULL,
     CONSTRAINT chk_meta_events_country CHECK (((country IS NULL) OR (country ~ '^[A-Z]{2}$'::text))),
+    CONSTRAINT chk_meta_events_deck_count CHECK (((deck_count >= 0) AND (deck_count <= player_row_count))),
     CONSTRAINT chk_meta_events_location CHECK (((location IS NULL) OR ((length(location) >= 1) AND (length(location) <= 500)))),
     CONSTRAINT chk_meta_events_name CHECK (((length(name) >= 1) AND (length(name) <= 120))),
     CONSTRAINT chk_meta_events_notes CHECK (((notes IS NULL) OR (length(notes) <= 4000))),
     CONSTRAINT chk_meta_events_organizer CHECK (((organizer IS NULL) OR ((length(organizer) >= 1) AND (length(organizer) <= 120)))),
     CONSTRAINT chk_meta_events_player_count CHECK (((player_count IS NULL) OR (player_count > 0))),
+    CONSTRAINT chk_meta_events_player_row_count CHECK ((player_row_count >= 0)),
     CONSTRAINT chk_meta_events_slug CHECK ((slug ~ '^[a-z0-9][a-z0-9-]{2,49}$'::text)),
     CONSTRAINT chk_meta_events_status CHECK ((status = ANY (ARRAY['upcoming'::text, 'in_progress'::text, 'complete'::text]))),
     CONSTRAINT chk_meta_events_tier CHECK ((tier = ANY (ARRAY['premier'::text, 'competitive'::text, 'local'::text])))
@@ -8871,6 +8924,27 @@ CREATE TRIGGER trg_marketplace_products_set_norm_name BEFORE INSERT OR UPDATE OF
 
 
 --
+-- Name: meta_event_players trg_meta_event_players_counts_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_meta_event_players_counts_delete AFTER DELETE ON public.meta_event_players REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION public.apply_meta_event_count_deltas();
+
+
+--
+-- Name: meta_event_players trg_meta_event_players_counts_insert; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_meta_event_players_counts_insert AFTER INSERT ON public.meta_event_players REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.apply_meta_event_count_deltas();
+
+
+--
+-- Name: meta_event_players trg_meta_event_players_counts_update; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_meta_event_players_counts_update AFTER UPDATE ON public.meta_event_players REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION public.apply_meta_event_count_deltas();
+
+
+--
 -- Name: organization_members trg_organization_members_owner_guard; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -11703,5 +11777,5 @@ ALTER TABLE ONLY public.uvsgames_format_mappings
 -- PostgreSQL database dump complete
 --
 
-\unrestrict uQL4WJ8OE9cRQGQYOz3EjgxT3hk5zuR0AYHCurMhp3kFRAbQ0VnKmmyNfLVYryr
+\unrestrict WQzDP1KOp8wdLKdRNNwOx9tdAKbqeTpL8ADvlk8DPLonU0wg1HAFkb0gJrvdctx
 

@@ -38,16 +38,6 @@ export interface UpsertedMetaEventMatch {
 export type MetaEventRow = Selectable<MetaEventsTable>;
 
 /**
- * `playerRowCount` is the whole standings table; `deckCount` the subset a
- * decklist is known for. They differ for nearly every real event, which is the
- * point of the pyramid.
- */
-export type MetaEventWithCounts = MetaEventRow & {
-  playerRowCount: number;
-  deckCount: number;
-};
-
-/**
  * One recent addition to the archive, already grouped into a burst: all rows of
  * one kind landing on one event within one UTC day.
  */
@@ -107,36 +97,9 @@ const ACTIVITY_WINDOW_DAYS = 7;
 const RESULTS_CONDITION: Record<MetaResultsState, RawBuilder<SqlBool>> = {
   notStarted: UPCOMING,
   collecting: RUNNING,
-  final: sql<SqlBool>`not ${UPCOMING} and ${PLAYED} and c.player_row_count > 0`,
-  noResults: sql<SqlBool>`not ${UPCOMING} and ${PLAYED} and c.player_row_count = 0`,
+  final: sql<SqlBool>`not ${UPCOMING} and ${PLAYED} and me.player_row_count > 0`,
+  noResults: sql<SqlBool>`not ${UPCOMING} and ${PLAYED} and me.player_row_count = 0`,
 };
-
-/** Over `meta_event_players` as `p`. */
-export const EVENT_COUNT_COLUMNS = [
-  sql<number>`count(*)::int`.as("playerRowCount"),
-  sql<number>`count(p.deck_id)::int`.as("deckCount"),
-] as const;
-
-export async function withEventCounts(
-  db: Kysely<Database>,
-  rows: readonly MetaEventRow[],
-): Promise<MetaEventWithCounts[]> {
-  if (rows.length === 0) {
-    return [];
-  }
-  const counts = await db
-    .selectFrom("metaEventPlayers as p")
-    .select(["p.metaEventId", ...EVENT_COUNT_COLUMNS])
-    .where(sql<SqlBool>`p.meta_event_id = any(${rows.map((row) => row.id)}::uuid[])`)
-    .groupBy("p.metaEventId")
-    .execute();
-  const byEvent = new Map(counts.map((row) => [row.metaEventId, row]));
-  return rows.map((row) => ({
-    ...row,
-    playerRowCount: byEvent.get(row.id)?.playerRowCount ?? 0,
-    deckCount: byEvent.get(row.id)?.deckCount ?? 0,
-  }));
-}
 
 function promoteLockKey(key: string): string {
   return `meta-promote:${key}`;
@@ -153,8 +116,8 @@ const EVENT_ORDER_COLUMNS: Record<(typeof META_EVENT_SORTS)[number], RawBuilder<
   name: sql`me.name`,
   format: sql`me.format`,
   organizer: sql`me.organizer`,
-  playerRowCount: sql`c.player_row_count`,
-  deckCount: sql`c.deck_count`,
+  playerRowCount: sql`me.player_row_count`,
+  deckCount: sql`me.deck_count`,
 };
 
 /**
@@ -183,9 +146,9 @@ function relevanceOrderBy(search: string) {
  * event with no reported field size is excluded, not counted as complete.
  */
 const standingsShort = sql<SqlBool>`me.player_count is not null
-  and c.player_row_count < me.player_count`;
+  and me.player_row_count < me.player_count`;
 
-const hasDecks = sql<SqlBool>`c.deck_count > 0`;
+const hasDecks = sql<SqlBool>`me.deck_count > 0`;
 
 /** Hand-entered citations carry a null provider, so `manual` means no provider citation at all. */
 function sourcedBy(source: MetaEventSourceFilter): RawBuilder<SqlBool> {
@@ -201,30 +164,8 @@ export function metaEventsRepo<R = never>(
   db: Kysely<Database>,
   scopedRepos: (trx: Kysely<Database>) => R = noScopedRepos,
 ) {
-  /**
-   * Lateral so the roster and deck counts stay filterable and sortable:
-   * neither is a column on `meta_events`.
-   *
-   * The lateral body is an ungrouped aggregate: it always yields one row, so
-   * `c.player_row_count` / `c.deck_count` are non-null for every event.
-   */
   function eventQuery() {
-    return db
-      .selectFrom("metaEvents as me")
-      .leftJoinLateral(
-        (eb) =>
-          eb
-            .selectFrom("metaEventPlayers as p")
-            .whereRef("p.metaEventId", "=", "me.id")
-            .select(EVENT_COUNT_COLUMNS)
-            .as("c"),
-        (join) => join.onTrue(),
-      )
-      .selectAll("me")
-      .select([
-        sql<number>`c.player_row_count`.as("playerRowCount"),
-        sql<number>`c.deck_count`.as("deckCount"),
-      ]);
+    return db.selectFrom("metaEvents as me").selectAll("me");
   }
 
   function narrowEvents<Q extends ReturnType<typeof eventQuery>>(
@@ -316,7 +257,7 @@ export function metaEventsRepo<R = never>(
       filters: MetaEventFilters,
       page: { limit: number; offset: number },
       order: MetaEventOrder = {},
-    ): Promise<{ rows: MetaEventWithCounts[]; total: number }> {
+    ): Promise<{ rows: MetaEventRow[]; total: number }> {
       const search = filters.search?.trim() ?? "";
       let query = eventQuery()
         .orderBy(
@@ -365,11 +306,11 @@ export function metaEventsRepo<R = never>(
       };
     },
 
-    eventBySlug(slug: string): Promise<MetaEventWithCounts | undefined> {
+    eventBySlug(slug: string): Promise<MetaEventRow | undefined> {
       return eventQuery().where("me.slug", "=", slug).executeTakeFirst();
     },
 
-    eventById(id: string): Promise<MetaEventWithCounts | undefined> {
+    eventById(id: string): Promise<MetaEventRow | undefined> {
       return eventQuery().where("me.id", "=", id).executeTakeFirst();
     },
 
@@ -515,7 +456,7 @@ export function metaEventsRepo<R = never>(
     },
 
     /** A batch of full event rows, for list surfaces that would otherwise loop {@link eventById}. */
-    async eventsByIds(ids: readonly string[]): Promise<MetaEventWithCounts[]> {
+    async eventsByIds(ids: readonly string[]): Promise<MetaEventRow[]> {
       if (ids.length === 0) {
         return [];
       }
@@ -642,23 +583,17 @@ export function metaEventsRepo<R = never>(
     },
 
     /** Undefined when the slug is taken; a unique violation would abort the caller's transaction. */
-    async createEventIfSlugFree(input: MetaEventInsert): Promise<MetaEventWithCounts | undefined> {
-      const row = await db
+    createEventIfSlugFree(input: MetaEventInsert): Promise<MetaEventRow | undefined> {
+      return db
         .insertInto("metaEvents")
         .values(input)
         .onConflict((oc) => oc.column("slug").doNothing())
         .returningAll()
         .executeTakeFirst();
-      return row === undefined ? undefined : { ...row, playerRowCount: 0, deckCount: 0 };
     },
 
-    async createEvent(input: MetaEventInsert): Promise<MetaEventWithCounts> {
-      const row = await db
-        .insertInto("metaEvents")
-        .values(input)
-        .returningAll()
-        .executeTakeFirstOrThrow();
-      return { ...row, playerRowCount: 0, deckCount: 0 };
+    createEvent(input: MetaEventInsert): Promise<MetaEventRow> {
+      return db.insertInto("metaEvents").values(input).returningAll().executeTakeFirstOrThrow();
     },
 
     async setEventLifecycle(

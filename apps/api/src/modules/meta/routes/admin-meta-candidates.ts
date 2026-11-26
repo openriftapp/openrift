@@ -17,7 +17,7 @@ import { requireAuthedUser } from "../../../orpc/base.js";
 import type { ApiContext } from "../../../orpc/context.js";
 import { recordAdminEvent } from "../../system/services/record-admin-event.js";
 import { toMetaIgnoredEntry, toMetaOverlayCardRows } from "../lib/meta-overlay-presenters.js";
-import type { MetaEventWithCounts } from "../repositories/meta-events.js";
+import type { MetaEventRow } from "../repositories/meta-events.js";
 import type {
   MetaEventOverlayRow,
   MetaOverlayCardRow,
@@ -121,7 +121,7 @@ function display(value: unknown): string | null {
  */
 function eventChanges(
   overlay: MetaEventOverlayRow,
-  live: MetaEventWithCounts | null,
+  live: MetaEventRow | null,
 ): MetaOverlayQueueRow["changes"] {
   return overlay.claimedFields.map((field) => ({
     field,
@@ -182,7 +182,7 @@ function unresolvedNames(cards: readonly MetaOverlayCardRow[]): string[] {
 
 function eventQueueRow(
   overlay: MetaEventOverlayRow,
-  live: MetaEventWithCounts | null,
+  live: MetaEventRow | null,
 ): MetaOverlayQueueRow {
   return {
     id: overlay.id,

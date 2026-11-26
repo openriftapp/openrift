@@ -50,15 +50,7 @@ export function metaArchiveRepo(db: Kysely<Database>) {
           eb.fn.countAll<string>().as("events"),
           sql<string>`count(*) filter (where ${HAS_STANDINGS})`.as("eventsWithStandings"),
           sql<string>`count(*) filter (where ${HAS_DECKS})`.as("eventsWithDecklists"),
-          provider === undefined
-            ? sql<string>`(select count(*) from meta_event_players p where p.deck_id is not null)`.as(
-                "decks",
-              )
-            : sql<string>`(
-                select count(*) from meta_event_players p
-                  join meta_events me on me.id = p.meta_event_id
-                 where p.deck_id is not null and ${citedBy(provider)}
-              )`.as("decks"),
+          sql<string>`coalesce(sum(me.deck_count), 0)`.as("decks"),
           sql<string>`count(*) filter (where date_trunc('milliseconds', me.created_at) > now() - interval '7 days')`.as(
             "addedLast7Days",
           ),

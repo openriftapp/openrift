@@ -5,8 +5,7 @@ import { sql } from "kysely";
 import type { Database } from "../../../db/tables.js";
 import { containsPattern } from "../../../lib/like-pattern.js";
 import { offsetPage } from "../../../repositories/query-helpers.js";
-import type { MetaEventWithCounts } from "./meta-events.js";
-import { EVENT_COUNT_COLUMNS, withEventCounts } from "./meta-events.js";
+import type { MetaEventRow } from "./meta-events.js";
 import type { MetaScopeFilters } from "./meta-shared.js";
 import {
   HAS_DECKS,
@@ -63,31 +62,15 @@ const HOLDS_CONDITIONS = {
   resultless: sql<SqlBool>`not ${HAS_STANDINGS} and not ${UPCOMING} and ${PLAYED}`,
 } as const;
 
-function unreportedHolding(held: RawBuilder<SqlBool>): RawBuilder<SqlBool> {
-  return sql<SqlBool>`me.id in (
-    select p.meta_event_id from meta_event_players p
-      join meta_events m2 on m2.id = p.meta_event_id
-     where m2.player_count is null
-     group by p.meta_event_id
-    having ${held}
-  )`;
-}
-
-/**
- * The reported field size, else the standings rows held; neither means no size.
- * An OR on the bare column with an uncorrelated fallback: a coalesce or a
- * correlated count makes the planner aggregate every standings row.
- */
+/** The reported field size, else the standings rows held; neither means no size. */
 function fieldSizeAtLeast(min: number): RawBuilder<SqlBool> {
-  return sql<SqlBool>`(me.player_count >= ${min} or ${unreportedHolding(
-    sql<SqlBool>`count(*) >= ${Math.max(min, 1)}`,
-  )})`;
+  return sql<SqlBool>`(me.player_count >= ${min}
+    or (me.player_count is null and me.player_row_count >= ${Math.max(min, 1)}))`;
 }
 
 function fieldSizeAtMost(max: number): RawBuilder<SqlBool> {
-  return sql<SqlBool>`(me.player_count <= ${max} or ${unreportedHolding(
-    sql<SqlBool>`count(*) between 1 and ${max}`,
-  )})`;
+  return sql<SqlBool>`(me.player_count <= ${max}
+    or (me.player_count is null and me.player_row_count between 1 and ${max}))`;
 }
 
 const EVENT_ORDER_COLUMNS = {
@@ -98,8 +81,8 @@ const EVENT_ORDER_COLUMNS = {
 } as const;
 
 const COUNT_ORDER_COLUMNS = {
-  players: sql`coalesce(me.player_count, nullif(c.player_row_count, 0))`,
-  decks: sql`coalesce(c.deck_count, 0)`,
+  players: sql`coalesce(me.player_count, nullif(me.player_row_count, 0))`,
+  decks: sql`me.deck_count`,
 } as const;
 
 export function metaEventIndexRepo(db: Kysely<Database>) {
@@ -138,22 +121,6 @@ export function metaEventIndexRepo(db: Kysely<Database>) {
     return query;
   }
 
-  function filteredWithCounts(filters: MetaEventIndexFilters, lifted?: MetaScopeFacet | "holds") {
-    const counted = db
-      .selectFrom("metaEventPlayers as p")
-      .select(["p.metaEventId", ...EVENT_COUNT_COLUMNS])
-      .groupBy("p.metaEventId");
-    // The scope is repeated inside the aggregate: a grouped count joined
-    // afterwards cannot be narrowed, so it reads every standings row.
-    const narrowed =
-      conditions(filters, lifted).length === 0
-        ? counted
-        : counted.where("p.metaEventId", "in", filtered(filters, lifted).select("me.id"));
-    return filtered(filters, lifted).leftJoin(narrowed.as("c"), (join) =>
-      join.onRef("c.metaEventId", "=", "me.id"),
-    );
-  }
-
   async function facetCounts(
     filters: MetaEventIndexFilters,
     facet: MetaScopeFacet,
@@ -177,12 +144,12 @@ export function metaEventIndexRepo(db: Kysely<Database>) {
       filters: MetaEventIndexFilters,
       order: MetaEventIndexOrder,
       page: { limit: number; offset: number },
-    ): Promise<{ rows: MetaEventWithCounts[]; total: number }> {
+    ): Promise<{ rows: MetaEventRow[]; total: number }> {
       const by = order.by ?? "date";
       const direction = order.dir === "asc" ? sql`asc` : sql`desc`;
       const byCount = by === "players" || by === "decks";
       const column = byCount ? COUNT_ORDER_COLUMNS[by] : EVENT_ORDER_COLUMNS[by];
-      let rowQuery = (byCount ? filteredWithCounts(filters) : filtered(filters)).selectAll("me");
+      let rowQuery = filtered(filters).selectAll("me");
       if (by === "country") {
         rowQuery = rowQuery.orderBy(sql`me.country is null asc`);
       }
@@ -198,7 +165,7 @@ export function metaEventIndexRepo(db: Kysely<Database>) {
           .orderBy("me.slug", "asc"),
         page,
       );
-      return { rows: await withEventCounts(db, rows), total };
+      return { rows, total };
     },
 
     async eventFacetCounts(filters: MetaEventIndexFilters): Promise<MetaEventFacetCounts> {
@@ -224,11 +191,10 @@ export function metaEventIndexRepo(db: Kysely<Database>) {
 
     eventTotals(filters: MetaEventIndexFilters): Promise<MetaEventTotals> {
       return filtered(filters)
-        .leftJoin("metaEventPlayers as p", "p.metaEventId", "me.id")
         .select([
-          sql<number>`count(distinct me.id)::int`.as("events"),
-          sql<number>`count(p.id)::int`.as("playerRows"),
-          sql<number>`count(p.deck_id)::int`.as("decks"),
+          sql<number>`count(*)::int`.as("events"),
+          sql<number>`coalesce(sum(me.player_row_count), 0)::int`.as("playerRows"),
+          sql<number>`coalesce(sum(me.deck_count), 0)::int`.as("decks"),
         ])
         .executeTakeFirstOrThrow();
     },
@@ -244,17 +210,16 @@ export function metaEventIndexRepo(db: Kysely<Database>) {
       return Object.fromEntries(rows.map((row) => [row.eventDate, row.count]));
     },
 
-    async eventsBySlugs(slugs: readonly string[]): Promise<MetaEventWithCounts[]> {
+    async eventsBySlugs(slugs: readonly string[]): Promise<MetaEventRow[]> {
       if (slugs.length === 0) {
         return [];
       }
-      const rows = await db
+      return db
         .selectFrom("metaEvents as me")
         .selectAll("me")
         .where(sql<SqlBool>`me.slug = any(${[...slugs]}::text[])`)
         .orderBy("me.slug", "asc")
         .execute();
-      return withEventCounts(db, rows);
     },
   };
 }

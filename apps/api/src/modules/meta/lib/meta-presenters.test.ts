@@ -6,7 +6,7 @@ import type {
   MetaDeckFacetRows,
   MetaDeckSummaryRow,
 } from "../repositories/meta-decks.js";
-import type { MetaEventRow, MetaEventWithCounts } from "../repositories/meta-events.js";
+import type { MetaEventRow } from "../repositories/meta-events.js";
 import type {
   MetaArchiveLegendRow,
   MetaLegendFinishRow,
@@ -44,7 +44,7 @@ import {
   toMetaSubmission,
 } from "./meta-presenters.js";
 
-function eventRow(overrides: Partial<MetaEventWithCounts> = {}): MetaEventWithCounts {
+function eventRow(overrides: Partial<MetaEventRow> = {}): MetaEventRow {
   return {
     id: "3f7a1c2e-0000-7000-8000-000000000001",
     slug: "summoner-skirmish-berlin",
